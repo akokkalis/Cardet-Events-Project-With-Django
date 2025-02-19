@@ -2,15 +2,20 @@ import os
 from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.conf import settings
-from .models import Company, Event
+from .models import Company, Event, Participant
 import shutil
+import os
+from xhtml2pdf import pisa
+
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 
 
 @receiver(post_save, sender=Company)
 def create_company_folder(sender, instance, created, **kwargs):
     """Creates the company folder and moves the logo if necessary."""
-    company_folder = os.path.join(COMPANY_MASTER_FOLDER, f"{instance.id}_{instance.name}")
+    company_folder = os.path.join(
+        COMPANY_MASTER_FOLDER, f"{instance.id}_{instance.name}"
+    )
 
     if created:
         os.makedirs(company_folder, exist_ok=True)
@@ -28,8 +33,8 @@ def create_company_folder(sender, instance, created, **kwargs):
             print(f"🔄 Logo moved to: {instance.logo.name}")
 
 
-
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
+
 
 @receiver(post_save, sender=Event)
 def create_event_folder(sender, instance, created, **kwargs):
@@ -47,6 +52,7 @@ def create_event_folder(sender, instance, created, **kwargs):
         print(f"✅ PDF tickets folder created: {pdf_folder}")
         print(f"✅ Signatures folder created: {signatures_folder}")
 
+
 @receiver(pre_delete, sender=Event)
 def delete_event_folder(sender, instance, **kwargs):
     """Deletes the event folder when an event is removed."""
@@ -55,3 +61,11 @@ def delete_event_folder(sender, instance, **kwargs):
     if os.path.exists(event_folder):
         shutil.rmtree(event_folder)  # Remove event directory with all files
         print(f"🗑 Event folder deleted: {event_folder}")
+
+
+@receiver(post_save, sender=Participant)
+def generate_qr_and_pdf(sender, instance, created, **kwargs):
+    if created:
+        instance.generate_qr_code()
+        instance.save()
+        generate_pdf_ticket(instance)

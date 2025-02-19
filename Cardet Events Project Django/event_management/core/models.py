@@ -9,7 +9,7 @@ from django.dispatch import receiver
 from django.conf import settings
 import os
 from ckeditor.fields import RichTextField
-
+from django.core.files.base import ContentFile
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
@@ -101,6 +101,7 @@ class Participant(models.Model):
     email = models.EmailField()
     phone = models.CharField(max_length=50, blank=True, null=True)
     pdf_ticket = models.FileField(upload_to="pdf_tickets/", blank=True, null=True)
+    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
     registered_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -111,6 +112,20 @@ class Participant(models.Model):
 
     def __str__(self):
         return self.name
+
+    def generate_qr_code(self):
+        """Generate a QR Code linking to the participant’s check-in URL."""
+        qr_data = f"http://127.0.0.1:8000/scan_qr/{self.event.id}/{self.id}/"
+        qr = qrcode.make(qr_data)
+
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+
+        self.qr_code.save(
+            f"{self.name}_{self.email}_qr.png",
+            ContentFile(buffer.getvalue()),
+            save=False,
+        )
 
 
 class Attendance(models.Model):
