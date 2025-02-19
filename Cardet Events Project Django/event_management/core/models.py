@@ -10,6 +10,9 @@ from django.conf import settings
 import os
 from ckeditor.fields import RichTextField
 from django.core.files.base import ContentFile
+import qrcode
+from io import BytesIO
+from django.core.files.base import ContentFile
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
@@ -29,8 +32,23 @@ def company_logo_path(instance, filename):
 
 def event_image_path(instance, filename):
     """Returns the path to store event images inside the event folder."""
-    event_folder = f"Events/{instance.id}_{instance.event_name}"
-    return os.path.join(event_folder, filename)
+    if instance.id:  # Ensure the instance has an ID before using it
+        return os.path.join(
+            f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
+            "event_image",
+            filename,
+        )
+    return f"temp/{filename}"  # Temporary storage before ID is assigned
+
+
+def pdf_ticket_path(instance, filename):
+    """Returns the correct path to store PDF tickets inside the event folder."""
+    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/pdf_tickets/{instance.name}_{instance.email}_ticket.pdf"
+
+
+def qr_code_path(instance, filename):
+    """Returns the correct path to store QR codes inside the event folder."""
+    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/qr_codes/{instance.name}_{instance.email}_qr.png"
 
 
 class Company(models.Model):
@@ -87,7 +105,9 @@ class Event(models.Model):
 
     def get_event_folder(self):
         """Returns the event folder path inside 'Events/'."""
-        return os.path.join(EVENTS_MASTER_FOLDER, f"{self.id}_{self.event_name}")
+        return os.path.join(
+            EVENTS_MASTER_FOLDER, f"{self.id}_{self.event_name.replace(' ','_')}"
+        )
 
     def __str__(self):
         return (
@@ -100,8 +120,8 @@ class Participant(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=50, blank=True, null=True)
-    pdf_ticket = models.FileField(upload_to="pdf_tickets/", blank=True, null=True)
-    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
+    pdf_ticket = models.FileField(upload_to=pdf_ticket_path, blank=True, null=True)
+    qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
     registered_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -115,17 +135,40 @@ class Participant(models.Model):
 
     def generate_qr_code(self):
         """Generate a QR Code linking to the participant’s check-in URL."""
-        qr_data = f"http://127.0.0.1:8000/scan_qr/{self.event.id}/{self.id}/"
+        qr_data = f"/scan_qr/{self.event.id}/{self.id}/"
         qr = qrcode.make(qr_data)
+
+        event_name = self.event.event_name.replace(" ", "_")
+
+        # ✅ Ensure QR codes are saved inside the correct event folder
+        qr_folder = os.path.join(
+            settings.MEDIA_ROOT,
+            f"Events\{self.event.id}_{self.event.event_name.replace(' ', '_')}\qr_codes",
+        )
+
+        print("QR CODE FOLDER")
+        print(qr_folder)
+        os.makedirs(qr_folder, exist_ok=True)
+
+        # ✅ Fix Filename to Ensure It Matches When Saved
+        sanitized_email = self.email.replace("@", "_").replace(
+            ".", "_"
+        )  # Replace special characters
+        qr_filename = f"{self.name}_{sanitized_email}_qr.png"
+
+        qr_path = os.path.join(qr_folder, qr_filename)
 
         buffer = BytesIO()
         qr.save(buffer, format="PNG")
 
+        # ✅ Save QR code in the correct path inside the event's folder
         self.qr_code.save(
-            f"{self.name}_{self.email}_qr.png",
+            f"Events/{self.event.id}_{self.event.event_name}/qr_codes/{qr_filename}",
             ContentFile(buffer.getvalue()),
             save=False,
         )
+
+        return os.path.abspath(qr_path)  # ✅ Return absolute path for PDF generation
 
 
 class Attendance(models.Model):

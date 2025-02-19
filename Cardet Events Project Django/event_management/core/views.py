@@ -2,10 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Event, Participant
+from .models import Event, Participant, Attendance
 from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.utils.timezone import now
 
 
 def login_view(request):
@@ -111,3 +112,22 @@ def event_detail(request, event_id):
             "form": form,
         },
     )
+
+
+def scan_qr(request, event_id, participant_id):
+    participant = get_object_or_404(Participant, id=participant_id, event_id=event_id)
+
+    if request.user.is_authenticated:
+        # Mark participant as present
+        attendance, created = Attendance.objects.get_or_create(
+            participant=participant, event=participant.event
+        )
+        attendance.present = True
+        attendance.timestamp = now()
+        attendance.save()
+
+        messages.success(request, f"{participant.name} is marked as present.")
+        return redirect("event_detail", event_id=event_id)
+
+    else:
+        return redirect("https://www.yoursite.com/unauthorized")

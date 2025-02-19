@@ -7,6 +7,7 @@ from .views import (
     event_edit,
     event_delete,
     event_detail,
+    scan_qr,
 )
 
 urlpatterns = [
@@ -18,4 +19,5 @@ urlpatterns = [
     path("events/edit/<int:event_id>/", event_edit, name="event_edit"),
     path("delete/<int:event_id>/", event_delete, name="event_delete"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),
+    path("scan_qr/<int:event_id>/<int:participant_id>/", scan_qr, name="scan_qr"),
 ]
