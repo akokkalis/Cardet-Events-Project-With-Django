@@ -1058,7 +1058,7 @@ def generate_certificate_for_participant(event, participant):
     - If the template has AcroForm fields, try to fill with pypdf.
     - Otherwise, use PyMuPDF (fitz) text replacement with a Unicode TTF
       (registered per-page via page.insert_font), so Greek characters display.
-    - Saves the generated PDF to participant.certificate (first page of template, same as original behavior).
+    - Saves the generated PDF to participant.certificate (first page of template).
 
     Returns: (success: bool, message: str)
     """
@@ -1170,7 +1170,6 @@ def generate_certificate_for_participant(event, participant):
                 default_project_font = os.path.join(
                     settings.BASE_DIR, "core", "static", "fonts", "DejaVuSans.ttf"
                 )
-                # allow override via settings.PDF_REPLACEMENT_FONT if provided
                 cfg_font = getattr(settings, "PDF_REPLACEMENT_FONT", default_project_font)
 
                 if os.path.exists(system_font):
@@ -1183,10 +1182,13 @@ def generate_certificate_for_participant(event, participant):
                         "Install 'fonts-dejavu-core' or provide a TTF at core/static/fonts/DejaVuSans.ttf"
                     )
 
-                # Collect replacements PER PAGE
+                # We'll measure text width with a Font object (works on old PyMuPDF)
+                font_obj = fitz.Font(fontfile=font_path)
+
+                # Collect replacements PER PAGE: store FINAL position (computed now)
                 page_replacements = {i: [] for i in range(len(doc))}
 
-                # 1) search placeholders and queue replacement info
+                # 1) search placeholders and queue replacement info (compute true center using measured width)
                 for page_num in range(len(doc)):
                     page = doc[page_num]
                     for field_name, patterns in placeholder_patterns.items():
@@ -1199,7 +1201,7 @@ def generate_certificate_for_participant(event, participant):
                             for inst in rects:
                                 # infer style if possible
                                 font_size = 12
-                                color = (0, 0, 0)  # RGB (0..1)
+                                color = (0.0, 0.0, 0.0)  # RGB (0..1)
                                 try:
                                     blocks = page.get_text("dict", clip=inst)
                                     if blocks and "blocks" in blocks:
@@ -1229,14 +1231,14 @@ def generate_certificate_for_participant(event, participant):
                                 except Exception:
                                     pass
 
-                                # center-ish align inside the placeholder rect
-                                original_width = inst.x1 - inst.x0
-                                est_char_w = font_size * 0.6
-                                est_text_w = len(value) * est_char_w
-                                text_x = inst.x0 + (original_width - est_text_w) / 2 if est_text_w < original_width else inst.x0
+                                # --- TRUE CENTER using measured width ---
+                                rect_width = inst.x1 - inst.x0
+                                text_width = font_obj.text_length(value, font_size)
+                                text_x = inst.x0 + (rect_width - text_width) / 2
+                                # baseline y: keep prior visual (mid-rect); adjust if needed
                                 text_y = (inst.y0 + inst.y1) / 2
 
-                                # redact original placeholder and queue draw
+                                # redact original placeholder and queue draw (store FINAL pos)
                                 page.add_redact_annot(inst, "")
                                 page_replacements[page_num].append({
                                     "pos": fitz.Point(text_x, text_y),
@@ -1335,6 +1337,7 @@ def generate_certificate_for_participant(event, participant):
         logger.exception("Failed to generate certificate")
         who = getattr(participant, "name", "participant")
         return False, f"Failed to generate certificate for {who}: {e}"
+
 
 
 
