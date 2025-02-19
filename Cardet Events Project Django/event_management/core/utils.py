@@ -97,11 +97,7 @@ def generate_pdf_ticket(participant, qr_code_path):
             else "TBD"
         )
 
-
-        # Format time range using start_time and end_time
-
         #Format time range using start_time and end_time
-
         if participant.event.start_time and participant.event.end_time:
             start_time_str = participant.event.start_time.strftime("%I %p").lower()
             end_time_str = participant.event.end_time.strftime("%I %p").lower()
@@ -611,25 +607,6 @@ def generate_rsvp_urls(participant, request_or_site_url=None):
     }
 
     return rsvp_urls
-
-
-
-# def generate_certificate_for_participant(event, participant):
-#     """
-#     Generate certificate for a single participant using the proven working logic.
-#     Extracted from generate_participant_certificate view to be reusable.
-#     Returns (success: bool, message: str)
-#     """
-#     import tempfile
-#     import os
-#     import pypdf
-#     from django.core.files.base import ContentFile
-#     import logging
-
-#     logger = logging.getLogger(__name__)
-
-#     try:
-#         print(f"=== CERTIFICATE GENERATION FOR {participant.name} ===")
 
 
 # def generate_certificate_for_participant(event, participant):
@@ -1358,6 +1335,8 @@ def generate_certificate_for_participant(event, participant):
         logger.exception("Failed to generate certificate")
         who = getattr(participant, "name", "participant")
         return False, f"Failed to generate certificate for {who}: {e}"
+
+
 
 
 def generate_paidticket_pdf(paid_ticket):

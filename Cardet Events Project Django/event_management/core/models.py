@@ -7,6 +7,7 @@ from django.core.exceptions import ValidationError
 import os
 from ckeditor.fields import RichTextField
 from django.core.files.base import ContentFile
+
 import qrcode
 from io import BytesIO
 from django.core.validators import MinValueValidator, MaxValueValidator
@@ -368,6 +369,7 @@ class Participant(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=50, blank=True, null=True)
+
     approval_status = models.CharField(
         max_length=20,
         choices=APPROVAL_CHOICES,
@@ -383,6 +385,10 @@ class Participant(models.Model):
     certificate = models.FileField(
         upload_to=participant_certificate_path, blank=True, null=True, max_length=500
     )
+
+    pdf_ticket = models.FileField(upload_to="pdf_tickets/", blank=True, null=True)
+    qr_code = models.ImageField(upload_to="qr_codes/", blank=True, null=True)
+
     registered_at = models.DateTimeField(auto_now_add=True)
     submitted_data = models.JSONField(blank=True, null=True)
 
@@ -396,6 +402,7 @@ class Participant(models.Model):
         return self.name
 
     def generate_qr_code(self):
+
         """Generate a QR Code linking to the participant's check-in URL."""
 
         """Generate a QR Code linking to the participant's check-in URL only if tickets are enabled."""
@@ -432,10 +439,26 @@ class Participant(models.Model):
 
         # ✅ Save QR code in the correct path inside the event's folder
         self.qr_code.save(
-            f"Events/{self.event.id}_{self.event.event_name}/qr_codes/{qr_filename}",
+                    f"Events/{self.event.id}_{self.event.event_name}/qr_codes/{qr_filename}",
+                    ContentFile(buffer.getvalue()),
+                    save=False,
+                )
+
+
+        """Generate a QR Code linking to the participant’s check-in URL."""
+        qr_data = f"http://127.0.0.1:8000/scan_qr/{self.event.id}/{self.id}/"
+        qr = qrcode.make(qr_data)
+
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+
+        self.qr_code.save(
+            f"{self.name}_{self.email}_qr.png",
+
             ContentFile(buffer.getvalue()),
             save=False,
         )
+
 
         return os.path.abspath(qr_path)  # ✅ Return absolute path for PDF generation
 
@@ -454,6 +477,7 @@ class ParticipantCustomFieldFile(models.Model):
 
     def __str__(self):
         return f"{self.participant.name} - {self.field_label}"
+
 
 
 class Attendance(models.Model):

@@ -3399,7 +3399,7 @@ def participant_detail(request, participant_email):
     }
 
     return render(request, "reports/participant_detail.html", context)
-<<<<<<< HEAD
+
 
 
 @login_required
@@ -3558,5 +3558,5 @@ def export_attendance_csv(request, event_id):
         )
 
     return response
-=======
->>>>>>> main
+
+

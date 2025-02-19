@@ -1,6 +1,10 @@
+
 /venv*
 /Cardet Events Project Django/event_management/media
 .env
 cheatsheet.txt
 docker logs.md
 cheat_Sheet_docker.txt
+
+/venv*
+>>>>>>> 23d23e2 (first commit)
