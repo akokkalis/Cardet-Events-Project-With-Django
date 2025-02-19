@@ -32,6 +32,7 @@ def company_logo_path(instance, filename):
 
 def event_image_path(instance, filename):
     """Returns the path to store event images inside the event folder."""
+
     if instance.id:  # Ensure the instance has an ID before using it
         return os.path.join(
             f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
@@ -42,8 +43,13 @@ def event_image_path(instance, filename):
 
 
 def pdf_ticket_path(instance, filename):
+    sanitized_email = instance.email.replace("@", "_").replace(".", "_")
+    print("SANITIZED EMAIL")
+    print(sanitized_email)
+    print()
+    pdf_filename = f"{instance.name}_{sanitized_email}_ticket.pdf"
     """Returns the correct path to store PDF tickets inside the event folder."""
-    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/pdf_tickets/{instance.name}_{instance.email}_ticket.pdf"
+    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
 
 
 def qr_code_path(instance, filename):
