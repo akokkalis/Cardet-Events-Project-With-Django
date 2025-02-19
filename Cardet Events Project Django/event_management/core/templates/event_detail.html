@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Event Details{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <!-- Event Information Block -->
+    <div class="flex flex-col md:flex-row items-center mb-6">
+        <div class="w-full md:w-1/3">
+            {% if event.image %}
+                <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="rounded-lg shadow-md w-full">
+            {% else %}
+                <div class="w-full h-48 bg-gray-300 flex items-center justify-center rounded-lg shadow-md">
+                    <span class="text-gray-600">No Image</span>
+                </div>
+            {% endif %}
+        </div>
+        <div class="w-full md:w-2/3 md:pl-6">
+            <h1 class="text-2xl font-semibold">{{ event.event_name }}</h1>
+            <p class="text-gray-600 mt-2"><strong>Date:</strong> {{ event.event_date }}</p>
+            <p class="text-gray-600"><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
+            <p class="text-gray-600"><strong>Location:</strong> {{ event.location }}</p>
+            <p class="text-gray-600 mt-3"><strong>Description:</strong> {{ event.description|safe }}</p>
+            <p class="mt-4 inline-block px-3 py-1 rounded-lg" style="background-color: {{ event.status.color }}; color: white;">
+                Status: {{ event.status.name }}
+            </p>
+			<p class="text-gray-600 flex items-center gap-1 mt-2">
+				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10l-2.5-2L17 10v10zm-4 0H2V10l2.5-2L7 10v10zm-4 0h2V10l-2.5-2L5 10v10z" />
+				</svg>
+				<span><strong>Registrations:</strong> {{ participants|length }}</span>
+			</p>
+        </div>
+    </div>
+
+
+
+
+
+    <!-- Add Participant Button -->
+    <div class="text-right mb-4">
+        <button id="addParticipantBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-green-700">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add Participant
+        </button>
+    </div>
+
+    <!-- Participant Form (Hidden by Default) -->
+    <div id="participantForm" class="hidden bg-gray-100 p-4 rounded-lg shadow-md">
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="id_name" class="block text-gray-700 font-semibold">Name</label>
+                    <input type="text" name="name" id="id_name" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div>
+                    <label for="id_email" class="block text-gray-700 font-semibold">Email</label>
+                    <input type="email" name="email" id="id_email" class="w-full px-3 py-2 border rounded-lg" required>
+                </div>
+                <div class="md:col-span-2">
+                    <label for="id_phone" class="block text-gray-700 font-semibold">Phone</label>
+                    <input type="text" name="phone" id="id_phone" class="w-full px-3 py-2 border rounded-lg">
+                </div>
+            </div>
+            <div class="text-right mt-4">
+                <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                    Submit
+                </button>
+            </div>
+        </form>
+    </div>
+	{% if messages %}
+    <div id="messageContainer" class="max-w-4xl mx-auto mt-4">
+        {% for message in messages %}
+            <div class="p-4 mb-4 rounded-lg {% if message.tags == 'success' %}bg-green-100 text-green-700 border-green-400{% elif message.tags == 'error' %}bg-red-100 text-red-700 border-red-400{% endif %}">
+                <span class="font-semibold">{{ message }}</span>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+
+	<!-- Search Bar -->
+	<div class="flex justify-between items-center mb-4">
+		<input type="text" id="search-input" placeholder="Search participants..." class="w-1/2 p-2 border border-gray-300 rounded-lg">
+	</div>
+
+    <!-- Participants Table -->
+    <h2 class="text-xl font-semibold mb-4">Registered Participants</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse border border-gray-300">
+            <thead>
+                <tr class="bg-gray-200">
+                    <th class="border border-gray-300 px-4 py-2">#</th>
+                    <th class="border border-gray-300 px-4 py-2">Name</th>
+                    <th class="border border-gray-300 px-4 py-2">Email</th>
+                    <th class="border border-gray-300 px-4 py-2">Phone</th>
+                    <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
+                </tr>
+            </thead>
+            <tbody id="participant-table">
+                {% for participant in participants %}
+                <tr class="text-center">
+                    <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
+                    <td class="border border-gray-300 px-4 py-2">
+                        {% if participant.pdf_ticket %}
+                            <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+
+<!-- JavaScript to Show/Hide Participant Form -->
+
+<script src="{% static 'js/show_hide_add_participant.js' %}"></script>
+<script src="{% static 'js/autohide_messages.js' %}"></script>
+<script src="{% static 'js/search.js' %}"></script>
+
+{% endblock %}

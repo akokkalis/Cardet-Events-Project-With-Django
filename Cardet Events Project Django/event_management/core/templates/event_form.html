@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create Event{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-semibold mb-6 text-center">Create New Event</h1>
+
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Two Columns -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                {{ form.company|as_crispy_field }}
+                {{ form.event_name|as_crispy_field }}
+                {{ form.event_date|as_crispy_field }}
+                {{ form.start_time|as_crispy_field }}
+                {{ form.end_time|as_crispy_field }}
+				{{form.status|as_crispy_field}}
+            </div>
+
+            <div>
+                {{ form.location|as_crispy_field }}
+                {{ form.image|as_crispy_field }}
+                {{ form.description|as_crispy_field }}
+                {{ form.tickets|as_crispy_field }}
+                {{ form.signatures|as_crispy_field }}
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-between">
+			<a href="{% url 'event_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                Cancel
+            </a>
+            <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-700">
+                ✅ Save Event
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

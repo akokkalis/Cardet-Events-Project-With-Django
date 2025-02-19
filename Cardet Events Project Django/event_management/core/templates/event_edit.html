@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Event - {{ event.event_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md mt-6">
+    <h1 class="text-3xl font-semibold text-center mb-6 flex items-center justify-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 3h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2V5a2 2 0 012-2z" />
+        </svg>
+        Edit Event
+    </h1>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                {{ form.company|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.event_name|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.event_date|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.location|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.start_time|as_crispy_field }}
+            </div>
+            <div>
+                {{ form.end_time|as_crispy_field }}
+            </div>
+			<!-- Description Field (Full Width) -->
+			<div>
+				{{ form.description|as_crispy_field }}
+			</div>
+	
+			<!-- Image Upload -->
+			<div>
+				{{ form.image|as_crispy_field }}
+			</div>
+        </div>
+
+
+
+        <div class="flex justify-between mt-6">
+            <a href="{% url 'event_list' %}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Cancel
+            </a>
+            <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
