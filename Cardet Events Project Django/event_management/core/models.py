@@ -141,6 +141,13 @@ class Participant(models.Model):
 
     def generate_qr_code(self):
         """Generate a QR Code linking to the participant’s check-in URL."""
+
+        """Generate a QR Code linking to the participant’s check-in URL only if tickets are enabled."""
+        if not self.event.tickets:
+            print(
+                f"🚫 No QR code generated: Tickets are disabled for {self.event.event_name}"
+            )
+            return None  # Skip QR code generation if tickets are disabled
         qr_data = f"/scan_qr/{self.event.id}/{self.id}/"
         qr = qrcode.make(qr_data)
 
@@ -185,7 +192,7 @@ class Attendance(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.participant.name} - {'Present' if self.present else 'Absent'}"
+        return f"{self.participant.name} - {'Present' if self.present else 'Absent'} - {self.event.event_name}"
 
 
 ###  - Signal Section - ###

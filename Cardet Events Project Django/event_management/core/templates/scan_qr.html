@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scan QR Code{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-semibold mb-4 text-center">QR Code Scanner for {{ event.event_name }}</h2>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Scanner Section -->
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <div id="reader" class="w-full h-64 bg-gray-300 rounded-lg"></div>
+            <p class="text-gray-600 mt-4 text-center">Point your camera at the QR code.</p>
+            <div id="qr-result" class="mt-4 text-green-600 font-bold text-center"></div>
+        </div>
+
+        <!-- Attendance Section -->
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-center">Attendance Overview</h3>
+            <div class="flex flex-col items-center space-y-4">
+                <button onclick="openModal('presentModal')" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-700 w-3/4 text-center">
+                    Present (<span id="present-count">{{ present_participants|length }}</span>)
+                </button>
+                <button onclick="openModal('notPresentModal')" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-700 w-3/4 text-center">
+                    Not Present (<span id="not-present-count">{{ not_present_participants|length }}</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Present Participants Modal -->
+<div id="presentModal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Present Participants</h2>
+        <ul id="present-list">
+            {% for participant in present_participants %}
+                <li class="p-2 border-b">{{ participant.name }}</li>
+            {% empty %}
+                <li class="p-2 text-gray-500">No participants checked in yet.</li>
+            {% endfor %}
+        </ul>
+        <button onclick="closeModal('presentModal')" class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Close</button>
+    </div>
+</div>
+
+<!-- Not Present Participants Modal -->
+<div id="notPresentModal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Not Present Participants</h2>
+        <ul id="not-present-list">
+            {% for participant in not_present_participants %}
+                <li class="p-2 border-b">{{ participant.name }} - {{participant_phone}}</li>
+            {% empty %}
+                <li class="p-2 text-gray-500">All participants have checked in.</li>
+            {% endfor %}
+        </ul>
+        <button onclick="closeModal('notPresentModal')" class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Close</button>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let scanningDisabled = false;
+
+        function onScanSuccess(decodedText) {
+            if (scanningDisabled) return;
+
+            document.getElementById("qr-result").innerHTML = "Scanned: " + decodedText;
+
+            let parts = decodedText.split("/").filter(Boolean);
+            let event_id = parts[1];
+            let participant_id = parts[2];
+
+            scanningDisabled = true;
+
+            fetch("{% url 'mark_attendance' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: `event_id=${event_id}&participant_id=${participant_id}`,
+            })
+            .then(response => response.json())
+            .then(data => {
+                let swalOptions = {
+                    confirmButtonColor: "#3085d6",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                };
+
+                if (data.status === "success") {
+                    swalOptions.icon = "success";
+                    swalOptions.title = "Check-In Successful";
+                    swalOptions.text = data.message;
+
+                    let newListItem = `<li class="p-2 border-b">${data.participant_name}</li>`;
+                    document.getElementById("present-list").innerHTML += newListItem;
+                    document.getElementById("present-count").innerText = data.present_count;
+                    document.getElementById("not-present-count").innerText = data.not_present_count;
+                } else {
+                    swalOptions.icon = "error";
+                    swalOptions.title = "Error";
+                    swalOptions.text = data.message;
+                }
+
+                Swal.fire(swalOptions).then(() => {
+                    setTimeout(() => {
+                        scanningDisabled = false;
+                    }, 2000);
+                });
+            });
+        }
+
+        let html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+    });
+
+    function openModal(id) { document.getElementById(id).classList.remove("hidden"); }
+    function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+</script>
+
+{% endblock %}

@@ -89,12 +89,17 @@ def delete_event_folder(sender, instance, **kwargs):
 def generate_qr_and_pdf(sender, instance, created, **kwargs):
     """Generates a QR code and a PDF ticket when a participant is registered."""
     if created:
-        qr_path = instance.generate_qr_code()  # Generate and get correct QR path
-        pdf_path = generate_pdf_ticket(instance, qr_path)  # Generate PDF
+        if instance.event.tickets:  # ✅ Check if tickets are enabled
+            qr_path = instance.generate_qr_code()  # Generate and get correct QR path
+            pdf_path = generate_pdf_ticket(instance, qr_path)  # Generate PDF
 
-        if pdf_path:  # Only save if the PDF was generated successfully
-            instance.pdf_ticket = pdf_path
-            instance.save(update_fields=["pdf_ticket"])
+            if pdf_path:  # Only save if the PDF was generated successfully
+                instance.pdf_ticket = pdf_path
+                instance.save(update_fields=["pdf_ticket"])
+        else:
+            print(
+                f"🚫 Skipping QR & PDF: Tickets are disabled for {instance.event.event_name}"
+            )
 
 
 ### **Email Ticket to Participant**

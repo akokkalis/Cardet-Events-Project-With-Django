@@ -7,10 +7,12 @@ from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils.timezone import now
+from django.http import JsonResponse
 
 
 def login_view(request):
     """Handles staff login."""
+
     if request.method == "POST":
         username = request.POST["username"]
         password = request.POST["password"]
@@ -78,6 +80,10 @@ def event_delete(request, event_id):
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     participants = Participant.objects.filter(event=event).order_by("name")
+    present_participants = Attendance.objects.filter(
+        event=event, present=True
+    ).values_list("participant", flat=True)
+    not_present_participants = participants.exclude(id__in=present_participants)
 
     if request.method == "POST":
         form = ParticipantForm(request.POST)
@@ -110,24 +116,127 @@ def event_detail(request, event_id):
             "event": event,
             "participants": participants,
             "form": form,
+            "present_participants": participants.filter(id__in=present_participants),
+            "not_present_participants": not_present_participants,
         },
     )
 
 
-def scan_qr(request, event_id, participant_id):
-    participant = get_object_or_404(Participant, id=participant_id, event_id=event_id)
+def scan_qr(request, event_id):
+    """Serves the scanner page for an event and displays attendance lists."""
 
-    if request.user.is_authenticated:
-        # Mark participant as present
+    event = get_object_or_404(Event, id=event_id)
+
+    # Ensure only events with ticket scanning enabled allow scanning
+    if not event.tickets:
+        messages.error(request, "This event does not support QR code scanning.")
+        return redirect("event_detail", event_id=event.id)
+
+    # Get all participants for the event
+    all_participants = Participant.objects.filter(event=event)
+
+    # Get participants who have checked in
+    present_participants = Attendance.objects.filter(
+        event=event, present=True
+    ).values_list("participant_id", flat=True)
+
+    # Filter participants into Present and Not Present groups
+    present_list = all_participants.filter(id__in=present_participants)
+    not_present_list = all_participants.exclude(id__in=present_participants)
+
+    context = {
+        "event": event,
+        "present_participants": present_list,
+        "not_present_participants": not_present_list,
+    }
+
+    return render(request, "scan_qr.html", context)
+
+
+def mark_attendance(request):
+    """Handles QR code scan data and marks attendance."""
+    if request.method == "POST":
+        event_id = request.POST.get("event_id")
+        participant_id = request.POST.get("participant_id")
+
+        try:
+            event = Event.objects.get(id=event_id)
+            participant = Participant.objects.get(id=participant_id, event=event)
+        except (Event.DoesNotExist, Participant.DoesNotExist):
+            return JsonResponse(
+                {"status": "error", "message": "Invalid QR code."}, status=400
+            )
+
+        # Check if attendance already exists
         attendance, created = Attendance.objects.get_or_create(
-            participant=participant, event=participant.event
+            participant=participant, event=event
         )
+        if attendance.present:
+            return JsonResponse(
+                {
+                    "status": "warning",
+                    "message": f"{participant.name} is already checked in!",
+                    "present_count": Attendance.objects.filter(
+                        event=event, present=True
+                    ).count(),
+                    "not_present_count": Participant.objects.filter(event=event)
+                    .exclude(
+                        id__in=Attendance.objects.filter(
+                            event=event, present=True
+                        ).values_list("participant_id", flat=True)
+                    )
+                    .count(),
+                }
+            )
+
         attendance.present = True
         attendance.timestamp = now()
         attendance.save()
 
-        messages.success(request, f"{participant.name} is marked as present.")
-        return redirect("event_detail", event_id=event_id)
+        return JsonResponse(
+            {
+                "status": "success",
+                "message": f"{participant.name} checked in successfully.",
+                "participant_name": participant.name,
+                "present_count": Attendance.objects.filter(
+                    event=event, present=True
+                ).count(),
+                "not_present_count": Participant.objects.filter(event=event)
+                .exclude(
+                    id__in=Attendance.objects.filter(
+                        event=event, present=True
+                    ).values_list("participant_id", flat=True)
+                )
+                .count(),
+            }
+        )
 
-    else:
-        return redirect("https://www.yoursite.com/unauthorized")
+    return JsonResponse({"status": "error", "message": "Invalid request."}, status=400)
+
+
+# @login_required
+# def scan_qr(request, event_id, participant_id):
+#     """Handles QR code scanning and attendance marking."""
+#     event = get_object_or_404(Event, id=event_id)
+#     participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+#     # Ensure that only events with QR scanning enabled allow check-in
+#     if not event.tickets:
+#         messages.error(request, "This event does not require QR scanning.")
+#         return redirect("event_detail", event_id=event.id)
+
+#     # Check if attendance already exists
+#     attendance, created = Attendance.objects.get_or_create(
+#         participant=participant, event=event
+#     )
+#     if attendance.present:
+#         messages.warning(request, f"{participant.name} is already checked in!")
+#     else:
+#         attendance.present = True
+#         attendance.timestamp = now()
+#         attendance.save()
+#         messages.success(
+#             request, f"{participant.name} has been checked in successfully."
+#         )
+
+#     return redirect("event_detail", event_id=event.id)  # Redirect to event details

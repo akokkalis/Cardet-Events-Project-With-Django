@@ -24,13 +24,47 @@
             <p class="mt-4 inline-block px-3 py-1 rounded-lg" style="background-color: {{ event.status.color }}; color: white;">
                 Status: {{ event.status.name }}
             </p>
-			<p class="text-gray-600 flex items-center gap-1 mt-2">
-				<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10l-2.5-2L17 10v10zm-4 0H2V10l2.5-2L7 10v10zm-4 0h2V10l-2.5-2L5 10v10z" />
-				</svg>
-				<span><strong>Registrations:</strong> {{ participants|length }}</span>
-			</p>
+            <!-- Registration, Present, and Not Present in One Line -->
+            <div class="flex flex-wrap gap-6 items-center mt-4">
+                <p class="text-gray-600 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10l-2.5-2L17 10v10zm-4 0H2V10l2.5-2L7 10v10zm-4 0h2V10l-2.5-2L5 10v10z" />
+                    </svg>
+                    <span><strong>Registrations:</strong> {{ participants|length }}</span>
+                </p>
+
+                <p class="text-green-600 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span><strong>Present:</strong> {{ present_participants|length }}</span>
+                </p>
+
+                <p class="text-red-600 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span><strong>Not Present:</strong> {{ not_present_participants|length }}</span>
+                </p>
+            </div>
+
+            {% if event.tickets or event.signatures %}
+                <div class="mt-4 inline-block">
+                    <a href="{% url 'scan_qr' event.id %}"
+                    class="bg-purple-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M13 16h-1v-4h-1m1 0h1m4-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Check-In & Signatures
+                    </a>
+                </div>
+            {%else%}
+            <div class="mt-4 inline-block  "><p class>No QR Code Functionality</p></div>
+            {% endif %}
+
         </div>
+
     </div>
 
 
