@@ -10,6 +10,8 @@ from django.utils.timezone import now
 from django.http import JsonResponse
 import base64
 from django.core.files.base import ContentFile
+import os
+from django.conf import settings
 
 
 def login_view(request):
@@ -156,14 +158,15 @@ def scan_qr(request, event_id):
 
 
 def mark_attendance(request):
-    """Handles QR code scan data and marks attendance."""
+    """Handles QR code scan and marks attendance."""
+
     if request.method == "POST":
         event_id = request.POST.get("event_id")
         participant_id = request.POST.get("participant_id")
 
         try:
-            event = Event.objects.get(id=event_id)
-            participant = Participant.objects.get(id=participant_id, event=event)
+            event = get_object_or_404(Event, id=event_id)
+            participant = get_object_or_404(Participant, id=participant_id, event=event)
         except (Event.DoesNotExist, Participant.DoesNotExist):
             return JsonResponse(
                 {"status": "error", "message": "Invalid QR code."}, status=400
@@ -178,16 +181,6 @@ def mark_attendance(request):
                 {
                     "status": "warning",
                     "message": f"{participant.name} is already checked in!",
-                    "present_count": Attendance.objects.filter(
-                        event=event, present=True
-                    ).count(),
-                    "not_present_count": Participant.objects.filter(event=event)
-                    .exclude(
-                        id__in=Attendance.objects.filter(
-                            event=event, present=True
-                        ).values_list("participant_id", flat=True)
-                    )
-                    .count(),
                 }
             )
 
@@ -195,25 +188,28 @@ def mark_attendance(request):
         attendance.timestamp = now()
         attendance.save()
 
+        # ✅ If the event requires a signature, redirect to the signature page
+        if event.signatures:
+            return JsonResponse(
+                {
+                    "status": "signature_required",
+                    "redirect_url": f"/sign_signature/{event.id}/{participant.id}/",
+                }
+            )
+
         return JsonResponse(
             {
                 "status": "success",
                 "message": f"{participant.name} checked in successfully.",
-                "participant_name": participant.name,
-                "present_count": Attendance.objects.filter(
-                    event=event, present=True
-                ).count(),
-                "not_present_count": Participant.objects.filter(event=event)
-                .exclude(
-                    id__in=Attendance.objects.filter(
-                        event=event, present=True
-                    ).values_list("participant_id", flat=True)
-                )
-                .count(),
             }
         )
 
     return JsonResponse({"status": "error", "message": "Invalid request."}, status=400)
+
+
+def signature_path(instance, filename):
+    """Returns the correct path to store signatures inside the event folder."""
+    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/signatures/{instance.participant.name}_{instance.participant.email.replace('@', '_').replace('.', '_')}_signature.png"
 
 
 def sign_signature(request, event_id, participant_id):
@@ -221,6 +217,12 @@ def sign_signature(request, event_id, participant_id):
 
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    if request.method == "GET":
+        # ✅ Serve the signature page when accessed via GET request
+        return render(
+            request, "signature.html", {"event": event, "participant": participant}
+        )
 
     if request.method == "POST":
         signature_data = request.POST.get("signature")
@@ -234,20 +236,38 @@ def sign_signature(request, event_id, participant_id):
         # Convert the Base64 signature data to an image file
         format, imgstr = signature_data.split(";base64,")
         ext = format.split("/")[-1]
-        signature_file = ContentFile(
-            base64.b64decode(imgstr),
-            name=f"signatures/{participant.name}_{participant.id}.{ext}",
+        filename = f"{participant.name}_{participant.email.replace('@', '_').replace('.', '_')}_signature.{ext}"
+
+        # ✅ Ensure the signature is saved inside the correct event folder inside `MEDIA_ROOT`
+        signature_folder = os.path.join(
+            settings.MEDIA_ROOT,
+            f"Events/{event.id}_{event.event_name.replace(' ', '_')}/signatures",
+        )
+        os.makedirs(signature_folder, exist_ok=True)  # Ensure the folder exists
+
+        signature_file_path = os.path.join(signature_folder, filename)
+
+        # Convert base64 image data to Django ContentFile
+        signature_file = ContentFile(base64.b64decode(imgstr), name=filename)
+
+        # Get or create attendance record
+        attendance, created = Attendance.objects.get_or_create(
+            participant=participant, event=event
         )
 
-        # Save the signature in the Attendance model
-        attendance = get_object_or_404(Attendance, participant=participant, event=event)
-        attendance.signature_file = signature_file
+        # Save the signature file inside the correct path
+        attendance.signature_file.save(
+            f"Events/{event.id}_{event.event_name.replace(' ', '_')}/signatures/{filename}",
+            signature_file,
+            save=True,
+        )
+        attendance.present = True  # Mark as present when signing
         attendance.save()
 
         return JsonResponse(
             {"status": "success", "message": "Signature saved successfully!"}
         )
 
-    return render(
-        request, "signature.html", {"event": event, "participant": participant}
+    return JsonResponse(
+        {"status": "error", "message": "Invalid request method."}, status=400
     )

@@ -188,7 +188,7 @@ class Attendance(models.Model):
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     present = models.BooleanField(default=False)
-    signature_file = models.FileField(upload_to="signatures/", blank=True, null=True)
+    signature_file = models.FileField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

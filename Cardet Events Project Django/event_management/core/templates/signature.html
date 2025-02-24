@@ -25,9 +25,26 @@
 <script>
     document.addEventListener("DOMContentLoaded", function () {
         let canvas = document.getElementById("signature-pad");
-        let signaturePad = new SignaturePad(canvas);
+        const signaturePad = new SignaturePad(canvas, {
+            minWidth: 0.5,
+            maxWidth: 2.5,
+            throttle: 0,
+            velocityFilterWeight: 0.7,
+            penColor: "black",
+        });
+
         let saveBtn = document.getElementById("save-btn");
         let clearBtn = document.getElementById("clear-btn");
+
+        const resizeCanvas = () => {
+            const ratio = Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+        };
+
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
 
         clearBtn.addEventListener("click", function () {
             signaturePad.clear();
@@ -35,28 +52,49 @@
 
         saveBtn.addEventListener("click", function () {
             if (signaturePad.isEmpty()) {
-                alert("Please provide a signature.");
+                Swal.fire({
+                    title: "Error",
+                    text: "Please provide a signature before saving.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                });
                 return;
             }
 
-            let signatureData = signaturePad.toDataURL();
+            let signatureData = signaturePad.toDataURL(); // Convert signature to base64
+            let event_id = "{{ event.id }}";
+            let participant_id = "{{ participant.id }}";
 
-            fetch("{% url 'sign_signature' event.id participant.id %}", {
+            fetch(`/sign_signature/${event_id}/${participant_id}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded",
                     "X-CSRFToken": "{{ csrf_token }}",
                 },
-                body: `signature=${encodeURIComponent(signatureData)}`
+                body: `signature=${encodeURIComponent(signatureData)}`,
             })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                if (data.status === "success") {
-                    window.location.href = "{% url 'event_detail' event.id %}";
-                }
+            .then((response) => response.json())
+            .then((data) => {
+                Swal.fire({
+                    title: data.status === "success" ? "Success" : "Error",
+                    text: data.message,
+                    icon: data.status === "success" ? "success" : "error",
+                    confirmButtonText: "OK",
+                }).then(() => {
+                    if (data.status === "success") {
+                        window.location.href = "{% url 'event_detail' event.id %}";
+                    }
+                });
             })
-            .catch(error => console.error("Error:", error));
+            .catch((error) => {
+                console.error("Error:", error);
+                Swal.fire({
+                    title: "Error",
+                    text: "An error occurred while saving the signature.",
+                    icon: "error",
+                    confirmButtonText: "OK",
+                });
+            });
         });
     });
 </script>
