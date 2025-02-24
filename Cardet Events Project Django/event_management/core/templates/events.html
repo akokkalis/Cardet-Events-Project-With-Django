@@ -21,6 +21,33 @@
 </div>
 
 
+<!-- Filters Section -->
+<!-- Filters Section -->
+<div class="flex flex-wrap gap-4 mb-6">
+    <!-- Company Filter -->
+    <select id="company-filter" class="p-2 border rounded-lg">
+        <option value="">All Companies</option>
+        {% for company in companies %}
+        <option value="{{ company.id }}">{{ company.name }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Status Filter -->
+    <select id="status-filter" class="p-2 border rounded-lg">
+        <option value="">All Statuses</option>
+        {% for status in statuses %}
+        <option value="{{ status.id }}">{{ status.name }}</option>
+        {% endfor %}
+    </select>
+
+    <!-- Date Filter -->
+    <input type="date" id="date-filter" class="p-2 border rounded-lg">
+
+    <!-- Clear Filters Button -->
+    <button id="clear-filters" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+        Clear Filters
+    </button>
+</div>
 
 
 <!-- Events Grid -->
@@ -79,4 +106,9 @@
 
 
 <script src="{% static 'js/confirm_on_delete.js' %}"></script>
+<script src="{% static 'js/filter_events.js' %}"></script>
+
+
+    
+    
 {% endblock %}

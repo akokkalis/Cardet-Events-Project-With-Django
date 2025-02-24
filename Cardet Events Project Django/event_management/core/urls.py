@@ -13,6 +13,7 @@ from .views import (
     mark_attendance,
     sign_signature,
     export_zip,
+    filter_events,
 )
 
 urlpatterns = [
@@ -24,6 +25,7 @@ urlpatterns = [
     path("events/edit/<int:event_id>/", event_edit, name="event_edit"),
     path("delete/<int:event_id>/", event_delete, name="event_delete"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),
+    path("events/filter/", filter_events, name="filter_events"),
     path("scan_qr/<int:event_id>/", scan_qr, name="scan_qr"),
     path("mark_attendance/", mark_attendance, name="mark_attendance"),
     path(

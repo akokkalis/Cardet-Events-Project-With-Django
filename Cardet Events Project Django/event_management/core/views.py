@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Event, Participant, Attendance
+from .models import Event, Participant, Attendance, Status
 from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -42,8 +42,46 @@ def logout_view(request):
 @login_required
 def event_list(request):
     """Displays a list of events."""
+    statuses = Status.objects.all()
     events = Event.objects.all()
-    return render(request, "events.html", {"events": events})
+    return render(request, "events.html", {"events": events, "statuses": statuses})
+
+
+def filter_events(request):
+    """Filter events dynamically via AJAX"""
+    company_id = request.GET.get("company")
+    status_id = request.GET.get("status")
+    date = request.GET.get("date")
+
+    events = Event.objects.all()
+
+    if company_id:
+        events = events.filter(company_id=company_id)
+
+    if status_id:
+        events = events.filter(status_id=status_id)
+
+    if date:
+        events = events.filter(event_date=date)
+
+    event_list = [
+        {
+            "id": event.id,
+            "event_name": event.event_name,
+            "event_date": event.event_date.strftime("%Y-%m-%d"),
+            "start_time": (
+                event.start_time.strftime("%H:%M") if event.start_time else "N/A"
+            ),
+            "end_time": event.end_time.strftime("%H:%M") if event.end_time else "N/A",
+            "company": event.company.name,
+            "status": event.status.name if event.status else "No Status",
+            "status_color": event.status.color if event.status else "#cccccc",
+            "image_url": event.image.url if event.image else None,
+        }
+        for event in events
+    ]
+
+    return JsonResponse({"events": event_list})
 
 
 @login_required
@@ -75,7 +113,7 @@ def event_edit(request, event_id):
 
 
 def event_delete(request, event_id):
-    print(event_id)
+
     event = get_object_or_404(Event, id=event_id)
     event.delete()
     messages.success(request, "Event deleted successfully!")
