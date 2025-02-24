@@ -5,7 +5,15 @@ from django.db import models
 
 # Register your models here.
 
-from .models import Company, Staff, Event, Participant, Attendance, Status
+from .models import (
+    Company,
+    Staff,
+    Event,
+    Participant,
+    Attendance,
+    Status,
+    EmailConfiguration,
+)
 
 
 class EventAdmin(admin.ModelAdmin):
@@ -22,6 +30,7 @@ admin.site.register(Staff)
 admin.site.register(Event, EventAdmin)
 admin.site.register(Participant)
 admin.site.register(Attendance)
+admin.site.register(EmailConfiguration)
 
 
 @admin.register(Status)

@@ -2,10 +2,10 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Event, Participant, Attendance, Status
+from .models import Event, Participant, Attendance, Status, Company
 from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 from django.utils.timezone import now
 from django.http import JsonResponse, FileResponse, HttpResponse
 import base64
@@ -13,6 +13,9 @@ from django.core.files.base import ContentFile
 import os
 from django.conf import settings
 import zipfile
+from datetime import date
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 
 def login_view(request):
@@ -41,18 +44,59 @@ def logout_view(request):
 
 @login_required
 def event_list(request):
-    """Displays a list of events."""
+    """Displays a list of events sorted by priority, date, and status."""
+    today = date.today()
     statuses = Status.objects.all()
-    events = Event.objects.all()
-    return render(request, "events.html", {"events": events, "statuses": statuses})
+    companies = Company.objects.all()
+
+    # Extract unique event years dynamically
+    event_years = Event.objects.dates("event_date", "year", order="DESC")
+
+    # Priority Mapping (from Status Model)
+    priority_mapping = {status.id: status.priority for status in statuses}
+
+    # Sorting: Priority (lower is better), then by date
+    events = (
+        Event.objects.select_related("status")
+        .annotate(
+            priority=Case(
+                *[
+                    When(status_id=status.id, then=Value(priority_mapping[status.id]))
+                    for status in statuses
+                ],
+                default=Value(99),  # Default lowest priority if status not found
+                output_field=IntegerField(),
+            )
+        )
+        .order_by("priority", "event_date")
+    )
+
+    return render(
+        request,
+        "events.html",
+        {
+            "events": events,
+            "statuses": statuses,
+            "companies": companies,
+            "event_years": event_years,
+        },
+    )
 
 
 def filter_events(request):
-    """Filter events dynamically via AJAX"""
+    """Filter events dynamically via AJAX and maintain sorting order."""
     company_id = request.GET.get("company")
     status_id = request.GET.get("status")
-    date = request.GET.get("date")
+    event_date = request.GET.get("date")
+    event_month = request.GET.get("month")
+    event_year = request.GET.get("year")
+    print("asjdjasdhj")
+    statuses = Status.objects.all()
 
+    # Priority Mapping (Admin Configurable)
+    priority_mapping = {status.id: status.priority for status in statuses}
+
+    # Start filtering
     events = Event.objects.all()
 
     if company_id:
@@ -61,8 +105,26 @@ def filter_events(request):
     if status_id:
         events = events.filter(status_id=status_id)
 
-    if date:
-        events = events.filter(event_date=date)
+    if event_date:
+        events = events.filter(event_date=event_date)
+
+    if event_year:
+        events = events.filter(event_date__year=event_year)
+
+    if event_month:
+        events = events.filter(event_date__month=event_month)
+
+    # Apply Sorting (Priority First, Then Date)
+    events = events.annotate(
+        priority=Case(
+            *[
+                When(status_id=status.id, then=Value(priority_mapping[status.id]))
+                for status in statuses
+            ],
+            default=Value(99),
+            output_field=IntegerField(),
+        )
+    ).order_by("priority", "event_date")
 
     event_list = [
         {
@@ -352,3 +414,66 @@ def export_zip(request, event_id):
     response = FileResponse(zip_file, as_attachment=True, filename=zip_filename)
 
     return response
+
+
+@csrf_exempt  # 🚨 Allows API calls from external sources (remove in production if CSRF protection needed)
+def register_participant_api(request):
+    """API endpoint to register a participant via POST request from an external WordPress site."""
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)  # Parse JSON data from request
+
+            event_id = data.get("event_id")
+            name = data.get("name")
+            email = data.get("email")
+            phone = data.get("phone", "")
+
+            if not event_id or not name or not email:
+                return JsonResponse(
+                    {"status": "error", "message": "Missing required fields."},
+                    status=400,
+                )
+
+            # Get the event
+            event = get_object_or_404(Event, id=event_id)
+
+            # Check if participant already exists
+            participant, created = Participant.objects.get_or_create(
+                event=event, email=email, defaults={"name": name, "phone": phone}
+            )
+
+            if not created:
+                return JsonResponse(
+                    {"status": "error", "message": "Participant already registered."},
+                    status=409,
+                )
+
+            # # ✅ Generate QR Code if tickets are required
+            # if event.tickets:
+            #     participant.generate_qr_code()
+
+            # # ✅ Generate PDF Ticket if tickets are required
+            # if event.tickets:
+            #     from .utils import generate_pdf_ticket  # Import your PDF function
+
+            #     pdf_path = generate_pdf_ticket(participant, participant.qr_code.path)
+            #     participant.pdf_ticket = pdf_path
+            #     participant.save()
+
+            return JsonResponse(
+                {
+                    "status": "success",
+                    "message": "Participant registered successfully.",
+                },
+                status=201,
+            )
+
+        except json.JSONDecodeError:
+            return JsonResponse(
+                {"status": "error", "message": "Invalid JSON format."}, status=400
+            )
+
+    return JsonResponse(
+        {"status": "error", "message": "Invalid request method."}, status=405
+    )

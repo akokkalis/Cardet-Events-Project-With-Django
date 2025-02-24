@@ -4,37 +4,41 @@ from django.conf import settings
 import os
 from io import BytesIO  # ✅ This is the missing import
 from django.template.loader import render_to_string
+import re
+from django.core.mail import send_mail, BadHeaderError
+from django.core.mail.backends.smtp import EmailBackend
+from django.conf import settings
 
 
 def generate_pdf_ticket(participant, qr_code_path):
-    """Generate a PDF ticket using the external HTML template."""
+    """Generate a PDF ticket using an HTML template."""
 
-    # ✅ Ensure PDF tickets are saved inside the correct event folder
+    # ✅ Ensure the event's PDF tickets folder exists
     pdf_folder = os.path.join(
         settings.MEDIA_ROOT,
-        f"Events/{participant.event.id}_{participant.event.event_name.replace(' ','_')}/pdf_tickets",
+        f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets",
     )
     os.makedirs(pdf_folder, exist_ok=True)
 
+    # ✅ Sanitize filename (replace spaces with underscores)
+    sanitized_name = re.sub(
+        r"\s+", "_", participant.name.strip()
+    )  # Replace spaces with underscores
     sanitized_email = participant.email.replace("@", "_").replace(".", "_")
-
-    pdf_filename = f"{participant.name}_{sanitized_email}_ticket.pdf"
+    pdf_filename = f"{sanitized_name}_{sanitized_email}_ticket.pdf"
 
     pdf_path = os.path.join(pdf_folder, pdf_filename)
 
-    # ✅ Fix QR Code Path for PDF
-    qr_image_path = participant.qr_code.url  # This should now return a valid media URL
-
-    # ✅ Use Django’s `MEDIA_URL` for serving images
+    # ✅ Fix QR Code Path
+    qr_image_path = participant.qr_code.url
     qr_image_url = f"{settings.MEDIA_URL}{qr_image_path}".replace("\\", "/")
 
-    # ✅ Use `render_to_string` to dynamically generate HTML from template
+    # ✅ Generate HTML from template
     html_content = render_to_string(
         "pdf_template.html",
         {
             "participant": participant,
-            "qr_image_path": qr_image_path[1:],
-            # Convert to absolute path
+            "qr_image_path": qr_image_path[1:],  # Convert to relative path
         },
     )
 
@@ -49,10 +53,12 @@ def generate_pdf_ticket(participant, qr_code_path):
     # ✅ Convert buffer to Django ContentFile
     pdf_content = ContentFile(pdf_buffer.getvalue())
 
-    # ✅ Return correct relative path for saving in the model
+    # ✅ Ensure the correct relative path for saving
     relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
 
-    # ✅ Save PDF content directly to the model field without creating a duplicate file
+    # ✅ Save the PDF content directly to the model field
     participant.pdf_ticket.save(relative_pdf_path, pdf_content, save=False)
 
-    return relative_pdf_path  # Return relative path so it can be assigned to participant.pdf_ticket
+    return (
+        relative_pdf_path  # Return relative path to store in `participant.pdf_ticket`
+    )

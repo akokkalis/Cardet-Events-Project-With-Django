@@ -13,6 +13,8 @@ from django.core.files.base import ContentFile
 import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
+from django.core.validators import MinValueValidator, MaxValueValidator
+
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
@@ -70,6 +72,25 @@ class Company(models.Model):
         return self.name
 
 
+class EmailConfiguration(models.Model):
+    """Stores SMTP settings for each company."""
+
+    company = models.OneToOneField(
+        "Company", on_delete=models.CASCADE, related_name="email_config"
+    )
+    smtp_server = models.CharField(max_length=255)
+    smtp_port = models.IntegerField(
+        default=587, validators=[MinValueValidator(1), MaxValueValidator(65535)]
+    )
+    email_address = models.EmailField()
+    email_password = models.CharField(max_length=255)  # ⚠ Consider encrypting it!
+    use_tls = models.BooleanField(default=True)
+    use_ssl = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Email Config for {self.company.name}"
+
+
 class Staff(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     user = models.OneToOneField(
@@ -90,6 +111,10 @@ class Status(models.Model):
     color = models.CharField(
         max_length=20, default="#000000"
     )  # Optional: HEX color for display
+    priority = models.IntegerField(
+        default=99,
+        help_text="Lower numbers have higher priority. Completed events should have a higher number.",
+    )  # Custom priority field
 
     def __str__(self):
         return self.name

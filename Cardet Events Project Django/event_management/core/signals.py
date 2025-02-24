@@ -6,6 +6,9 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from .models import Company, Event, Participant
 from .utils import generate_pdf_ticket
+import threading
+from django.core.mail import EmailMessage, get_connection
+from django.utils.html import strip_tags
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
@@ -96,6 +99,8 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
             if pdf_path:  # Only save if the PDF was generated successfully
                 instance.pdf_ticket = pdf_path
                 instance.save(update_fields=["pdf_ticket"])
+                # ✅ Send email asynchronously with PDF ticket
+                send_ticket_email(instance)
         else:
             print(
                 f"🚫 Skipping QR & PDF: Tickets are disabled for {instance.event.event_name}"
@@ -103,22 +108,64 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
 
 
 ### **Email Ticket to Participant**
+
+
 def send_ticket_email(participant):
-    """Send email with the ticket attached."""
+    """Send an email with the event ticket attached asynchronously using the company's SMTP settings."""
+
+    # ✅ Get company email configuration
+    email_config = getattr(participant.event.company, "email_config", None)
+    if not email_config:
+        print(f"⚠️ No email configuration found for {participant.event.company.name}")
+        return
+
+    # ✅ Email subject & body
     subject = f"Your Ticket for {participant.event.event_name}"
-    body = f"""
-    Dear {participant.name},
-
-    Thank you for registering for {participant.event.event_name} on {participant.event.event_date} at {participant.event.location}.
-    
-    Please find your ticket attached. Show this at the entrance for check-in.
-
-    Regards,
-    {participant.event.company.name}
+    html_message = f"""
+        <p>Dear {participant.name},</p>
+        <p>Thank you for registering for <strong>{participant.event.event_name}</strong> on <strong>{participant.event.event_date}</strong> at <strong>{participant.event.location}</strong>.</p>
+        <p>Please find your ticket attached. Show this at the entrance for check-in.</p>
+        <p>Best Regards,</p>
+        <p><strong>{participant.event.company.name}</strong></p>
     """
+    plain_message = strip_tags(
+        html_message
+    )  # Remove HTML tags for plaintext email fallback
 
-    email = EmailMessage(
-        subject, body, settings.DEFAULT_FROM_EMAIL, [participant.email]
+    # ✅ Attach PDF Ticket
+    pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
+
+    # ✅ Create the SMTP connection separately (No `backend` argument)
+    connection = get_connection(
+        host=email_config.smtp_server,
+        port=email_config.smtp_port,
+        username=email_config.email_address,
+        password=email_config.email_password,
+        use_tls=email_config.use_tls,
+        use_ssl=email_config.use_ssl,
     )
-    email.attach_file(participant.pdf_ticket.path)
-    email.send()
+
+    # ✅ Define email sending function
+    def send_email():
+        try:
+            email = EmailMessage(
+                subject,
+                html_message,
+                from_email=email_config.email_address,
+                to=[participant.email],
+                connection=connection,  # Use the configured connection
+            )
+            email.content_subtype = "html"  # Ensure HTML email formatting
+
+            if pdf_path and os.path.exists(pdf_path):
+                email.attach_file(pdf_path)
+
+            email.send()
+            print(f"✅ Ticket email sent to {participant.email}")
+
+        except Exception as e:
+            print(f"❌ Error sending email to {participant.email}: {e}")
+
+    # ✅ Run the email function in a separate thread (non-blocking)
+    email_thread = threading.Thread(target=send_email)
+    email_thread.start()
