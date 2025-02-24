@@ -118,32 +118,27 @@
 {% endif %}
 
 
-	<!-- Search Bar -->
-	<div class="flex justify-between items-center mb-4">
-		<input type="text" id="search-input" placeholder="Search participants..." class="w-1/2 p-2 border border-gray-300 rounded-lg">
-	</div>
-
-    <!-- Participants Table -->
+    <!-- Participants Table with DataTables & Export Options -->
     <h2 class="text-xl font-semibold mb-4">Registered Participants</h2>
     <div class="overflow-x-auto">
-        <table class="w-full border-collapse border border-gray-300">
+        <table id="participantsTable" class="w-full border-collapse border border-gray-300 stripe hover row-border">
             <thead>
                 <tr class="bg-gray-200">
-                    <th class="border border-gray-300 px-4 py-2">#</th>
-                    <th class="border border-gray-300 px-4 py-2">Name</th>
-                    <th class="border border-gray-300 px-4 py-2">Email</th>
-                    <th class="border border-gray-300 px-4 py-2">Phone</th>
-                    <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>PDF Ticket</th>
                 </tr>
             </thead>
-            <tbody id="participant-table">
+            <tbody>
                 {% for participant in participants %}
                 <tr class="text-center">
-                    <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
-                    <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
-                    <td class="border border-gray-300 px-4 py-2">
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ participant.name }}</td>
+                    <td>{{ participant.email }}</td>
+                    <td>{{ participant.phone|default:"-" }}</td>
+                    <td>
                         {% if participant.pdf_ticket %}
                             <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
                         {% else %}
@@ -160,6 +155,7 @@
         </table>
     </div>
 </div>
+ 
 
 
 
@@ -168,6 +164,38 @@
 
 <script src="{% static 'js/show_hide_add_participant.js' %}"></script>
 <script src="{% static 'js/autohide_messages.js' %}"></script>
-<script src="{% static 'js/search.js' %}"></script>
+
+
+<!-- DataTables Scripts with Export Buttons and Page Length Selector -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.3.6/css/buttons.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.3.6/js/buttons.print.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+
+<script>
+$(document).ready( function () {
+    $('#participantsTable').DataTable({
+        "paging": true,
+        "searching": true,
+        "ordering": true,
+        "info": true,
+        "responsive": true,
+        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+        "pageLength": 10,  // Default number of rows to show
+        "dom": '<"top"lfB>rt<"bottom"ip><"clear">', // Ensure the length change dropdown appears
+        "buttons": [
+            { extend: 'csv', text: 'Export CSV' },
+            { extend: 'pdf', text: 'Export PDF' }
+        ]
+    });
+});
+</script>
 
 {% endblock %}

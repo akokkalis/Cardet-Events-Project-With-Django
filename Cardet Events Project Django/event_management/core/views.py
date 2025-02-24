@@ -8,6 +8,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils.timezone import now
 from django.http import JsonResponse
+import base64
+from django.core.files.base import ContentFile
 
 
 def login_view(request):
@@ -214,29 +216,38 @@ def mark_attendance(request):
     return JsonResponse({"status": "error", "message": "Invalid request."}, status=400)
 
 
-# @login_required
-# def scan_qr(request, event_id, participant_id):
-#     """Handles QR code scanning and attendance marking."""
-#     event = get_object_or_404(Event, id=event_id)
-#     participant = get_object_or_404(Participant, id=participant_id, event=event)
+def sign_signature(request, event_id, participant_id):
+    """Serves the signature page and saves the signature."""
 
-#     # Ensure that only events with QR scanning enabled allow check-in
-#     if not event.tickets:
-#         messages.error(request, "This event does not require QR scanning.")
-#         return redirect("event_detail", event_id=event.id)
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
 
-#     # Check if attendance already exists
-#     attendance, created = Attendance.objects.get_or_create(
-#         participant=participant, event=event
-#     )
-#     if attendance.present:
-#         messages.warning(request, f"{participant.name} is already checked in!")
-#     else:
-#         attendance.present = True
-#         attendance.timestamp = now()
-#         attendance.save()
-#         messages.success(
-#             request, f"{participant.name} has been checked in successfully."
-#         )
+    if request.method == "POST":
+        signature_data = request.POST.get("signature")
 
-#     return redirect("event_detail", event_id=event.id)  # Redirect to event details
+        if not signature_data:
+            return JsonResponse(
+                {"status": "error", "message": "No signature data received."},
+                status=400,
+            )
+
+        # Convert the Base64 signature data to an image file
+        format, imgstr = signature_data.split(";base64,")
+        ext = format.split("/")[-1]
+        signature_file = ContentFile(
+            base64.b64decode(imgstr),
+            name=f"signatures/{participant.name}_{participant.id}.{ext}",
+        )
+
+        # Save the signature in the Attendance model
+        attendance = get_object_or_404(Attendance, participant=participant, event=event)
+        attendance.signature_file = signature_file
+        attendance.save()
+
+        return JsonResponse(
+            {"status": "success", "message": "Signature saved successfully!"}
+        )
+
+    return render(
+        request, "signature.html", {"event": event, "participant": participant}
+    )

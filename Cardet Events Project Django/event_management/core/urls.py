@@ -11,6 +11,7 @@ from .views import (
     event_detail,
     scan_qr,
     mark_attendance,
+    sign_signature,
 )
 
 urlpatterns = [
@@ -24,5 +25,10 @@ urlpatterns = [
     path("events/<int:event_id>/", event_detail, name="event_detail"),
     path("scan_qr/<int:event_id>/", scan_qr, name="scan_qr"),
     path("mark_attendance/", mark_attendance, name="mark_attendance"),
+    path(
+        "sign_signature/<int:event_id>/<int:participant_id>/",
+        sign_signature,
+        name="sign_signature",
+    ),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

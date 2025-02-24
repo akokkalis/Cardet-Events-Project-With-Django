@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sign Attendance{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow-md text-center">
+    <h2 class="text-2xl font-semibold mb-4">Sign Attendance for {{ participant.name }}</h2>
+
+    <canvas id="signature-pad" class="border border-gray-300 w-full h-64"></canvas>
+
+    <div class="flex justify-between mt-4">
+        <button id="clear-btn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+            Clear Signature
+        </button>
+        <button id="save-btn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+            Save Signature
+        </button>
+    </div>
+</div>
+
+<!-- Include Signature Pad JS -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let canvas = document.getElementById("signature-pad");
+        let signaturePad = new SignaturePad(canvas);
+        let saveBtn = document.getElementById("save-btn");
+        let clearBtn = document.getElementById("clear-btn");
+
+        clearBtn.addEventListener("click", function () {
+            signaturePad.clear();
+        });
+
+        saveBtn.addEventListener("click", function () {
+            if (signaturePad.isEmpty()) {
+                alert("Please provide a signature.");
+                return;
+            }
+
+            let signatureData = signaturePad.toDataURL();
+
+            fetch("{% url 'sign_signature' event.id participant.id %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                body: `signature=${encodeURIComponent(signatureData)}`
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                if (data.status === "success") {
+                    window.location.href = "{% url 'event_detail' event.id %}";
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        });
+    });
+</script>
+{% endblock %}
