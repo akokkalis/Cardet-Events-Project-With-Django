@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Event, Participant, Attendance, Status, Company
+from .models import Event, Participant, Attendance, Status, Company, Staff
 from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, Value, IntegerField
@@ -19,19 +19,26 @@ import json
 
 
 def login_view(request):
-    """Handles staff login."""
+    """Handles staff login and ensures only staff members can access the system."""
 
     if request.method == "POST":
         username = request.POST["username"]
         password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
-        if user or user.is_staff:
-            login(request, user)
-            return redirect("event_list")  # Redirect to event list after login
+        print(user)
+        if user:
+            # ✅ Check if the user is a Staff member
+            if Staff.objects.filter(user=user).exists():
+                login(request, user)
+                return redirect("event_list")  # Redirect to event list after login
+            else:
+                messages.error(request, "Access Denied! You are not a staff member.")
+                return redirect("login")  # Redirect back to login page
         else:
-            return render(
-                request, "login.html", {"error": "Invalid username or password"}
-            )
+            messages.error(request, "Invalid username or password.")
+
+        messages.error(request, "Invalid username or password.")
+        return redirect("login")  # Redirect if authentication fails
 
     return render(request, "login.html")
 
@@ -83,6 +90,7 @@ def event_list(request):
     )
 
 
+@login_required
 def filter_events(request):
     """Filter events dynamically via AJAX and maintain sorting order."""
     company_id = request.GET.get("company")
@@ -159,6 +167,7 @@ def event_create(request):
     return render(request, "event_form.html", {"form": form})
 
 
+@login_required
 def event_edit(request, event_id):
     """Edit an existing event"""
     event = get_object_or_404(Event, id=event_id)
@@ -174,6 +183,7 @@ def event_edit(request, event_id):
     return render(request, "event_edit.html", {"form": form, "event": event})
 
 
+@login_required
 def event_delete(request, event_id):
 
     event = get_object_or_404(Event, id=event_id)
@@ -182,6 +192,7 @@ def event_delete(request, event_id):
     return redirect("event_list")
 
 
+@login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     participants = Participant.objects.filter(event=event).order_by("name")
@@ -232,6 +243,7 @@ def event_detail(request, event_id):
     )
 
 
+@login_required
 def scan_qr(request, event_id):
     """Serves the scanner page for an event and displays attendance lists."""
 
@@ -263,6 +275,7 @@ def scan_qr(request, event_id):
     return render(request, "scan_qr.html", context)
 
 
+@login_required
 def mark_attendance(request):
     """Handles QR code scan and marks attendance."""
 
@@ -313,11 +326,13 @@ def mark_attendance(request):
     return JsonResponse({"status": "error", "message": "Invalid request."}, status=400)
 
 
+@login_required
 def signature_path(instance, filename):
     """Returns the correct path to store signatures inside the event folder."""
     return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/signatures/{instance.participant.name}_{instance.participant.email.replace('@', '_').replace('.', '_')}_signature.png"
 
 
+@login_required
 def sign_signature(request, event_id, participant_id):
     """Serves the signature page and saves the signature."""
 
@@ -379,6 +394,7 @@ def sign_signature(request, event_id, participant_id):
     )
 
 
+@login_required
 def export_zip(request, event_id):
     """Generates a ZIP file containing all PDF tickets and signatures for an event."""
     event = get_object_or_404(Event, id=event_id)

@@ -21,6 +21,8 @@
         {% if request.user.is_authenticated %}
         <div id="overlay" class="fixed inset-0 bg-black opacity-50 hidden md:hidden"></div>
         <div id="sidebar" class="w-64 bg-gray-800 text-white p-5 fixed md:relative h-full md:flex transition-transform duration-300 ease-in-out transform -translate-x-full md:translate-x-0">
+            
+
             <nav>
                 <h5 class="text-xl md:text-2xl lg:text-3xl font-semibold mb-6 text-center md:text-left">
                     Staff Panel
@@ -70,6 +72,11 @@
                         </form>
                     </li>
                 </ul>
+            <!-- ✅ Show Logged-in User Info -->
+            <div class="p-4 text-center border-b border-gray-600">
+                <p class="text-gray-300 text-sm">Logged in as:</p>
+                <p class="text-white font-semibold text-lg">{{ request.user.get_full_name|default:request.user.username }}</p>
+            </div>
             </nav>
         </div>
 

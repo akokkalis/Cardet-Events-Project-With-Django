@@ -138,3 +138,5 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 # Tell crispy forms to use Tailwind
 CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
+
+LOGIN_URL = "/login/"
