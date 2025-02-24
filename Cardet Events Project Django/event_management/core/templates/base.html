@@ -19,8 +19,9 @@
         
         <!-- Sidebar and Overlay -->
         {% if request.user.is_authenticated %}
-        <div id="overlay" class="fixed inset-0 bg-black opacity-50 hidden md:hidden"></div>
-        <div id="sidebar" class="w-64 bg-gray-800 text-white p-5 fixed md:relative h-full md:flex transition-transform duration-300 ease-in-out transform -translate-x-full md:translate-x-0">
+        <div id="overlay" class="fixed inset-0 bg-black opacity-50 hidden md:hidden z-40"></div>
+
+        <div id="sidebar" class="w-64 bg-gray-800 text-white p-5 fixed md:relative h-full md:flex transition-transform duration-300 ease-in-out transform -translate-x-full md:translate-x-0 z-50 shadow-lg">
             
 
             <nav>

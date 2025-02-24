@@ -7,6 +7,10 @@ document.addEventListener("DOMContentLoaded", function () {
         sidebar.classList.remove("-translate-x-full");
         sidebar.classList.add("translate-x-0");
         overlay.classList.remove("hidden");
+
+        // ✅ Ensure sidebar is always on top of events
+        sidebar.style.zIndex = "50";
+        overlay.style.zIndex = "40";
     }
 
     function closeSidebar() {
