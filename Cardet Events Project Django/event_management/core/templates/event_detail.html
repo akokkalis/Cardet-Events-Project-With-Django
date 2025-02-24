@@ -48,7 +48,7 @@
                 </p>
             </div>
 
-            {% if event.tickets or event.signatures %}
+            {% if event.tickets and event.signatures %}
                 <div class="mt-4 inline-block">
                     <a href="{% url 'scan_qr' event.id %}"
                     class="bg-purple-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700">
@@ -59,11 +59,26 @@
                         Check-In & Signatures
                     </a>
                 </div>
+            {%elif event.signatures and not event.tickets %}
+                <div class="mt-4 inline-block"><p class>Use registrants table below to collect signatures</p></div>
             {%else%}
-            <div class="mt-4 inline-block  "><p class>No QR Code Functionality</p></div>
+                <div class="mt-4 inline-block"><p class>no pdf no sign</p></div>
             {% endif %}
 
+
         </div>
+            {% if event.tickets or event.signatures %}
+                <div class="mt-4 inline-block">
+                    <a href="{% url 'export_zip' event.id %}" 
+                    class="bg-blue-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 4h16v16H4z M9 9h6v6H9z" />
+                        </svg>
+                        Export Tickets and Signatures as ZIP
+                    </a>
+                </div>
+            {% endif %}
 
     </div>
 
@@ -124,31 +139,54 @@
         <table id="participantsTable" class="w-full border-collapse border border-gray-300 stripe hover row-border">
             <thead>
                 <tr class="bg-gray-200">
-                    <th>#</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>PDF Ticket</th>
+                    <th class="border border-gray-300 px-4 py-2">#</th>
+                    <th class="border border-gray-300 px-4 py-2">Name</th>
+                    <th class="border border-gray-300 px-4 py-2">Email</th>
+                    <th class="border border-gray-300 px-4 py-2">Phone</th>
+                    {% if event.tickets %}
+                        <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
+                    {% endif %}
+                    {% if event.signatures and not event.tickets %}
+                        <th class="border border-gray-300 px-4 py-2">Signature</th>
+                    {% endif %}
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="participant-table">
                 {% for participant in participants %}
                 <tr class="text-center">
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ participant.name }}</td>
-                    <td>{{ participant.email }}</td>
-                    <td>{{ participant.phone|default:"-" }}</td>
-                    <td>
-                        {% if participant.pdf_ticket %}
-                            <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
+                    <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
+                    <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
+    
+                    {% if event.tickets %}
+                        <td class="border border-gray-300 px-4 py-2">
+                            {% if participant.pdf_ticket %}
+                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    {% endif %}
+    
+                    {% if event.signatures and not event.tickets %}
+                       
+                        <td class="border border-gray-300 px-4 py-2">
+                            {% if participant.attendance and participant.attendance.signature_file %}
+                                <span class="text-green-600 font-semibold">✅Signed</span>
+                            {% else %}
+                            
+                                <a href="{% url 'sign_signature' event.id participant.id %}"
+                                   class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                                    Sign
+                                </a>
+                            {% endif %}
+                        </td>
+                    {% endif %}
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="5" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
+                    <td colspan="6" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
                 </tr>
                 {% endfor %}
             </tbody>

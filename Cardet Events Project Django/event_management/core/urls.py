@@ -12,6 +12,7 @@ from .views import (
     scan_qr,
     mark_attendance,
     sign_signature,
+    export_zip,
 )
 
 urlpatterns = [
@@ -30,5 +31,6 @@ urlpatterns = [
         sign_signature,
         name="sign_signature",
     ),
+    path("export_zip/<int:event_id>/", export_zip, name="export_zip"),
 ]
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -7,11 +7,12 @@ from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils.timezone import now
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, HttpResponse
 import base64
 from django.core.files.base import ContentFile
 import os
 from django.conf import settings
+import zipfile
 
 
 def login_view(request):
@@ -88,6 +89,11 @@ def event_detail(request, event_id):
         event=event, present=True
     ).values_list("participant", flat=True)
     not_present_participants = participants.exclude(id__in=present_participants)
+
+    for participant in participants:
+        participant.attendance = Attendance.objects.filter(
+            participant=participant, event=event
+        ).first()
 
     if request.method == "POST":
         form = ParticipantForm(request.POST)
@@ -271,3 +277,40 @@ def sign_signature(request, event_id, participant_id):
     return JsonResponse(
         {"status": "error", "message": "Invalid request method."}, status=400
     )
+
+
+def export_zip(request, event_id):
+    """Generates a ZIP file containing all PDF tickets and signatures for an event."""
+    event = get_object_or_404(Event, id=event_id)
+
+    # Define the event folder path
+    event_folder = os.path.join(
+        "media", f"Events/{event.id}_{event.event_name.replace(' ', '_')}"
+    )
+    zip_filename = f"{event.event_name.replace(' ', '_')}_Export.zip"
+
+    # Create a ZIP file
+    zip_path = os.path.join("media", zip_filename)
+
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        # Add PDF Tickets if available
+        pdf_folder = os.path.join(event_folder, "pdf_tickets")
+        if os.path.exists(pdf_folder):
+            for root, _, files in os.walk(pdf_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, "media"))
+
+        # Add Signatures if available
+        signature_folder = os.path.join(event_folder, "signatures")
+        if os.path.exists(signature_folder):
+            for root, _, files in os.walk(signature_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, "media"))
+
+    # Serve the ZIP file for download
+    zip_file = open(zip_path, "rb")
+    response = FileResponse(zip_file, as_attachment=True, filename=zip_filename)
+
+    return response
