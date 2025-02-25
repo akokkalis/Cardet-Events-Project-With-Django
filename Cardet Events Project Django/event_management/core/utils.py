@@ -62,3 +62,38 @@ def generate_pdf_ticket(participant, qr_code_path):
     return (
         relative_pdf_path  # Return relative path to store in `participant.pdf_ticket`
     )
+
+
+def email_body(participant_name, event_info):
+    """Generate the email body with dynamic participant and event details."""
+    location_html = (
+        f"""
+        📍 <a href="{event_info['location']}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+            View Location on Google Maps
+        </a>
+    """
+        if event_info["location"]
+        else "📍 Location: Not Provided"
+    )
+    body = f"""
+        <h4>Dear {participant_name},</h4>
+        <p>Thank you for your booking! Please find your ticket(s) attached to this email.</p>
+
+        <p><strong>Event Details:</strong></p>
+        <p>📅 Event: {event_info['title']}</p>
+        {location_html}
+        <p>🕒 Date & Time: {event_info['date']} at {event_info['starttime']} - {event_info['endtime']}</p>
+        
+        <h5>Important Information:</h5>
+        <p>✅ Please bring this ticket (printed or digital) for entry.</p>
+        <p>✅ Ensure your QR code or barcode is visible for scanning at the entrance.</p>
+        <p>✅ Doors open at: {event_info['starttime']} - Arrive early to secure your spot.</p>
+        <p>✅ For any inquiries, contact us at: events@cardet.org</p>
+
+        <p>We look forward to seeing you at the event! 🎉</p>
+
+        <p>Best regards,</p>
+        <p>Cardet Team</p>
+        <p><a href="https://www.cardet.org">Visit cardet.com</a></p> 
+    """
+    return body

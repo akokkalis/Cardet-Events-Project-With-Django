@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
 from .models import Company, Event, Participant
-from .utils import generate_pdf_ticket
+from .utils import generate_pdf_ticket, email_body
 import threading
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
@@ -121,13 +121,25 @@ def send_ticket_email(participant):
 
     # ✅ Email subject & body
     subject = f"Your Ticket for {participant.event.event_name}"
-    html_message = f"""
-        <p>Dear {participant.name},</p>
-        <p>Thank you for registering for <strong>{participant.event.event_name}</strong> on <strong>{participant.event.event_date}</strong> at <strong>{participant.event.location}</strong>.</p>
-        <p>Please find your ticket attached. Show this at the entrance for check-in.</p>
-        <p>Best Regards,</p>
-        <p><strong>{participant.event.company.name}</strong></p>
-    """
+    # ✅ Prepare Event Information
+    event_info = {
+        "title": participant.event.event_name,
+        "location": participant.event.location,
+        "date": participant.event.event_date.strftime("%d-%m-%y"),
+        "starttime": (
+            participant.event.start_time.strftime("%H:%M")
+            if participant.event.start_time
+            else "TBA"
+        ),
+        "endtime": (
+            participant.event.end_time.strftime("%H:%M")
+            if participant.event.end_time
+            else "TBA"
+        ),
+    }
+
+    # ✅ Generate email body with correct parameters
+    html_message = email_body(participant.name, event_info)
     plain_message = strip_tags(
         html_message
     )  # Remove HTML tags for plaintext email fallback
