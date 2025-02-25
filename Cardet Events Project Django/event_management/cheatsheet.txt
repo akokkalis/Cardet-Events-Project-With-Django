@@ -10,3 +10,7 @@ mysql database
 name: events_qr_database
 username: admin
 password: u%jc3f+tF-7dHO0v
+
+superuser on linux
+admin
+T@#ot6cXKkYt7JgR
