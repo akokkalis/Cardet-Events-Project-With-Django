@@ -8,6 +8,16 @@ import re
 from django.core.mail import send_mail, BadHeaderError
 from django.core.mail.backends.smtp import EmailBackend
 from django.conf import settings
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from django.http import HttpResponse
+import csv
+from django.conf import settings
+from .models import Event
+from django.core.files.storage import default_storage
+import base64
+import shutil
 
 
 def generate_pdf_ticket(participant, qr_code_path):
@@ -97,3 +107,127 @@ def email_body(participant_name, event_info):
         <p><a href="https://www.cardet.org">Visit cardet.com</a></p> 
     """
     return body
+
+
+def export_participants_csv(event_id):
+    """Exports participants list as CSV and saves signature images in the same folder."""
+    event = Event.objects.get(id=event_id)  # ✅ Fetch event
+    csv_folder = os.path.join(
+        settings.MEDIA_ROOT, f"Exports/{event.event_name.replace(' ', '_')}"
+    )
+    os.makedirs(csv_folder, exist_ok=True)  # ✅ Ensure folder exists
+    csv_path = os.path.join(csv_folder, f"{event.event_name}_participants.csv")
+
+    with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+        writer = csv.writer(csvfile)
+
+        # ✅ Write Event Details
+        writer.writerow(["Event Name", event.event_name])
+        writer.writerow(["Date", event.event_date])
+        writer.writerow(["Location", event.location])
+        writer.writerow(["Description", event.description])
+        writer.writerow(["Status", event.status.name])
+        writer.writerow([])  # Empty row for spacing
+
+        # ✅ Write Table Headers
+        writer.writerow(["#", "Name", "Email", "Phone", "Signature Image"])
+
+        # ✅ Fetch all participants
+        participants = event.participant_set.prefetch_related("attendance_set").all()
+
+        for i, participant in enumerate(participants, start=1):
+            attendance = participant.attendance_set.first()
+            signature_path = "Not Signed"
+
+            # ✅ Copy Signature File to the CSV Folder
+            if attendance and attendance.signature_file:
+                original_path = os.path.join(
+                    settings.MEDIA_ROOT, attendance.signature_file.name
+                )
+                if os.path.exists(original_path):
+                    new_filename = f"{participant.name.replace(' ', '_')}_signature.png"
+                    new_path = os.path.join(csv_folder, new_filename)
+                    shutil.copy(original_path, new_path)  # ✅ Copy image file
+                    signature_path = new_filename  # ✅ Use relative filename
+
+            writer.writerow(
+                [
+                    i,
+                    participant.name,
+                    participant.email,
+                    participant.phone or "-",
+                    signature_path,
+                ]
+            )
+
+    # ✅ Return CSV as Response
+    with open(csv_path, "rb") as f:
+        response = HttpResponse(f, content_type="text/csv")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{event.event_name}_participants.csv"'
+        )
+        return response
+
+
+def export_participants_pdf(event_id):
+    """Exports participants list as PDF with embedded signature images."""
+    event = Event.objects.get(id=event_id)  # ✅ Fetch event
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = (
+        f'attachment; filename="{event.event_name}_participants.pdf"'
+    )
+
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer, pagesize=landscape(letter))
+
+    # ✅ Event Details
+    pdf.setFont("Helvetica-Bold", 14)
+    pdf.drawString(30, 550, f"Event: {event.event_name}")
+    pdf.drawString(30, 530, f"Date: {event.event_date}")
+    pdf.drawString(30, 510, f"Location: {event.location}")
+    pdf.drawString(30, 490, f"Description: {event.description}")
+    pdf.drawString(30, 470, f"Status: {event.status.name}")
+
+    # ✅ Table Headers
+    y = 440
+    pdf.setFont("Helvetica-Bold", 10)
+    pdf.drawString(30, y, "#")
+    pdf.drawString(60, y, "Name")
+    pdf.drawString(200, y, "Email")
+    pdf.drawString(350, y, "Phone")
+    pdf.drawString(500, y, "Signature")
+
+    # ✅ Fetch all participants
+    y -= 20
+    pdf.setFont("Helvetica", 10)
+    participants = event.participant_set.prefetch_related("attendance_set").all()
+
+    for i, participant in enumerate(participants, start=1):
+        pdf.drawString(30, y, str(i))
+        pdf.drawString(60, y, participant.name)
+        pdf.drawString(200, y, participant.email)
+        pdf.drawString(350, y, participant.phone or "-")
+
+        attendance = participant.attendance_set.first()
+
+        # ✅ Embed Signature Image
+        if attendance and attendance.signature_file:
+            signature_path = os.path.join(
+                settings.MEDIA_ROOT, attendance.signature_file.name
+            )
+            if os.path.exists(signature_path):
+                img = ImageReader(signature_path)
+                pdf.drawImage(
+                    img, 500, y - 10, width=50, height=20
+                )  # Adjust dimensions
+            else:
+                pdf.drawString(500, y, "Missing")
+        else:
+            pdf.drawString(500, y, "Not Signed")
+
+        y -= 20  # Move to next row
+
+    pdf.save()
+    buffer.seek(0)
+    response.write(buffer.getvalue())
+    return response

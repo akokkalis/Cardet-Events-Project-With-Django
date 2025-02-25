@@ -16,6 +16,10 @@ import zipfile
 from datetime import date
 from django.views.decorators.csrf import csrf_exempt
 import json
+from django.core.mail import EmailMessage, get_connection
+from django.utils.html import strip_tags
+import threading
+from .utils import email_body, export_participants_pdf, export_participants_csv
 
 
 def login_view(request):
@@ -493,3 +497,103 @@ def register_participant_api(request):
     return JsonResponse(
         {"status": "error", "message": "Invalid request method."}, status=405
     )
+
+
+def send_ticket_email_view(request):
+    """Handles sending ticket email manually via AJAX request using the same logic from signals.py"""
+
+    if request.method == "POST":
+        participant_id = request.POST.get("participant_id")
+        participant = get_object_or_404(Participant, id=participant_id)
+
+        # ✅ Ensure event requires tickets and participant has a ticket
+        if not participant.event.tickets or not participant.pdf_ticket:
+            return JsonResponse(
+                {"message": "This event does not require tickets or no ticket found."},
+                status=400,
+            )
+
+        # ✅ Get company email configuration
+        email_config = getattr(participant.event.company, "email_config", None)
+        if not email_config:
+            return JsonResponse(
+                {"message": "No email configuration found for this company."},
+                status=400,
+            )
+
+        # ✅ Email subject & event information
+        subject = f"Your Ticket for {participant.event.event_name}"
+        event_info = {
+            "title": participant.event.event_name,
+            "location": participant.event.location,
+            "date": participant.event.event_date.strftime("%d-%m-%y"),
+            "starttime": (
+                participant.event.start_time.strftime("%H:%M")
+                if participant.event.start_time
+                else "TBA"
+            ),
+            "endtime": (
+                participant.event.end_time.strftime("%H:%M")
+                if participant.event.end_time
+                else "TBA"
+            ),
+        }
+
+        # ✅ Generate email body with correct parameters
+        html_message = email_body(participant.name, event_info)
+        plain_message = strip_tags(
+            html_message
+        )  # Remove HTML tags for plaintext fallback
+
+        # ✅ Get PDF Ticket Path
+        pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
+
+        # ✅ Create SMTP connection (same as signals.py)
+        connection = get_connection(
+            host=email_config.smtp_server,
+            port=email_config.smtp_port,
+            username=email_config.email_address,
+            password=email_config.email_password,
+            use_tls=email_config.use_tls,
+            use_ssl=email_config.use_ssl,
+        )
+
+        # ✅ Define email sending function
+        def send_email():
+            try:
+                email = EmailMessage(
+                    subject,
+                    html_message,
+                    from_email=email_config.email_address,
+                    to=[participant.email],
+                    connection=connection,  # Use the configured connection
+                )
+                email.content_subtype = "html"  # Ensure HTML email formatting
+
+                # ✅ Attach the ticket if available
+                if pdf_path and os.path.exists(pdf_path):
+                    email.attach_file(pdf_path)
+
+                email.send()
+                print(f"✅ Ticket email sent to {participant.email}")
+
+            except Exception as e:
+                print(f"❌ Error sending email to {participant.email}: {e}")
+
+        # ✅ Run email function in a separate thread (non-blocking)
+        email_thread = threading.Thread(target=send_email)
+        email_thread.start()
+
+        return JsonResponse({"message": "Ticket sent successfully!"}, status=200)
+
+    return JsonResponse({"message": "Invalid request method."}, status=400)
+
+
+def export_participants_csv_view(request, event_id):
+    """View to export participants as CSV."""
+    return export_participants_csv(event_id)
+
+
+def export_participants_pdf_view(request, event_id):
+    """View to export participants as PDF."""
+    return export_participants_pdf(event_id)

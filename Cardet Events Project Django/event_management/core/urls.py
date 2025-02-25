@@ -15,6 +15,9 @@ from .views import (
     export_zip,
     filter_events,
     register_participant_api,
+    send_ticket_email_view,
+    export_participants_csv_view,
+    export_participants_pdf_view,
 )
 
 urlpatterns = [
@@ -39,6 +42,17 @@ urlpatterns = [
         "api/register_participant/",
         register_participant_api,
         name="register_participant_api",
+    ),
+    path("send-ticket-email/", send_ticket_email_view, name="send_ticket_email"),
+    path(
+        "event/<int:event_id>/export/csv/",
+        export_participants_csv_view,
+        name="export_participants_csv",
+    ),
+    path(
+        "event/<int:event_id>/export/pdf/",
+        export_participants_pdf_view,
+        name="export_participants_pdf",
     ),
 ]
 

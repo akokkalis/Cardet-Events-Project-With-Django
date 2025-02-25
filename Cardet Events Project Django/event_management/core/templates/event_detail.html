@@ -68,7 +68,7 @@
 
         </div>
             {% if event.tickets or event.signatures %}
-                <div class="mt-4 inline-block">
+                <div class="mt-4 flex flex-wrap gap-4">
                     <a href="{% url 'export_zip' event.id %}" 
                     class="bg-blue-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -77,7 +77,18 @@
                         </svg>
                         Export Tickets and Signatures as ZIP
                     </a>
-                </div>
+                
+
+                <a href="{% url 'export_participants_csv' event.id %}" 
+                class="bg-blue-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
+                 Export as CSV
+             </a>
+         
+             <a href="{% url 'export_participants_pdf' event.id %}" 
+                class="bg-red-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700">
+                 Export as PDF
+             </a>
+            </div>
             {% endif %}
 
     </div>
@@ -145,8 +156,9 @@
                     <th class="border border-gray-300 px-4 py-2">Phone</th>
                     {% if event.tickets %}
                         <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
+                        <th class="border border-gray-300 px-4 py-2">Send Ticket</th> <!-- ✅ New Button -->
                     {% endif %}
-                    {% if event.signatures and not event.tickets %}
+                    {% if event.signatures %}
                         <th class="border border-gray-300 px-4 py-2">Signature</th>
                     {% endif %}
                 </tr>
@@ -158,7 +170,7 @@
                     <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
                     <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
                     <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
-    
+            
                     {% if event.tickets %}
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.pdf_ticket %}
@@ -167,19 +179,37 @@
                                 -
                             {% endif %}
                         </td>
+            
+                        <!-- ✅ "Send Ticket" Button (Disabled if signed) -->
+                        <td class="border border-gray-300 px-4 py-2">
+                            {% if participant.pdf_ticket %}
+                                <button class="send-ticket-btn bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-700 {% if participant.attendance and participant.attendance.signature_file %}opacity-50 cursor-not-allowed{% endif %}"
+                                        data-participant-id="{{ participant.id }}" 
+                                        {% if participant.attendance and participant.attendance.signature_file %}disabled{% endif %}>
+                                    Send Ticket
+                                </button>
+                            {% else %}
+                                <span class="text-gray-500">No Ticket</span>
+                            {% endif %}
+                        </td>
                     {% endif %}
-    
-                    {% if event.signatures and not event.tickets %}
-                       
+            
+                    {% if event.signatures %}
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.attendance and participant.attendance.signature_file %}
-                                <span class="text-green-600 font-semibold">✅Signed</span>
-                            {% else %}
-                            
-                                <a href="{% url 'sign_signature' event.id participant.id %}"
-                                   class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
-                                    Sign
+                                <!-- ✅ Show Signature Image -->
+                                <a href="{{ participant.attendance.signature_file.url }}" target="_blank">
+                                    <img src="{{ participant.attendance.signature_file.url }}" alt="Signature" class="h-10 w-auto border rounded">
                                 </a>
+                            {% else %}
+                                {% if not event.tickets %}
+                                    <a href="{% url 'sign_signature' event.id participant.id %}"
+                                       class="bg-purple-500 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                                        Sign
+                                    </a>
+                                {% else %}
+                                    <span class="text-red-600 font-semibold">❌ Not Signed</span>
+                                {% endif %}
                             {% endif %}
                         </td>
                     {% endif %}
@@ -218,22 +248,105 @@
 
 
 <script>
-$(document).ready( function () {
-    $('#participantsTable').DataTable({
-        "paging": true,
-        "searching": true,
-        "ordering": true,
-        "info": true,
-        "responsive": true,
-        "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-        "pageLength": 10,  // Default number of rows to show
-        "dom": '<"top"lfB>rt<"bottom"ip><"clear">', // Ensure the length change dropdown appears
-        "buttons": [
-            { extend: 'csv', text: 'Export CSV' },
-            { extend: 'pdf', text: 'Export PDF' }
-        ]
+    $(document).ready(function () {
+        let eventDetails = `
+            <h2>{{ event.event_name }}</h2>
+            <p><strong>Date:</strong> {{ event.event_date }}</p>
+            <p><strong>Time:</strong> {{ event.start_time }} - {{ event.end_time }}</p>
+            <p><strong>Location:</strong> {{ event.location }}</p>
+            <p><strong>Description:</strong> {{ event.description|safe }}</p>
+            <p><strong>Status:</strong> {{ event.status.name }}</p>
+        `;
+
+        $('#participantsTable').DataTable({
+            "paging": true,
+            "searching": true,
+            "ordering": true,
+            "info": true,
+            "responsive": true,
+            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+            "pageLength": 10,
+            "dom": '<"top"lfB>rt<"bottom"ip><"clear">',
+            "buttons": [
+                { extend: 'csv', text: 'Export CSV' },
+                {
+                    extend: 'pdfHtml5',
+                    text: 'Export PDF',
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    customize: function (doc) {
+                        // ✅ Add Event Details at the top
+                        doc.content.unshift(
+                            {
+                                text: `Event: {{ event.event_name }}`,
+                                fontSize: 14,
+                                bold: true,
+                                margin: [0, 0, 0, 10] // Margin bottom
+                            },
+                            {
+                                text: `Date: {{ event.event_date }}   |   Location: {{ event.location }}`,
+                                fontSize: 12,
+                                margin: [0, 0, 0, 10] // Margin bottom
+                            }
+                        );
+
+                        // ✅ Convert Signature Images to Base64 and Add to PDF
+                        let signatureImages = document.querySelectorAll('.signature-img');
+                        signatureImages.forEach((img, index) => {
+                            let canvas = document.createElement('canvas');
+                            let ctx = canvas.getContext('2d');
+                            canvas.width = img.naturalWidth;
+                            canvas.height = img.naturalHeight;
+                            ctx.drawImage(img, 0, 0);
+                            let base64String = canvas.toDataURL('image/png');
+
+                            // ✅ Add Signature Image Below Participant Row
+                            doc.content[2].table.body[index + 1].push({
+                                image: base64String,
+                                width: 50, // Adjust image size
+                                alignment: 'center'
+                            });
+                        });
+                    }
+                }
+            ]
+        });
+
+        // ✅ Send Ticket Email Button
+        $(".send-ticket-btn").click(function () {
+            let participantId = $(this).data("participant-id");
+
+            Swal.fire({
+                title: "Send Ticket?",
+                text: "Are you sure you want to send the ticket to this participant?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Yes, Send"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "{% url 'send_ticket_email' %}",
+                        method: "POST",
+                        data: {
+                            participant_id: participantId,
+                            csrfmiddlewaretoken: "{{ csrf_token }}"
+                        },
+                        success: function (response) {
+                            Swal.fire("Success", response.message, "success");
+                        },
+                        error: function (xhr) {
+                            Swal.fire("Error", "Failed to send ticket. Try again later.", "error");
+                        }
+                    });
+                }
+            });
+        });
     });
-});
 </script>
+
+
+    
 
 {% endblock %}
