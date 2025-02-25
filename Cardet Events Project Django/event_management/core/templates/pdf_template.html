@@ -5,8 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Ticket</title>
     <style>
+        @font-face {
+            font-family: 'DejaVu';
+            src: url('file://{{ font_path }}'); /* Update with correct path */
+        }
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'DejaVu', sans-serif;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
@@ -106,8 +110,8 @@
             text-align: center;
         }
         .top-images img {
-            width: 200px; /* Set width to 100px */
-            height: 68px; /* Set height to 100px */
+            width: 150px; /* Set width to 100px */
+            height: 150px; /* Set height to 100px */
             border-radius: 8px;
             object-fit: cover; /* Ensures the image scales properly */
         }
@@ -119,10 +123,18 @@
         <table class="top-images">
             <tr>
                 <td>
-                    <img src="images/cardet_logo.png" alt="Event Banner">
+                    {% if company_logo_url %}
+                        <img src="{{ company_logo_url }}" alt="Company Logo">
+                    {% else %}
+                        <img src="https://yourwebsite.com/media/default_company_logo.png" alt="Default Logo">
+                    {% endif %}
                 </td>
                 <td>
-                    <img src="images/ticket.png" alt="Event Banner">
+                    {% if event_image_url %}
+                        <img src="{{ event_image_url }}" alt="Event Image">
+                    {% else %}
+                        <img src="https://yourwebsite.com/media/default_event_image.png" alt="Default Event">
+                    {% endif %}
                 </td>
             </tr>
         </table>
@@ -130,11 +142,22 @@
         <!-- Event Details Section -->
         <div class="event-section">
             <h1><strong>{{ participant.event.event_name }}</strong></h1>
-            <p><strong>Participant:</strong> {{ participant.name }}</p>
-            <p><strong>Email:</strong> {{ participant.email }}</p>
-            <p><strong>Date:</strong> {{ participant.event.event_date }}</p>
-            <p><strong>Time:</strong> {{ participant.event.start_time }} - {{ participant.event.end_time }}</p>
-            <p><strong>Venue:</strong> {{ participant.event.location }}</p>
+
+            <p>👤 <strong>Participant:</strong> {{ participant.name }}</p>
+            <p>📧 <strong>Email:</strong> {{ participant.email }}</p>
+            <p>📅 <strong>Date:</strong> {{ participant.event.event_date }}</p>
+            <p>⏰ <strong>Time:</strong> {{ participant.event.start_time|default:"TBA" }} - {{ participant.event.end_time|default:"TBA" }}</p>
+            
+            <!-- ✅ Location Link (If exists) -->
+            {% if participant.event.location %}
+                <p>📍 <strong>Venue:</strong> 
+                    <a href="{{ participant.event.location }}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+                        View on Google Maps
+                    </a>
+                </p>
+            {% else %}
+                <p>📍 <strong>Venue:</strong> Not Provided</p>
+            {% endif %}
             
         </div>
 

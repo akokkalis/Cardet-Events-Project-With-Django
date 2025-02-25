@@ -23,6 +23,7 @@ import shutil
 def generate_pdf_ticket(participant, qr_code_path):
     """Generate a PDF ticket using an HTML template."""
 
+    site_url = f"{settings.SITE_URL}"
     # ✅ Ensure the event's PDF tickets folder exists
     pdf_folder = os.path.join(
         settings.MEDIA_ROOT,
@@ -43,12 +44,27 @@ def generate_pdf_ticket(participant, qr_code_path):
     qr_image_path = participant.qr_code.url
     qr_image_url = f"{settings.MEDIA_URL}{qr_image_path}".replace("\\", "/")
 
+    font_path = os.path.join(settings.BASE_DIR, "core", "fonts", "DejaVuSans.ttf")
+    print("MY FONT URL:", font_path)
+    company_logo_url = (
+        f"{site_url}{participant.event.company.logo.url}"
+        if participant.event.company.logo
+        else None
+    )
+
+    event_image_url = (
+        f"{site_url}{participant.event.image.url}" if participant.event.image else None
+    )
+
     # ✅ Generate HTML from template
     html_content = render_to_string(
         "pdf_template.html",
         {
             "participant": participant,
             "qr_image_path": qr_image_path[1:],  # Convert to relative path
+            "company_logo_url": company_logo_url,
+            "event_image_url": event_image_url,
+            "font_path": font_path.replace("\\", "/"),
         },
     )
 

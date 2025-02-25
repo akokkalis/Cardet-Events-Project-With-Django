@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-wqk6_y73o3ut26x+l7el&qiyihfi@@duw3*n*3w=89xf58#ii7"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -77,12 +77,33 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+DEBUG = (
+    os.getenv("DJANGO_DEBUG", "True") == "True"
+)  # Read DEBUG from environment variables
+
+if DEBUG:
+    # ✅ Use SQLite in Development Mode
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
     }
-}
+else:
+    # ✅ Use MySQL in Production Mode
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.mysql",
+            "NAME": os.getenv("MYSQL_DB_NAME", "your_database_name"),
+            "USER": os.getenv("MYSQL_USER", "your_database_user"),
+            "PASSWORD": os.getenv("MYSQL_PASSWORD", "your_database_password"),
+            "HOST": os.getenv("MYSQL_HOST", "your_database_host"),
+            "PORT": os.getenv("MYSQL_PORT", "3306"),  # Default MySQL port
+            "OPTIONS": {
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",  # Ensures strict mode for better data integrity
+            },
+        }
+    }
 
 
 # Password validation
@@ -140,3 +161,4 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 LOGIN_URL = "/login/"
+SITE_URL = "http://127.0.0.1:8000"

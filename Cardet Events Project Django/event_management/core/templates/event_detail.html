@@ -25,28 +25,29 @@
                 Status: {{ event.status.name }}
             </p>
             <!-- Registration, Present, and Not Present in One Line -->
-            <div class="flex flex-wrap gap-6 items-center mt-4">
-                <p class="text-gray-600 flex items-center gap-1">
+            <div class="flex flex-wrap items-center gap-6 mt-2">
+                <p class="flex items-center gap-1 text-gray-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5V10l-2.5-2L17 10v10zm-4 0H2V10l2.5-2L7 10v10zm-4 0h2V10l-2.5-2L5 10v10z" />
                     </svg>
                     <span><strong>Registrations:</strong> {{ participants|length }}</span>
                 </p>
-
-                <p class="text-green-600 flex items-center gap-1">
+            
+                <p class="flex items-center gap-1 text-green-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>Present:</strong> {{ present_participants|length }}</span>
                 </p>
-
-                <p class="text-red-600 flex items-center gap-1">
+            
+                <p class="flex items-center gap-1 text-red-600">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span><strong>Not Present:</strong> {{ not_present_participants|length }}</span>
                 </p>
             </div>
+            
 
             {% if event.tickets and event.signatures %}
                 <div class="mt-4 inline-block">

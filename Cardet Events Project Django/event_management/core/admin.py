@@ -25,11 +25,18 @@ class EventAdmin(admin.ModelAdmin):
     search_fields = ("event_name", "location")
 
 
+class AttendanceAdmin(admin.ModelAdmin):
+
+    list_display = ("event", "present", "signature_file", "timestamp")
+    list_filter = ("event", "present", "signature_file", "timestamp")
+    search_fields = ("event_name", "location")
+
+
 admin.site.register(Company)
 admin.site.register(Staff)
 admin.site.register(Event, EventAdmin)
 admin.site.register(Participant)
-admin.site.register(Attendance)
+admin.site.register(Attendance, AttendanceAdmin)
 admin.site.register(EmailConfiguration)
 
 
