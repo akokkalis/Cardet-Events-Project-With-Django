@@ -11,10 +11,16 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ✅ Load environment variables from .env
+dotenv_path = os.path.join(BASE_DIR, ".env")
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -77,34 +83,35 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DEBUG = (
-    os.getenv("DJANGO_DEBUG", "True") == "True"
-)  # Read DEBUG from environment variables
+# ✅ Determine if we're in development or production
+DEBUG = os.getenv("DJANGO_DEBUG")
 
-if DEBUG:
-    # ✅ Use SQLite in Development Mode
+# ✅ Database Configuration
+if DEBUG == "True":
+    # 💻 DEVELOPMENT: Use SQLite
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
         }
     }
+    print("🚀 Running in DEVELOPMENT mode with SQLite")
 else:
-    # ✅ Use MySQL in Production Mode
+    # 🌍 PRODUCTION: Use MySQL
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("MYSQL_DB_NAME", "your_database_name"),
-            "USER": os.getenv("MYSQL_USER", "your_database_user"),
-            "PASSWORD": os.getenv("MYSQL_PASSWORD", "your_database_password"),
-            "HOST": os.getenv("MYSQL_HOST", "your_database_host"),
-            "PORT": os.getenv("MYSQL_PORT", "3306"),  # Default MySQL port
+            "NAME": os.getenv("MYSQL_DATABASE"),
+            "USER": os.getenv("MYSQL_USER"),
+            "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+            "HOST": os.getenv("MYSQL_HOST"),
+            "PORT": os.getenv("MYSQL_PORT"),
             "OPTIONS": {
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",  # Ensures strict mode for better data integrity
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
             },
         }
     }
-
+    print("🌍 Running in PRODUCTION mode with MySQL")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
