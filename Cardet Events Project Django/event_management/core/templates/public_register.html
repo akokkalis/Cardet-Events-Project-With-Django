@@ -1,49 +1,57 @@
 {% extends 'base_public.html' %}
-
 {% load widget_tweaks %}
-
 
 {% block title %}Register for {{ event.event_name }}{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md mt-10">
-    <h2 class="text-2xl font-bold mb-4">Register for {{ event.event_name }}</h2>
+<div class="max-w-lg mx-auto bg-white p-6 rounded-lg shadow-md mt-10 relative">
+
+    <!-- ✅ Company Logo (top-right corner) -->
+    {% if event.company.logo %}
+        <div class="absolute top-4 right-4">
+            <img src="{{ event.company.logo.url }}" alt="Company Logo" class="h-10">
+        </div>
+    {% endif %}
+
+    <!-- ✅ Event Image (centered on top) -->
+    {% if event.image %}
+        <div class="flex justify-center mb-4">
+            <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="h-32 object-cover rounded shadow">
+        </div>
+    {% endif %}
+
+    <h2 class="text-2xl font-bold mb-4 text-center">Register for {{ event.event_name }}</h2>
 
     {% if messages %}
         {% for message in messages %}
             <p class="text-{{ message.tags }}">{{ message }}</p>
         {% endfor %}
     {% endif %}
-	{% if event.company.logo %}
-    <div class="flex justify-center mb-6">
-        <img src="{{ event.company.logo.url }}" alt="Company Logo" class="h-16">
-    </div>
-{% endif %}
 
-	<form method="POST" class="space-y-4">
-		{% csrf_token %}
-		
-		<div>
-			<label for="id_name" class="block text-gray-700 font-semibold">Name</label>
-			{{ form.name|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-		</div>
-	
-		<div>
-			<label for="id_email" class="block text-gray-700 font-semibold">Email</label>
-			{{ form.email|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-		</div>
-	
-		<div>
-			<label for="id_phone" class="block text-gray-700 font-semibold">Phone</label>
-			{{ form.phone|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
-		</div>
-	
-		<div>
-			<button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-				Register
-			</button>
-		</div>
-	</form>
-	
+    <form method="POST" class="space-y-4">
+        {% csrf_token %}
+
+        <div>
+            <label for="id_name" class="block text-gray-700 font-semibold">Name</label>
+            {{ form.name|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+
+        <div>
+            <label for="id_email" class="block text-gray-700 font-semibold">Email</label>
+            {{ form.email|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+
+        <div>
+            <label for="id_phone" class="block text-gray-700 font-semibold">Phone</label>
+            {{ form.phone|add_class:"w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+        </div>
+
+        <div>
+            <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                Register
+            </button>
+        </div>
+    </form>
+
 </div>
 {% endblock %}

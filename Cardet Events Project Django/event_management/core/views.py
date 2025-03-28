@@ -327,11 +327,17 @@ def mark_attendance(request):
                     "redirect_url": f"/sign_signature/{event.id}/{participant.id}/",
                 }
             )
+        total_present = Attendance.objects.filter(event=event, present=True).count()
+        total_registered = Participant.objects.filter(event=event).count()
+        not_present = total_registered - total_present
 
         return JsonResponse(
             {
                 "status": "success",
                 "message": f"{participant.name} checked in successfully.",
+                "participant_name": participant.name,
+                "present_count": total_present,
+                "not_present_count": not_present,
             }
         )
 
@@ -633,7 +639,7 @@ def public_register(request, event_uuid):
                 participant.event = event
                 participant.save()
                 messages.success(request, "✅ Registered successfully!")
-                return redirect("public_register", event_id=event.id)
+                redirect("public_register", event_uuid=event.uuid)
     else:
         form = ParticipantForm()
 

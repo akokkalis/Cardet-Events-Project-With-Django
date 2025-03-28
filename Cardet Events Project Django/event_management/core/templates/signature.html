@@ -82,7 +82,7 @@
                     confirmButtonText: "OK",
                 }).then(() => {
                     if (data.status === "success") {
-                        window.location.href = "{% url 'event_detail' event.id %}";
+                        window.location.href = "{% url 'scan_qr' event.id %}";
                     }
                 });
             })
