@@ -20,6 +20,9 @@ from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 import threading
 from .utils import email_body, export_participants_pdf, export_participants_csv
+from django_ratelimit.decorators import ratelimit
+
+from django.utils.decorators import method_decorator
 
 
 def login_view(request):
@@ -173,14 +176,19 @@ def event_create(request):
 
 @login_required
 def event_edit(request, event_id):
-    """Edit an existing event"""
+    """Edit an existing event."""
     event = get_object_or_404(Event, id=event_id)
+
+    next_url = request.GET.get("next", None)  # Get the `next` parameter from URL
 
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         if form.is_valid():
             form.save()
-            return redirect("event_list")  # Redirect to the event list after editing
+            # Redirect back to where user came from, if provided
+            if next_url:
+                return redirect(next_url)
+            return redirect("event_list")  # Fallback to event list
     else:
         form = EventForm(instance=event)
 
@@ -597,3 +605,36 @@ def export_participants_csv_view(request, event_id):
 def export_participants_pdf_view(request, event_id):
     """View to export participants as PDF."""
     return export_participants_pdf(event_id)
+
+
+# 💥 Allow 5 POSTs per minute per IP
+
+
+@ratelimit(key="ip", rate="5/m", block=False)  # 5 requests per minute
+def public_register(request, event_uuid):
+    event = get_object_or_404(Event, uuid=event_uuid)
+
+    # If rate limit exceeded, show error page
+    if getattr(request, "limited", False):
+        return render(request, "rate_limit_exceeded.html", {"event": event})
+
+    # Only allow if event status is "on-going"
+    if not event.status or event.status.name.lower() != "on-going":
+        return render(request, "registration_closed.html", {"event": event})
+
+    if request.method == "POST":
+        form = ParticipantForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data["email"]
+            if Participant.objects.filter(event=event, email=email).exists():
+                messages.error(request, "This email is already registered.")
+            else:
+                participant = form.save(commit=False)
+                participant.event = event
+                participant.save()
+                messages.success(request, "✅ Registered successfully!")
+                return redirect("public_register", event_id=event.id)
+    else:
+        form = ParticipantForm()
+
+    return render(request, "public_register.html", {"form": form, "event": event})

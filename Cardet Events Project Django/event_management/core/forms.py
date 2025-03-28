@@ -18,6 +18,7 @@ class EventForm(forms.ModelForm):
             "tickets",
             "signatures",
             "status",
+            "public_registration_enabled",
         ]
         widgets = {
             "company": forms.Select(attrs={"class": "form-select"}),

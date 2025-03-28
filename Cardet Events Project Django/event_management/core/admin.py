@@ -20,7 +20,7 @@ class EventAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {"widget": CKEditorWidget()},
     }
-    list_display = ("event_name", "event_date", "status")
+    list_display = ("event_name", "event_date", "status", "uuid")
     list_filter = ("status", "event_date")
     search_fields = ("event_name", "location")
 

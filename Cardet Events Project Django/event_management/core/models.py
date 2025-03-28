@@ -14,7 +14,7 @@ import qrcode
 from io import BytesIO
 from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator, MaxValueValidator
-
+import uuid
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
@@ -122,6 +122,8 @@ class Status(models.Model):
 
 class Event(models.Model):
 
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     event_name = models.CharField(max_length=255)
     event_date = models.DateField()
@@ -129,8 +131,18 @@ class Event(models.Model):
     end_time = models.TimeField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
     description = RichTextField()
-    tickets = models.BooleanField(default=False)
-    signatures = models.BooleanField(default=False)
+    tickets = models.BooleanField(
+        default=False,
+        help_text="Enable this if you want to have ticketing system for the event.",
+    )
+    signatures = models.BooleanField(
+        default=False,
+        help_text="Enable this if you want to collect signatures from participants at the event.",
+    )
+    public_registration_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable this if you want to allow public registration via link.",
+    )
     image = models.ImageField(upload_to=event_image_path, blank=True, null=True)
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
 

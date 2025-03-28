@@ -18,6 +18,7 @@ from .views import (
     send_ticket_email_view,
     export_participants_csv_view,
     export_participants_pdf_view,
+    public_register,
 )
 
 urlpatterns = [
@@ -54,6 +55,7 @@ urlpatterns = [
         export_participants_pdf_view,
         name="export_participants_pdf",
     ),
+    path("register/<uuid:event_uuid>/", public_register, name="public_register"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

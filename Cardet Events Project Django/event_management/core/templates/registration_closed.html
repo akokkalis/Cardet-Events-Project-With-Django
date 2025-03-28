@@ -1,0 +1,15 @@
+{% extends 'base_public.html' %}
+{% block title %}Registration Closed{% endblock %}
+
+{% block content %}
+{% if event.company.logo %}
+    <div class="flex justify-center mb-6">
+        <img src="{{ event.company.logo.url }}" alt="Company Logo" class="h-16">
+    </div>
+{% endif %}
+
+<div class="max-w-xl mx-auto text-center py-10">
+    <h2 class="text-3xl font-bold text-red-600">Registration Closed 🚫</h2>
+    <p class="mt-4">Registration for <strong>{{ event.event_name }}</strong> is not currently open.</p>
+</div>
+{% endblock %}
