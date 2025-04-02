@@ -19,6 +19,7 @@ from .views import (
     export_participants_csv_view,
     export_participants_pdf_view,
     public_register,
+    download_ics_file,
 )
 
 urlpatterns = [
@@ -56,6 +57,7 @@ urlpatterns = [
         name="export_participants_pdf",
     ),
     path("register/<uuid:event_uuid>/", public_register, name="public_register"),
+    path("download_ics/<uuid:event_uuid>/", download_ics_file, name="download_ics"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

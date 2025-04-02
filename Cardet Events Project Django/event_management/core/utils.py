@@ -18,6 +18,7 @@ from .models import Event
 from django.core.files.storage import default_storage
 import base64
 import shutil
+from datetime import datetime
 
 
 def generate_pdf_ticket(participant, qr_code_path):
@@ -116,6 +117,8 @@ def email_body(participant_name, event_info):
         <p>✅ Doors open at: {event_info['starttime']} - Arrive early to secure your spot.</p>
         <p>✅ For any inquiries, contact us at: events@cardet.org</p>
 
+
+
         <p>We look forward to seeing you at the event! 🎉</p>
 
         <p>Best regards,</p>
@@ -185,7 +188,7 @@ def export_participants_csv(event_id):
         return response
 
 
-def export_participants_pdf(event_id):
+def export_participants_pdf(event_id, re):
     """Exports participants list as PDF with embedded signature images."""
     event = Event.objects.get(id=event_id)  # ✅ Fetch event
     response = HttpResponse(content_type="application/pdf")
@@ -247,3 +250,44 @@ def export_participants_pdf(event_id):
     buffer.seek(0)
     response.write(buffer.getvalue())
     return response
+
+
+def generate_ics_file(event):
+    """Generate .ics file for the event."""
+
+    # Get the domain dynamically
+
+    # Prepare event details
+    event_name = event.event_name
+    event_start = (
+        event.event_date.strftime("%Y%m%d") + "T" + event.start_time.strftime("%H%M%S")
+    )
+    event_end = (
+        event.event_date.strftime("%Y%m%d") + "T" + event.end_time.strftime("%H%M%S")
+    )
+    event_location = event.location or "Location Not Provided"
+    event_description = event.description or "No description available"
+
+    # Create .ics file content
+    ics_content = f"""BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Your App//Event Management//EN
+BEGIN:VEVENT
+UID:{event.uuid}@yourdomain.com
+DTSTAMP:{datetime.now().strftime('%Y%m%dT%H%M%S')}
+DTSTART:{event_start}
+DTEND:{event_end}
+SUMMARY:{event_name}
+DESCRIPTION:{event_description}
+LOCATION:{event_location}
+ORGANIZER;CN={event.company.name}:MAILTO:{event.company.email}
+END:VEVENT
+END:VCALENDAR
+"""
+
+    # Save to a file or return as content
+    file_path = os.path.join(settings.MEDIA_ROOT, f"Events/{event.id}_event.ics")
+    with open(file_path, "w") as f:
+        f.write(ics_content)
+
+    return file_path

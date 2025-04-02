@@ -5,10 +5,11 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
 from .models import Company, Event, Participant
-from .utils import generate_pdf_ticket, email_body
+from .utils import generate_pdf_ticket, email_body, generate_ics_file
 import threading
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
+
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
@@ -147,6 +148,9 @@ def send_ticket_email(participant):
     # ✅ Attach PDF Ticket
     pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
 
+    # ✅ Generate .ics file for the event
+    ics_file_path = generate_ics_file(participant.event)
+
     # ✅ Create the SMTP connection separately (No `backend` argument)
     connection = get_connection(
         host=email_config.smtp_server,
@@ -171,6 +175,12 @@ def send_ticket_email(participant):
 
             if pdf_path and os.path.exists(pdf_path):
                 email.attach_file(pdf_path)
+            if ics_file_path and os.path.exists(ics_file_path):
+                email.attach(
+                    f"{participant.event.event_name}.ics",
+                    open(ics_file_path, "rb").read(),
+                    "text/calendar",
+                )
 
             email.send()
             print(f"✅ Ticket email sent to {participant.email}")

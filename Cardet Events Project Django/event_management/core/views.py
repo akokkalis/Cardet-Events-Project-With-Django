@@ -19,7 +19,12 @@ import json
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 import threading
-from .utils import email_body, export_participants_pdf, export_participants_csv
+from .utils import (
+    email_body,
+    export_participants_pdf,
+    export_participants_csv,
+    generate_ics_file,
+)
 from django_ratelimit.decorators import ratelimit
 
 from django.utils.decorators import method_decorator
@@ -644,3 +649,16 @@ def public_register(request, event_uuid):
         form = ParticipantForm()
 
     return render(request, "public_register.html", {"form": form, "event": event})
+
+
+def download_ics_file(request, event_uuid):
+    """Download the .ics file for an event identified by UUID."""
+    event = Event.objects.get(uuid=event_uuid)
+    ics_file_path = generate_ics_file(event, request)
+
+    with open(ics_file_path, "rb") as ics_file:
+        response = HttpResponse(ics_file.read(), content_type="text/calendar")
+        response["Content-Disposition"] = (
+            f'attachment; filename="{event.event_name}.ics"'
+        )
+        return response
