@@ -71,67 +71,68 @@
                 </p>
             </div>
             
-
-            {% if event.tickets and not event.signatures %}
-
-                <div class="mt-4 inline-block">
-                    <a href="{% url 'scan_qr' event.id %}"
-                    class="bg-purple-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M13 16h-1v-4h-1m1 0h1m4-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Scan Tickets
-                    </a>
-                </div>
-            {%  elif event.tickets and  event.signatures %}
-            <div class="mt-4 inline-block">
-                <a href="{% url 'scan_qr' event.id %}"
-                class="bg-purple-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M13 16h-1v-4h-1m1 0h1m4-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    Scan Tickets & Collect Signatures
-                </a>
-            </div>
-            
-            {%elif event.signatures and not event.tickets %}
-                <div class="mt-4 inline-block"><p class>Use registrants table below to collect signatures</p></div>
-            {%else%}
-                <div class="mt-4 inline-block"><p class>no pdf no sign</p></div>
-            {% endif %}
-
-
         </div>
-            {% if event.tickets or event.signatures %}
-                <div class="mt-4 flex flex-wrap gap-4">
-                    <a href="{% url 'export_zip' event.id %}" 
-                    class="bg-blue-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 4h16v16H4z M9 9h6v6H9z" />
-                        </svg>
-                        Export Tickets and Signatures as ZIP
-                    </a>
-                
-
-                <a href="{% url 'export_participants_csv' event.id %}" 
-                class="bg-blue-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">
-                 Export as CSV
-             </a>
-         
-             <a href="{% url 'export_participants_pdf' event.id %}" 
-                class="bg-red-500 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700">
-                 Export as PDF
-             </a>
-            </div>
-            {% endif %}
+            
+               
+            
 
     </div>
+    
 
 
+<!-- Action Buttons Section -->
+<div class="mt-8 space-y-4 p-4 bg-gray-100 rounded-lg">
 
+    <!-- Action Buttons Row -->
+    <div class="flex flex-wrap gap-4 justify-start items-center">
+
+        <!-- Scan Tickets Button -->
+        {% if event.tickets and not event.signatures %}
+            <a href="{% url 'scan_qr' event.id %}"
+            class="bg-purple-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 16h-1v-4h-1m1 0h1m4-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Scan Tickets
+            </a>
+        {% elif event.tickets and event.signatures %}
+            <a href="{% url 'scan_qr' event.id %}"
+            class="bg-purple-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition duration-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M13 16h-1v-4h-1m1 0h1m4-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                Scan Tickets & Collect Signatures
+            </a>
+        {% elif event.signatures and not event.tickets %}
+            <p class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">Use the registrants table below to collect signatures</p>
+        {% else %}
+            <p class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg">No tickets or signatures available</p>
+        {% endif %}
+
+        <!-- Export ZIP Button -->
+        <a href="{% url 'export_zip' event.id %}"
+        class="bg-blue-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-blue-700 transition duration-200">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16v16H4z M9 9h6v6H9z" />
+            </svg>
+            Export ZIP
+        </a>
+
+        <!-- Export CSV Button -->
+        <a href="{% url 'export_participants_csv' event.id %}"
+        class="bg-green-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-green-700 transition duration-200">
+            📄 Export CSV
+        </a>
+
+        <!-- Export PDF Button -->
+        <a href="{% url 'export_participants_pdf' event.id %}"
+        class="bg-red-500 text-white px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-red-700 transition duration-200">
+            📑 Export PDF
+        </a>
+    </div>
+</div>
 
 
     <!-- Add Participant Button -->

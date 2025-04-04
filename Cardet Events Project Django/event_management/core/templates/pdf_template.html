@@ -124,16 +124,16 @@
             <tr>
                 <td>
                     {% if company_logo_url %}
-                        <img src="{{ company_logo_url }}" alt="Company Logo">
+                        <img src="https://qrscanner.innovedu.com{{ company_logo_url }}" alt="Company Logo">
                     {% else %}
-                        <img src="https://yourwebsite.com/media/default_company_logo.png" alt="Default Logo">
+                        none
                     {% endif %}
                 </td>
                 <td>
                     {% if event_image_url %}
-                        <img src="{{ event_image_url }}" alt="Event Image">
+                        <img src="https://qrscanner.innovedu.com{{ event_image_url }}" alt="Event Image">
                     {% else %}
-                        <img src="https://yourwebsite.com/media/default_event_image.png" alt="Default Event">
+                        none
                     {% endif %}
                 </td>
             </tr>

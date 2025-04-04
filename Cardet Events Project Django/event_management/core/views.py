@@ -621,7 +621,7 @@ def export_participants_pdf_view(request, event_id):
 # 💥 Allow 5 POSTs per minute per IP
 
 
-@ratelimit(key="ip", rate="5/m", block=False)  # 5 requests per minute
+@ratelimit(key="ip")  # 5 requests per minute
 def public_register(request, event_uuid):
     event = get_object_or_404(Event, uuid=event_uuid)
 

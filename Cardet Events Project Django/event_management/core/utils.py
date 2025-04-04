@@ -25,6 +25,7 @@ def generate_pdf_ticket(participant, qr_code_path):
     """Generate a PDF ticket using an HTML template."""
 
     site_url = f"{settings.SITE_URL}"
+
     # ✅ Ensure the event's PDF tickets folder exists
     pdf_folder = os.path.join(
         settings.MEDIA_ROOT,
@@ -48,15 +49,16 @@ def generate_pdf_ticket(participant, qr_code_path):
     font_path = os.path.join(settings.BASE_DIR, "core", "fonts", "DejaVuSans.ttf")
     print("MY FONT URL:", font_path)
     company_logo_url = (
-        f"{site_url}{participant.event.company.logo.url}"
+        f"{participant.event.company.logo.url}"
         if participant.event.company.logo
         else None
     )
+    print(company_logo_url)
 
     event_image_url = (
-        f"{site_url}{participant.event.image.url}" if participant.event.image else None
+        f"{participant.event.image.url}" if participant.event.image else None
     )
-
+    print(event_image_url)
     # ✅ Generate HTML from template
     html_content = render_to_string(
         "pdf_template.html",
@@ -188,7 +190,7 @@ def export_participants_csv(event_id):
         return response
 
 
-def export_participants_pdf(event_id, re):
+def export_participants_pdf(event_id):
     """Exports participants list as PDF with embedded signature images."""
     event = Event.objects.get(id=event_id)  # ✅ Fetch event
     response = HttpResponse(content_type="application/pdf")
