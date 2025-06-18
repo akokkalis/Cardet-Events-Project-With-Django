@@ -14,8 +14,19 @@ document.addEventListener("DOMContentLoaded", function () {
         if (year) params.append("year", year);
 
         // ✅ Fixed URL: Now matches Django's `urls.py`
-        fetch(`/events/filter/?${params.toString()}`)
-            .then(response => response.json())
+        fetch(`${window.filterUrl}?${params.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-CSRFToken': window.csrfToken || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 let eventContainer = document.querySelector(".grid");
                 eventContainer.innerHTML = "";
@@ -43,6 +54,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         </div>`;
                     eventContainer.innerHTML += eventHtml;
                 });
+            })
+            .catch(error => {
+                console.error('Filter error:', error);
+                // Reload the page if there's an authentication issue
+                if (error.message.includes('404') || error.message.includes('403')) {
+                    window.location.reload();
+                }
             });
     }
 

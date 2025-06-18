@@ -140,6 +140,12 @@
 
 
 
+<script>
+    // Add CSRF token for AJAX requests
+    window.csrfToken = '{{ csrf_token }}';
+    // Add filter URL
+    window.filterUrl = '{% url "filter_events" %}';
+</script>
 <script src="{% static 'js/confirm_on_delete.js' %}"></script>
 <script src="{% static 'js/filter_events.js' %}"></script>
 

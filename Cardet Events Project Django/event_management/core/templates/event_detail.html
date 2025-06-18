@@ -5,7 +5,14 @@
 {% block content %}
 <div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
     <div class="flex justify-between items-center mb-4">
-        <h1 class="text-2xl font-bold">Event Details</h1>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'event_list' %}" class="text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-bold">Event Details</h1>
+        </div>
         <div class="flex gap-2">
             <a href="{% url 'event_custom_fields' event.id %}" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -200,6 +207,7 @@
                     <th class="border border-gray-300 px-4 py-2">Name</th>
                     <th class="border border-gray-300 px-4 py-2">Email</th>
                     <th class="border border-gray-300 px-4 py-2">Phone</th>
+                    <th class="border border-gray-300 px-4 py-2">Custom Data</th>
                     {% if event.tickets %}
                         <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
                         <th class="border border-gray-300 px-4 py-2">Send Ticket</th> <!-- ✅ New Button -->
@@ -216,6 +224,21 @@
                     <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
                     <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
                     <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
+                    <td class="border border-gray-300 px-4 py-2">
+                        {% if participant.submitted_data %}
+                            <button class="view-custom-data-btn bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 flex items-center gap-1" 
+                                    data-participant-name="{{ participant.name }}"
+                                    data-custom-data="{{ participant.submitted_data|safe }}">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Data
+                            </button>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
             
                     {% if event.tickets %}
                         <td class="border border-gray-300 px-4 py-2">
@@ -304,59 +327,67 @@
             <p><strong>Status:</strong> {{ event.status.name }}</p>
         `;
 
-        $('#participantsTable').DataTable({
-            "paging": true,
-            "searching": true,
-            "ordering": true,
-            "info": true,
-            "responsive": true,
-            "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-            "pageLength": 10,
-            "dom": '<"top"lfB>rt<"bottom"ip><"clear">',
-            "buttons": [
-                { extend: 'csv', text: 'Export CSV' },
-                {
-                    extend: 'pdfHtml5',
-                    text: 'Export PDF',
-                    orientation: 'landscape',
-                    pageSize: 'A4',
-                    customize: function (doc) {
-                        // ✅ Add Event Details at the top
-                        doc.content.unshift(
-                            {
-                                text: `Event: {{ event.event_name }}`,
-                                fontSize: 14,
-                                bold: true,
-                                margin: [0, 0, 0, 10] // Margin bottom
-                            },
-                            {
-                                text: `Date: {{ event.event_date }}   |   Location: {{ event.location }}`,
-                                fontSize: 12,
-                                margin: [0, 0, 0, 10] // Margin bottom
-                            }
-                        );
+        // ✅ Check if table has participants before initializing DataTables
+        var participantCount = {{ participants|length }};
+        
+        if (participantCount > 0) {
+            $('#participantsTable').DataTable({
+                "paging": true,
+                "searching": true,
+                "ordering": true,
+                "info": true,
+                "responsive": true,
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                "pageLength": 10,
+                "dom": '<"top"lfB>rt<"bottom"ip><"clear">',
+                "buttons": [
+                    { extend: 'csv', text: 'Export CSV' },
+                    {
+                        extend: 'pdfHtml5',
+                        text: 'Export PDF',
+                        orientation: 'landscape',
+                        pageSize: 'A4',
+                        customize: function (doc) {
+                            // ✅ Add Event Details at the top
+                            doc.content.unshift(
+                                {
+                                    text: `Event: {{ event.event_name }}`,
+                                    fontSize: 14,
+                                    bold: true,
+                                    margin: [0, 0, 0, 10] // Margin bottom
+                                },
+                                {
+                                    text: `Date: {{ event.event_date }}   |   Location: {{ event.location }}`,
+                                    fontSize: 12,
+                                    margin: [0, 0, 0, 10] // Margin bottom
+                                }
+                            );
 
-                        // ✅ Convert Signature Images to Base64 and Add to PDF
-                        let signatureImages = document.querySelectorAll('.signature-img');
-                        signatureImages.forEach((img, index) => {
-                            let canvas = document.createElement('canvas');
-                            let ctx = canvas.getContext('2d');
-                            canvas.width = img.naturalWidth;
-                            canvas.height = img.naturalHeight;
-                            ctx.drawImage(img, 0, 0);
-                            let base64String = canvas.toDataURL('image/png');
+                            // ✅ Convert Signature Images to Base64 and Add to PDF
+                            let signatureImages = document.querySelectorAll('.signature-img');
+                            signatureImages.forEach((img, index) => {
+                                let canvas = document.createElement('canvas');
+                                let ctx = canvas.getContext('2d');
+                                canvas.width = img.naturalWidth;
+                                canvas.height = img.naturalHeight;
+                                ctx.drawImage(img, 0, 0);
+                                let base64String = canvas.toDataURL('image/png');
 
-                            // ✅ Add Signature Image Below Participant Row
-                            doc.content[2].table.body[index + 1].push({
-                                image: base64String,
-                                width: 50, // Adjust image size
-                                alignment: 'center'
+                                // ✅ Add Signature Image Below Participant Row
+                                doc.content[2].table.body[index + 1].push({
+                                    image: base64String,
+                                    width: 50, // Adjust image size
+                                    alignment: 'center'
+                                });
                             });
-                        });
+                        }
                     }
-                }
-            ]
-        });
+                ]
+            });
+        } else {
+            // ✅ Hide DataTables controls when no participants
+            console.log('No participants found. DataTables not initialized.');
+        }
 
         // ✅ Send Ticket Email Button
         $(".send-ticket-btn").click(function () {
@@ -388,6 +419,56 @@
                     });
                 }
             });
+        });
+
+        // ✅ View Custom Data Modal Button
+        $(".view-custom-data-btn").click(function () {
+            let participantName = $(this).data("participant-name");
+            let customDataString = $(this).data("custom-data");
+            
+            try {
+                // Parse the custom data
+                let customData = typeof customDataString === 'string' ? JSON.parse(customDataString.replace(/'/g, '"')) : customDataString;
+                
+                // Build HTML content for the modal
+                let htmlContent = '<div class="text-left">';
+                
+                for (let key in customData) {
+                    if (customData.hasOwnProperty(key)) {
+                        let value = customData[key];
+                        htmlContent += `
+                            <div class="mb-3 p-3 bg-gray-50 rounded-lg border">
+                                <div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                                <div class="text-gray-900">${value || '-'}</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                htmlContent += '</div>';
+                
+                // Show SweetAlert modal
+                Swal.fire({
+                    title: `Custom Data for ${participantName}`,
+                    html: htmlContent,
+                    icon: 'info',
+                    confirmButtonText: 'Close',
+                    confirmButtonColor: '#3085d6',
+                    width: '600px',
+                    customClass: {
+                        popup: 'text-sm'
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error parsing custom data:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Unable to display custom data',
+                    icon: 'error',
+                    confirmButtonText: 'Close'
+                });
+            }
         });
     });
 </script>

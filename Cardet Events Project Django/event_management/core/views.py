@@ -718,9 +718,6 @@ def public_register(request, event_uuid):
             if custom_fields.exists():
                 # Add participant data to custom data
                 registration_data = {
-                    "participant_name": participant.name,
-                    "participant_email": participant.email,
-                    "participant_phone": participant.phone,
                     **custom_data,
                 }
                 participant.submitted_data = registration_data
