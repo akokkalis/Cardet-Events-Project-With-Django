@@ -13,6 +13,7 @@ from .models import (
     Attendance,
     Status,
     EmailConfiguration,
+    EventCustomField,
 )
 
 
@@ -26,10 +27,15 @@ class EventAdmin(admin.ModelAdmin):
 
 
 class AttendanceAdmin(admin.ModelAdmin):
-
     list_display = ("event", "present", "signature_file", "timestamp")
     list_filter = ("event", "present", "signature_file", "timestamp")
     search_fields = ("event_name", "location")
+
+
+class EventCustomFieldAdmin(admin.ModelAdmin):
+    list_display = ("label", "event", "field_type", "required", "is_email_identifier")
+    list_filter = ("event", "field_type", "required", "is_email_identifier")
+    search_fields = ("label", "event__event_name")
 
 
 admin.site.register(Company)
@@ -38,6 +44,7 @@ admin.site.register(Event, EventAdmin)
 admin.site.register(Participant)
 admin.site.register(Attendance, AttendanceAdmin)
 admin.site.register(EmailConfiguration)
+admin.site.register(EventCustomField, EventCustomFieldAdmin)
 
 
 @admin.register(Status)

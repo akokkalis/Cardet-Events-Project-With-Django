@@ -158,6 +158,33 @@ class Event(models.Model):
         )
 
 
+class EventCustomField(models.Model):
+    FIELD_TYPES = (
+        ("text", "Text"),
+        ("textarea", "Textarea"),
+        ("number", "Number"),
+        ("email", "Email"),
+        ("select", "Select"),
+    )
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="custom_fields"
+    )
+    label = models.CharField(max_length=255)
+    field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
+    required = models.BooleanField(default=True)
+    options = models.TextField(
+        blank=True, help_text="Comma-separated options (only for 'select' type)"
+    )
+    is_email_identifier = models.BooleanField(
+        default=False,
+        help_text="Mark this field as unique email identifier for this event",
+    )
+
+    def __str__(self):
+        return f"{self.label} ({self.event.event_name})"
+
+
 class Participant(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
@@ -166,6 +193,7 @@ class Participant(models.Model):
     pdf_ticket = models.FileField(upload_to=pdf_ticket_path, blank=True, null=True)
     qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
     registered_at = models.DateTimeField(auto_now_add=True)
+    submitted_data = models.JSONField(blank=True, null=True)
 
     class Meta:
         unique_together = (

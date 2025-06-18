@@ -2,8 +2,16 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Event, Participant, Attendance, Status, Company, Staff
-from .forms import EventForm, ParticipantForm
+from .models import (
+    Event,
+    Participant,
+    Attendance,
+    Status,
+    Company,
+    Staff,
+    EventCustomField,
+)
+from .forms import EventForm, ParticipantForm, EventCustomFieldForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, Value, IntegerField
 from django.utils.timezone import now
@@ -171,8 +179,10 @@ def event_create(request):
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
-            return redirect("event_list")  # Redirect to events list after creation
+            event = form.save()
+            return redirect(
+                "event_custom_fields", event_id=event.id
+            )  # Redirect to custom fields page
     else:
         form = EventForm()
 
@@ -624,6 +634,12 @@ def export_participants_pdf_view(request, event_id):
 @ratelimit(key="ip")  # 5 requests per minute
 def public_register(request, event_uuid):
     event = get_object_or_404(Event, uuid=event_uuid)
+    custom_fields = EventCustomField.objects.filter(event=event).order_by("id")
+
+    # Process options for select fields
+    for field in custom_fields:
+        if field.field_type == "select" and field.options:
+            field.options_list = [option.strip() for option in field.options.split(",")]
 
     # If rate limit exceeded, show error page
     if getattr(request, "limited", False):
@@ -635,20 +651,92 @@ def public_register(request, event_uuid):
 
     if request.method == "POST":
         form = ParticipantForm(request.POST)
+
+        # Collect custom field data
+        custom_data = {}
+        for field in custom_fields:
+            field_value = request.POST.get(f"custom_field_{field.id}")
+            if field.required and not field_value:
+                messages.error(request, f"{field.label} is required.")
+                return render(
+                    request,
+                    "public_register.html",
+                    {"form": form, "event": event, "custom_fields": custom_fields},
+                )
+            custom_data[field.label] = field_value
+
         if form.is_valid():
             email = form.cleaned_data["email"]
+
+            # Check for email uniqueness using custom fields if any field is marked as email identifier
+            email_identifier_field = custom_fields.filter(
+                is_email_identifier=True
+            ).first()
+            if email_identifier_field:
+                identifier_value = custom_data.get(email_identifier_field.label)
+                if identifier_value:
+                    # Check for existing participants with this identifier value
+                    existing_participants = Participant.objects.filter(
+                        event=event
+                    ).exclude(submitted_data__isnull=True)
+                    for participant in existing_participants:
+                        if (
+                            participant.submitted_data
+                            and participant.submitted_data.get(
+                                email_identifier_field.label
+                            )
+                            == identifier_value
+                        ):
+                            messages.error(
+                                request,
+                                f"This {email_identifier_field.label} is already registered.",
+                            )
+                            return render(
+                                request,
+                                "public_register.html",
+                                {
+                                    "form": form,
+                                    "event": event,
+                                    "custom_fields": custom_fields,
+                                },
+                            )
+
+            # Check standard email uniqueness
             if Participant.objects.filter(event=event, email=email).exists():
                 messages.error(request, "This email is already registered.")
-            else:
-                participant = form.save(commit=False)
-                participant.event = event
-                participant.save()
-                messages.success(request, "✅ Registered successfully!")
-                redirect("public_register", event_uuid=event.uuid)
+                return render(
+                    request,
+                    "public_register.html",
+                    {"form": form, "event": event, "custom_fields": custom_fields},
+                )
+
+            # Save participant
+            participant = form.save(commit=False)
+            participant.event = event
+
+            # Save custom field data in participant's submitted_data field
+            if custom_fields.exists():
+                # Add participant data to custom data
+                registration_data = {
+                    "participant_name": participant.name,
+                    "participant_email": participant.email,
+                    "participant_phone": participant.phone,
+                    **custom_data,
+                }
+                participant.submitted_data = registration_data
+
+            participant.save()
+
+            messages.success(request, "✅ Registered successfully!")
+            return redirect("public_register", event_uuid=event.uuid)
     else:
         form = ParticipantForm()
 
-    return render(request, "public_register.html", {"form": form, "event": event})
+    return render(
+        request,
+        "public_register.html",
+        {"form": form, "event": event, "custom_fields": custom_fields},
+    )
 
 
 def download_ics_file(request, event_uuid):
@@ -662,3 +750,33 @@ def download_ics_file(request, event_uuid):
             f'attachment; filename="{event.event_name}.ics"'
         )
         return response
+
+
+def event_custom_fields(request, event_id):
+    event = get_object_or_404(Event, id=event_id)
+    existing_fields = EventCustomField.objects.filter(event=event)
+
+    if request.method == "POST":
+        form = EventCustomFieldForm(request.POST, event=event)
+        if form.is_valid():
+            custom_field = form.save(commit=False)
+            custom_field.event = event
+            custom_field.save()
+            messages.success(request, "Custom field added successfully!")
+            return redirect("event_custom_fields", event_id=event.id)
+    else:
+        form = EventCustomFieldForm(event=event)
+
+    return render(
+        request,
+        "event_custom_fields.html",
+        {"event": event, "form": form, "existing_fields": existing_fields},
+    )
+
+
+def delete_custom_field(request, event_id, field_id):
+    if request.method == "POST":
+        field = get_object_or_404(EventCustomField, id=field_id, event_id=event_id)
+        field.delete()
+        messages.success(request, "Custom field deleted successfully!")
+    return redirect("event_custom_fields", event_id=event_id)
