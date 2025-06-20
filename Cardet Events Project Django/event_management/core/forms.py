@@ -52,7 +52,7 @@ class EventCustomFieldForm(forms.ModelForm):
 
     class Meta:
         model = EventCustomField
-        fields = ["label", "field_type", "required", "options", "is_email_identifier"]
+        fields = ["label", "field_type", "required", "options", "help_text"]
         widgets = {
             "label": forms.TextInput(
                 attrs={
@@ -73,12 +73,13 @@ class EventCustomFieldForm(forms.ModelForm):
                 attrs={
                     "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
                     "rows": "3",
-                    "placeholder": "Enter comma-separated options for select field type",
+                    "placeholder": "Enter comma-separated options (for select/multiselect) or min,max values (for range)",
                 }
             ),
-            "is_email_identifier": forms.CheckboxInput(
+            "help_text": forms.TextInput(
                 attrs={
-                    "class": "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Optional help text to guide users (e.g., 'Please enter your full legal name')",
                 }
             ),
         }
@@ -108,3 +109,57 @@ class EventCustomFieldForm(forms.ModelForm):
                         f"A custom field with the label '{label}' already exists for this event."
                     )
         return label
+
+    def clean(self):
+        cleaned_data = super().clean()
+        field_type = cleaned_data.get("field_type")
+        options = cleaned_data.get("options")
+
+        # Validate that options are provided for select and multiselect fields
+        if field_type in ["select", "multiselect"] and not options:
+            raise forms.ValidationError(
+                f"Options are required for {field_type} field type. Please provide comma-separated options."
+            )
+
+        # Validate range field options (min,max format)
+        if field_type == "range":
+            if not options:
+                raise forms.ValidationError(
+                    "Range values are required for range field type. Please provide min and max values separated by comma (e.g., 0,100)."
+                )
+            try:
+                range_parts = [part.strip() for part in options.split(",")]
+                if len(range_parts) != 2:
+                    raise forms.ValidationError(
+                        "Range field requires exactly 2 values: min and max separated by comma (e.g., 0,100)."
+                    )
+                min_val, max_val = int(range_parts[0]), int(range_parts[1])
+                if min_val >= max_val:
+                    raise forms.ValidationError(
+                        "Range minimum value must be less than maximum value."
+                    )
+            except ValueError:
+                raise forms.ValidationError(
+                    "Range values must be valid numbers separated by comma (e.g., 0,100)."
+                )
+
+        # Validate that options are not provided for fields that don't need them
+        if (
+            field_type
+            in [
+                "text",
+                "textarea",
+                "number",
+                "email",
+                "checkbox",
+                "date",
+                "time",
+                "datetime",
+            ]
+            and options
+        ):
+            raise forms.ValidationError(
+                f"Options are not needed for {field_type} field type."
+            )
+
+        return cleaned_data

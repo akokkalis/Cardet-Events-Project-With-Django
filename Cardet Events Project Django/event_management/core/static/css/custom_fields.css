@@ -1,0 +1,78 @@
+/* Custom Fields Page Styling */
+
+.options-field {
+    transition: all 0.3s ease-in-out;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.options-field.visible {
+    border: 2px solid #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+    transform: scale(1.02);
+}
+
+.options-field.hidden {
+    display: none !important;
+}
+
+.options-field .form-label {
+    color: #1e40af;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+.options-field.visible .form-label::before {
+    content: "✨ ";
+    animation: sparkle 1.5s ease-in-out infinite alternate;
+}
+
+.options-field textarea {
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.options-field.visible textarea {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+@keyframes sparkle {
+    0% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        max-height: 200px;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        max-height: 200px;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        max-height: 0;
+        transform: translateY(-10px);
+    }
+}
+
+.options-field.visible {
+    animation: slideDown 0.4s ease-out;
+}
+
+.options-field.hiding {
+    animation: slideUp 0.3s ease-in;
+} 

@@ -6,7 +6,7 @@
 <div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
     <div class="flex justify-between items-center mb-4">
         <div class="flex items-center gap-3">
-            <a href="{% url 'event_list' %}" class="text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100">
+            <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg hover:bg-gray-100">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -14,14 +14,14 @@
             <h1 class="text-2xl font-bold">Event Details</h1>
         </div>
         <div class="flex gap-2">
-            <a href="{% url 'event_custom_fields' event.id %}" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2">
+            <a href="{% url 'event_custom_fields' event.id %}" class="btn btn-outline-blue px-4 py-2 rounded-lg  flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
                 Custom Fields
             </a>
-            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600">
-                ✏️ Edit Event
+            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="btn btn-outline-blue px-4 py-2 rounded-lg ">
+                 Edit Event
             </a>
         </div>
     </div>
@@ -226,9 +226,10 @@
                     <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
                     <td class="border border-gray-300 px-4 py-2">
                         {% if participant.submitted_data %}
-                            <button class="view-custom-data-btn bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 flex items-center gap-1" 
+                            <button class="view-custom-data-btn btn btn-outline-blue px-3 py-1 rounded text-sm  flex items-center gap-1" 
                                     data-participant-name="{{ participant.name }}"
-                                    data-custom-data="{{ participant.submitted_data|safe }}">
+                                    data-custom-data="{{ participant.submitted_data|escapejs }}"
+                                    data-participant-id="{{ participant.id }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -426,9 +427,29 @@
             let participantName = $(this).data("participant-name");
             let customDataString = $(this).data("custom-data");
             
+            console.log('Raw custom data:', customDataString);
+            console.log('Type of custom data:', typeof customDataString);
+            
             try {
-                // Parse the custom data
-                let customData = typeof customDataString === 'string' ? JSON.parse(customDataString.replace(/'/g, '"')) : customDataString;
+                // Parse the custom data - handle Python dict format
+                let customData;
+                if (typeof customDataString === 'object') {
+                    customData = customDataString;
+                } else if (typeof customDataString === 'string') {
+                    // First, decode unicode escapes and fix Python dict format
+                    let cleanedString = customDataString
+                        .replace(/\\u0027/g, "'")  // Replace \u0027 with single quotes
+                        .replace(/\\"/g, '"')      // Replace escaped double quotes
+                        .replace(/'/g, '"')        // Replace single quotes with double quotes for JSON
+                        .replace(/True/g, 'true')  // Python True to JSON true
+                        .replace(/False/g, 'false') // Python False to JSON false
+                        .replace(/None/g, 'null'); // Python None to JSON null
+                    
+                    console.log('Cleaned string:', cleanedString);
+                    customData = JSON.parse(cleanedString);
+                } else {
+                    throw new Error('Invalid data format');
+                }
                 
                 // Build HTML content for the modal
                 let htmlContent = '<div class="text-left">';
@@ -436,10 +457,50 @@
                 for (let key in customData) {
                     if (customData.hasOwnProperty(key)) {
                         let value = customData[key];
+                        let displayValue;
+                        
+                        // Handle different field types
+                        if (Array.isArray(value)) {
+                            // Handle multiselect (array of values)
+                            displayValue = value.length > 0 ? value.join(', ') : '-';
+                        } else if (typeof value === 'boolean') {
+                            // Handle checkbox (boolean)
+                            displayValue = value ? '✓ Yes' : '✗ No';
+                        } else if (typeof value === 'string' && value && (value.includes('-') || value.includes(':'))) {
+                            // Handle date/time fields (basic formatting) - only for strings
+                            try {
+                                if (value.includes('T')) {
+                                    // Handle datetime-local format (YYYY-MM-DDTHH:MM)
+                                    const date = new Date(value);
+                                    displayValue = date.toLocaleString();
+                                } else if (value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                    // Handle date format (YYYY-MM-DD)
+                                    const date = new Date(value + 'T00:00:00');
+                                    displayValue = date.toLocaleDateString();
+                                } else if (value.match(/^\d{2}:\d{2}$/)) {
+                                    // Handle time format (HH:MM)
+                                    displayValue = value;
+                                } else {
+                                    displayValue = value || '-';
+                                }
+                            } catch (error) {
+                                displayValue = value || '-';
+                            }
+                        } else if (typeof value === 'number') {
+                            // Handle numeric values (like range fields)
+                            displayValue = value.toString();
+                        } else if (value === null || value === undefined) {
+                            // Handle null/undefined values
+                            displayValue = '-';
+                        } else {
+                            // Handle other types (text, email, etc.)
+                            displayValue = String(value) || '-';
+                        }
+                        
                         htmlContent += `
                             <div class="mb-3 p-3 bg-gray-50 rounded-lg border">
                                 <div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
-                                <div class="text-gray-900">${value || '-'}</div>
+                                <div class="text-gray-900">${displayValue}</div>
                             </div>
                         `;
                     }
@@ -462,11 +523,19 @@
                 
             } catch (error) {
                 console.error('Error parsing custom data:', error);
+                console.error('Raw data was:', customDataString);
+                
+                // Show the raw data for debugging
                 Swal.fire({
-                    title: 'Error',
-                    text: 'Unable to display custom data',
-                    icon: 'error',
-                    confirmButtonText: 'Close'
+                    title: 'Custom Data (Debug Mode)',
+                    html: `<div class="text-left">
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p><strong>Raw Data:</strong></p>
+                        <pre class="bg-gray-100 p-2 rounded text-xs overflow-auto">${JSON.stringify(customDataString, null, 2)}</pre>
+                    </div>`,
+                    icon: 'warning',
+                    confirmButtonText: 'Close',
+                    width: '600px'
                 });
             }
         });

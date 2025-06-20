@@ -33,8 +33,8 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 
 class EventCustomFieldAdmin(admin.ModelAdmin):
-    list_display = ("label", "event", "field_type", "required", "is_email_identifier")
-    list_filter = ("event", "field_type", "required", "is_email_identifier")
+    list_display = ("label", "event", "field_type", "required", "help_text")
+    list_filter = ("event", "field_type", "required")
     search_fields = ("label", "event__event_name")
 
 

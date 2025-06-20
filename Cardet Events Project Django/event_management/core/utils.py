@@ -150,8 +150,15 @@ def export_participants_csv(event_id):
         writer.writerow(["Status", event.status.name])
         writer.writerow([])  # Empty row for spacing
 
-        # ✅ Write Table Headers
-        writer.writerow(["#", "Name", "Email", "Phone", "Signature Image"])
+        # ✅ Get custom fields for headers
+        custom_fields = event.custom_fields.all().order_by("id")
+
+        # ✅ Write Table Headers (including custom fields)
+        headers = ["#", "Name", "Email", "Phone"]
+        for field in custom_fields:
+            headers.append(field.label)
+        headers.append("Signature Image")
+        writer.writerow(headers)
 
         # ✅ Fetch all participants
         participants = event.participant_set.prefetch_related("attendance_set").all()
@@ -171,15 +178,67 @@ def export_participants_csv(event_id):
                     shutil.copy(original_path, new_path)  # ✅ Copy image file
                     signature_path = new_filename  # ✅ Use relative filename
 
-            writer.writerow(
-                [
-                    i,
-                    participant.name,
-                    participant.email,
-                    participant.phone or "-",
-                    signature_path,
-                ]
-            )
+            # ✅ Build row data including custom fields
+            row_data = [
+                i,
+                participant.name,
+                participant.email,
+                participant.phone or "-",
+            ]
+
+            # ✅ Add custom field data
+            for field in custom_fields:
+                if (
+                    participant.submitted_data
+                    and field.label in participant.submitted_data
+                ):
+                    value = participant.submitted_data[field.label]
+
+                    # Handle different field types for CSV export
+                    if isinstance(value, list):
+                        # Handle multiselect (array of values)
+                        formatted_value = ", ".join(value) if value else "-"
+                    elif isinstance(value, bool):
+                        # Handle checkbox (boolean)
+                        formatted_value = "Yes" if value else "No"
+                    elif field.field_type in ["date", "time", "datetime"] and value:
+                        # Handle date/time fields with formatting
+                        try:
+                            if field.field_type == "date":
+                                # Format date (YYYY-MM-DD)
+                                from datetime import datetime
+
+                                date_obj = datetime.strptime(value, "%Y-%m-%d")
+                                formatted_value = date_obj.strftime("%B %d, %Y")
+                            elif field.field_type == "time":
+                                # Format time (HH:MM)
+                                from datetime import datetime
+
+                                time_obj = datetime.strptime(value, "%H:%M")
+                                formatted_value = time_obj.strftime("%I:%M %p")
+                            elif field.field_type == "datetime":
+                                # Format datetime (YYYY-MM-DDTHH:MM)
+                                from datetime import datetime
+
+                                datetime_obj = datetime.fromisoformat(value)
+                                formatted_value = datetime_obj.strftime(
+                                    "%B %d, %Y at %I:%M %p"
+                                )
+                            else:
+                                formatted_value = str(value)
+                        except (ValueError, TypeError):
+                            # If parsing fails, use the raw value
+                            formatted_value = str(value) if value is not None else "-"
+                    else:
+                        # Handle other types (text, number, email, range, etc.)
+                        formatted_value = str(value) if value is not None else "-"
+                else:
+                    formatted_value = "-"
+
+                row_data.append(formatted_value)
+
+            row_data.append(signature_path)
+            writer.writerow(row_data)
 
     # ✅ Return CSV as Response
     with open(csv_path, "rb") as f:
@@ -209,14 +268,38 @@ def export_participants_pdf(event_id):
     pdf.drawString(30, 490, f"Description: {event.description}")
     pdf.drawString(30, 470, f"Status: {event.status.name}")
 
-    # ✅ Table Headers
+    # ✅ Get custom fields for headers
+    custom_fields = event.custom_fields.all().order_by("id")
+
+    # ✅ Table Headers (with dynamic positioning for custom fields)
     y = 440
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(30, y, "#")
-    pdf.drawString(60, y, "Name")
-    pdf.drawString(200, y, "Email")
-    pdf.drawString(350, y, "Phone")
-    pdf.drawString(500, y, "Signature")
+    x_positions = [30, 100, 250, 400]  # Base positions for #, Name, Email, Phone
+
+    pdf.drawString(x_positions[0], y, "#")
+    pdf.drawString(x_positions[1], y, "Name")
+    pdf.drawString(x_positions[2], y, "Email")
+    pdf.drawString(x_positions[3], y, "Phone")
+
+    # Add custom field headers (with limited space)
+    current_x = 500
+    custom_field_positions = []
+    for field in custom_fields:
+        if current_x < 750:  # Check if we have space on the page
+            pdf.drawString(
+                current_x,
+                y,
+                field.label[:10] + "..." if len(field.label) > 10 else field.label,
+            )
+            custom_field_positions.append(current_x)
+            current_x += 80
+        else:
+            # If we run out of space, we'll truncate remaining fields
+            break
+
+    # Signature column at the end
+    signature_x = current_x if current_x < 750 else 750
+    pdf.drawString(signature_x, y, "Signature")
 
     # ✅ Fetch all participants
     y -= 20
@@ -224,10 +307,104 @@ def export_participants_pdf(event_id):
     participants = event.participant_set.prefetch_related("attendance_set").all()
 
     for i, participant in enumerate(participants, start=1):
-        pdf.drawString(30, y, str(i))
-        pdf.drawString(60, y, participant.name)
-        pdf.drawString(200, y, participant.email)
-        pdf.drawString(350, y, participant.phone or "-")
+        # Check if we need a new page
+        if y < 50:
+            pdf.showPage()
+            y = 750
+
+        pdf.drawString(x_positions[0], y, str(i))
+        pdf.drawString(
+            x_positions[1],
+            y,
+            (
+                participant.name[:15] + "..."
+                if len(participant.name) > 15
+                else participant.name
+            ),
+        )
+        pdf.drawString(
+            x_positions[2],
+            y,
+            (
+                participant.email[:20] + "..."
+                if len(participant.email) > 20
+                else participant.email
+            ),
+        )
+        pdf.drawString(
+            x_positions[3],
+            y,
+            (
+                participant.phone[:12] + "..."
+                if participant.phone and len(participant.phone) > 12
+                else participant.phone or "-"
+            ),
+        )
+
+        # Add custom field data
+        for j, field in enumerate(custom_fields):
+            if j < len(custom_field_positions):  # Only show fields that fit on the page
+                if (
+                    participant.submitted_data
+                    and field.label in participant.submitted_data
+                ):
+                    value = participant.submitted_data[field.label]
+
+                    # Handle different field types for PDF export
+                    if isinstance(value, list):
+                        # Handle multiselect (array of values)
+                        formatted_value = (
+                            ", ".join(value[:2]) + "..."
+                            if len(value) > 2
+                            else ", ".join(value) if value else "-"
+                        )
+                    elif isinstance(value, bool):
+                        # Handle checkbox (boolean)
+                        formatted_value = "Yes" if value else "No"
+                    elif field.field_type in ["date", "time", "datetime"] and value:
+                        # Handle date/time fields with compact formatting for PDF
+                        try:
+                            if field.field_type == "date":
+                                # Format date compactly (MM/DD/YY)
+                                from datetime import datetime
+
+                                date_obj = datetime.strptime(value, "%Y-%m-%d")
+                                formatted_value = date_obj.strftime("%m/%d/%y")
+                            elif field.field_type == "time":
+                                # Format time compactly (HH:MM)
+                                formatted_value = (
+                                    value  # Keep as-is (HH:MM format is compact)
+                                )
+                            elif field.field_type == "datetime":
+                                # Format datetime compactly (MM/DD HH:MM)
+                                from datetime import datetime
+
+                                datetime_obj = datetime.fromisoformat(value)
+                                formatted_value = datetime_obj.strftime("%m/%d %H:%M")
+                            else:
+                                formatted_value = (
+                                    str(value)[:8] + "..."
+                                    if len(str(value)) > 8
+                                    else str(value)
+                                )
+                        except (ValueError, TypeError):
+                            # If parsing fails, use truncated raw value
+                            formatted_value = (
+                                str(value)[:8] + "..."
+                                if len(str(value)) > 8
+                                else str(value) if value is not None else "-"
+                            )
+                    else:
+                        # Handle other types (text, number, email, range, etc.)
+                        formatted_value = (
+                            str(value)[:10] + "..."
+                            if len(str(value)) > 10
+                            else str(value) if value is not None else "-"
+                        )
+                else:
+                    formatted_value = "-"
+
+                pdf.drawString(custom_field_positions[j], y, formatted_value)
 
         attendance = participant.attendance_set.first()
 
@@ -239,14 +416,14 @@ def export_participants_pdf(event_id):
             if os.path.exists(signature_path):
                 img = ImageReader(signature_path)
                 pdf.drawImage(
-                    img, 500, y - 10, width=50, height=20
+                    img, signature_x, y - 10, width=50, height=20
                 )  # Adjust dimensions
             else:
-                pdf.drawString(500, y, "Missing")
+                pdf.drawString(signature_x, y, "Missing")
         else:
-            pdf.drawString(500, y, "Not Signed")
+            pdf.drawString(signature_x, y, "Not Signed")
 
-        y -= 20  # Move to next row
+        y -= 25  # Move to next row (increased spacing for better readability)
 
     pdf.save()
     buffer.seek(0)

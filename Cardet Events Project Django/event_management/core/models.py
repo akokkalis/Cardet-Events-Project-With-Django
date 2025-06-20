@@ -165,6 +165,12 @@ class EventCustomField(models.Model):
         ("number", "Number"),
         ("email", "Email"),
         ("select", "Select"),
+        ("range", "Range"),
+        ("checkbox", "True or False"),
+        ("multiselect", "Multi-select"),
+        ("date", "Date"),
+        ("time", "Time"),
+        ("datetime", "Date & Time"),
     )
 
     event = models.ForeignKey(
@@ -172,14 +178,36 @@ class EventCustomField(models.Model):
     )
     label = models.CharField(max_length=255)
     field_type = models.CharField(max_length=20, choices=FIELD_TYPES)
-    required = models.BooleanField(default=True)
+    required = models.BooleanField(default=False)
     options = models.TextField(
-        blank=True, help_text="Comma-separated options (only for 'select' type)"
+        blank=True,
+        help_text="Comma-separated options (for 'select' and 'multiselect' types) or min,max values (for 'range' type)",
     )
-    is_email_identifier = models.BooleanField(
-        default=False,
-        help_text="Mark this field as unique email identifier for this event",
+    help_text = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Optional help text to guide users when filling out this field",
     )
+
+    @property
+    def options_list(self):
+        """Return a list of options for select and multiselect fields."""
+        if self.options:
+            return [option.strip() for option in self.options.split(",")]
+        return []
+
+    @property
+    def range_values(self):
+        """Return min and max values for range fields as a tuple (min, max)."""
+        if self.field_type == "range" and self.options:
+            try:
+                range_parts = [part.strip() for part in self.options.split(",")]
+                if len(range_parts) == 2:
+                    return int(range_parts[0]), int(range_parts[1])
+            except (ValueError, IndexError):
+                pass
+        return 0, 100  # Default range if not specified or invalid
 
     def __str__(self):
         return f"{self.label} ({self.event.event_name})"

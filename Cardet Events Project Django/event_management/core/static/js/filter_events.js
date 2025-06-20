@@ -57,7 +57,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const editUrl = `${window.eventEditUrlBase}${event.id}/?next=${window.location.pathname + window.location.search}`;
 
                     let eventHtml = `
-                        <div class="event-card bg-white p-8 rounded-lg shadow-md flex flex-col">
+                        <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col relative">
                             <!-- Event Image and Status Badge -->
                             <div class="relative w-full mb-3">
                                 ${event.image_url ? 
@@ -95,6 +95,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
                                     <span>Delete</span>
                                 </button>
+                            </div>
+                             <!-- Registration Count Badge with Tooltip -->
+                            <div class="absolute bottom-2 right-2 group">
+                                <div class="bg-brand-blue text-white text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg cursor-pointer">
+                                    ${event.participant_count}
+                                </div>
+                                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    Total Registrations
+                                </div>
                             </div>
                         </div>`;
                     eventContainer.innerHTML += eventHtml;

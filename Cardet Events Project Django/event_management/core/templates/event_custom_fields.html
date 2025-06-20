@@ -1,7 +1,16 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
+{% load static %}
 
 {% block title %}Add Custom Fields - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/custom_fields.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/custom_fields.js' %}"></script>
+{% endblock %}
 
 {% block content %}
 <div class="flex gap-6 max-w-7xl mx-auto mt-6">
@@ -9,7 +18,7 @@
     <div class="flex-1 bg-white p-6 rounded-lg shadow-md">
         <div class="flex items-center justify-between mb-6">
             <!-- Back Arrow -->
-            <a href="{% url 'event_detail' event.id %}" class="text-gray-600 hover:text-gray-800 transition-colors p-2 rounded-lg hover:bg-gray-100">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
@@ -62,13 +71,13 @@
             {{ form|crispy }}
 
             <div class="flex justify-between mt-6">
-                <a href="{% url 'event_detail' event.id %}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center">
+                <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue  px-6 py-2 rounded-lg flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Back to Event
                 </a>
-                <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center">
+                <button type="submit" class="btn btn-outline-blue px-6 py-2 rounded-lg flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                     </svg>
@@ -182,20 +191,27 @@
                                     {% else %}
                                         <span class="text-gray-500">• Optional</span>
                                     {% endif %}
-                                    {% if field.is_email_identifier %}
-                                        <span class="text-blue-600">• Email ID</span>
-                                    {% endif %}
+
                                 </div>
                                 {% if field.options %}
                                     <div class="text-xs text-gray-500 mt-1 truncate">
-                                        <strong>Options:</strong> {{ field.options }}
+                                        {% if field.field_type == 'range' %}
+                                            <strong>Range:</strong> {{ field.range_values.0 }} - {{ field.range_values.1 }}
+                                        {% else %}
+                                            <strong>Options:</strong> {{ field.options }}
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                                {% if field.help_text %}
+                                    <div class="text-xs text-blue-600 mt-1 italic">
+                                        <strong>Help:</strong> {{ field.help_text|truncatechars:50 }}
                                     </div>
                                 {% endif %}
                             </div>
                             <form method="POST" action="{% url 'delete_custom_field' event.id field.id %}" class="inline ml-2 delete-form-{{ field.id }}" style="display: none;">
                                 {% csrf_token %}
                             </form>
-                            <button type="button" class="delete-field-btn text-red-600 hover:text-red-800 p-1" 
+                            <button type="button" class="delete-field-btn btn btn-outline-pink p-1" 
                                     data-field-name="{{ field.label }}"
                                     data-field-id="{{ field.id }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
@@ -207,9 +223,7 @@
                 {% endfor %}
             {% else %}
                 <div class="bg-gray-100 p-4 rounded-lg text-center text-gray-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mx-auto mb-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
+                    
                     <p class="text-sm">No custom fields yet.</p>
                     <p class="text-xs mt-1">Add your first field using the form.</p>
                 </div>
@@ -218,78 +232,4 @@
     </div>
 </div>
 
-<!-- SweetAlert2 CDN -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-<script>
-    // Show/hide options field based on field type
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded');
-        console.log('SweetAlert2 available:', typeof Swal !== 'undefined');
-        
-        const fieldTypeSelect = document.querySelector('select[name="field_type"]');
-        const optionsTextarea = document.querySelector('textarea[name="options"]');
-        const optionsField = optionsTextarea ? optionsTextarea.closest('.form-group') : null;
-        
-        function toggleOptionsField() {
-            if (optionsField && fieldTypeSelect) {
-                if (fieldTypeSelect.value === 'select') {
-                    optionsField.style.display = 'block';
-                } else {
-                    optionsField.style.display = 'none';
-                }
-            }
-        }
-        
-        if (fieldTypeSelect && optionsField) {
-            toggleOptionsField();
-            fieldTypeSelect.addEventListener('change', toggleOptionsField);
-        }
-
-        // Handle delete field with SweetAlert2
-        const deleteButtons = document.querySelectorAll('.delete-field-btn');
-        console.log('Found delete buttons:', deleteButtons.length);
-        
-        deleteButtons.forEach((button, index) => {
-            console.log(`Setting up button ${index}`, button);
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                console.log('Delete button clicked', this);
-                
-                const fieldName = this.dataset.fieldName;
-                const fieldId = this.dataset.fieldId;
-                console.log('Field name:', fieldName, 'Field ID:', fieldId);
-                
-                // Find the form by its unique class name
-                const deleteForm = document.querySelector(`.delete-form-${fieldId}`);
-                console.log('Found form:', deleteForm);
-                
-                if (!deleteForm) {
-                    console.error('Delete form not found for field ID:', fieldId);
-                    return;
-                }
-                
-                Swal.fire({
-                    title: 'Delete Custom Field?',
-                    text: `Are you sure you want to delete the field "${fieldName}"? This action cannot be undone.`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ef4444',
-                    cancelButtonColor: '#6b7280',
-                    confirmButtonText: 'Yes, Delete',
-                    cancelButtonText: 'Cancel',
-                    reverseButtons: true
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        console.log('Submitting form...');
-                        // Submit the hidden form
-                        deleteForm.submit();
-                    } else {
-                        console.log('Delete cancelled');
-                    }
-                });
-            });
-        });
-    });
-</script>
 {% endblock %} 

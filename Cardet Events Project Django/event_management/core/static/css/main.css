@@ -140,3 +140,110 @@
     transform: translateY(-5px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
 }
+
+/* Custom Field Styling - Outlined with Blue Hover */
+.form-field {
+    background-color: transparent;
+    border: 2px solid #0174b9;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.form-field:hover {
+    border-color: #e6f0f6;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.1);
+}
+
+.form-field:focus {
+    border-color: #0174b9;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.2);
+}
+
+/* Select2 Tailwind Integration */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--multiple {
+    border: 2px solid #0174b9;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    min-height: 2.5rem;
+    background-color: transparent;
+    transition: all 0.3s ease;
+}
+
+.select2-container--default .select2-selection--multiple:hover {
+    border-color: #0174b9;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.1);
+}
+
+.select2-container--default .select2-selection--multiple:focus {
+    border-color: #0174b9;
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.2);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: #0174b9;
+    border: 1px solid #0174b9;
+    border-radius: 0.25rem;
+    color: white;
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+    margin: 0.125rem;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+    color: white;
+    margin-right: 0.25rem;
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+    color: #fca5a5;
+}
+
+.select2-dropdown {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: #0174b9;
+    color: white;
+}
+
+.select2-search--dropdown .select2-search__field {
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    padding: 0.5rem;
+}
+
+/* Range slider styling */
+.range-slider {
+    background-color: transparent;
+    border: 2px solid #0174b9;
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.range-slider:hover {
+    border-color: #0174b9;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.1);
+}
+
+/* Checkbox styling */
+.checkbox-field {
+    accent-color: #0174b9;
+    transition: all 0.3s ease;
+}
+
+.checkbox-field:hover {
+    transform: scale(1.05);
+}

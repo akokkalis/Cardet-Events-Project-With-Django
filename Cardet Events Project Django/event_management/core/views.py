@@ -167,6 +167,7 @@ def filter_events(request):
             "status": event.status.name if event.status else "No Status",
             "status_color": event.status.color if event.status else "#cccccc",
             "image_url": event.image.url if event.image else None,
+            "participant_count": event.participant_set.count(),
         }
         for event in events
     ]
@@ -636,10 +637,7 @@ def public_register(request, event_uuid):
     event = get_object_or_404(Event, uuid=event_uuid)
     custom_fields = EventCustomField.objects.filter(event=event).order_by("id")
 
-    # Process options for select fields
-    for field in custom_fields:
-        if field.field_type == "select" and field.options:
-            field.options_list = [option.strip() for option in field.options.split(",")]
+    # Options are now handled automatically by the options_list property in the model
 
     # If rate limit exceeded, show error page
     if getattr(request, "limited", False):
@@ -655,41 +653,49 @@ def public_register(request, event_uuid):
         # Collect custom field data
         custom_data = {}
         for field in custom_fields:
-            field_value = request.POST.get(f"custom_field_{field.id}")
-            if field.required and not field_value:
-                messages.error(request, f"{field.label} is required.")
-                return render(
-                    request,
-                    "public_register.html",
-                    {"form": form, "event": event, "custom_fields": custom_fields},
-                )
-            custom_data[field.label] = field_value
-
-        if form.is_valid():
-            email = form.cleaned_data["email"]
-
-            # Check for email uniqueness using custom fields if any field is marked as email identifier
-            email_identifier_field = custom_fields.filter(
-                is_email_identifier=True
-            ).first()
-            if email_identifier_field:
-                identifier_value = custom_data.get(email_identifier_field.label)
-                if identifier_value:
-                    # Check for existing participants with this identifier value
-                    existing_participants = Participant.objects.filter(
-                        event=event
-                    ).exclude(submitted_data__isnull=True)
-                    for participant in existing_participants:
-                        if (
-                            participant.submitted_data
-                            and participant.submitted_data.get(
-                                email_identifier_field.label
-                            )
-                            == identifier_value
-                        ):
+            if field.field_type == "multiselect":
+                # Handle multiple values for multiselect
+                field_values = request.POST.getlist(f"custom_field_{field.id}")
+                if field.required and not field_values:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+                custom_data[field.label] = field_values
+            elif field.field_type == "checkbox":
+                # Handle checkbox - value is "true" when checked, None when unchecked
+                field_value = request.POST.get(f"custom_field_{field.id}")
+                if field.required and not field_value:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+                custom_data[field.label] = field_value == "true"
+            elif field.field_type == "range":
+                # Handle range input - ensure it's a valid number
+                field_value = request.POST.get(f"custom_field_{field.id}")
+                if field.required and not field_value:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+                try:
+                    # Convert to integer and validate range
+                    if field_value:
+                        range_value = int(field_value)
+                        min_val, max_val = (
+                            field.range_values
+                        )  # Get custom min/max values
+                        if range_value < min_val or range_value > max_val:
                             messages.error(
                                 request,
-                                f"This {email_identifier_field.label} is already registered.",
+                                f"{field.label} must be between {min_val} and {max_val}.",
                             )
                             return render(
                                 request,
@@ -700,6 +706,44 @@ def public_register(request, event_uuid):
                                     "custom_fields": custom_fields,
                                 },
                             )
+                        custom_data[field.label] = range_value
+                    else:
+                        custom_data[field.label] = field_value
+                except ValueError:
+                    messages.error(request, f"{field.label} must be a valid number.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+            elif field.field_type in ["date", "time", "datetime"]:
+                # Handle date/time field types
+                field_value = request.POST.get(f"custom_field_{field.id}")
+                if field.required and not field_value:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+
+                # For date/time fields, we'll store the value as-is since HTML5 inputs provide ISO format
+                # The browser handles validation for invalid date/time formats
+                custom_data[field.label] = field_value
+            else:
+                # Handle other field types (text, textarea, number, email, select)
+                field_value = request.POST.get(f"custom_field_{field.id}")
+                if field.required and not field_value:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+                custom_data[field.label] = field_value
+
+        if form.is_valid():
+            email = form.cleaned_data["email"]
 
             # Check standard email uniqueness
             if Participant.objects.filter(event=event, email=email).exists():

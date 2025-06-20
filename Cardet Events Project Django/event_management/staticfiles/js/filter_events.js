@@ -1,40 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-    // Function to initialize delete button functionality
-    function initializeDeleteButtons() {
-        document.querySelectorAll('.delete-event-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const eventId = this.getAttribute('data-event-id');
-                
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: "You won't be able to revert this!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#ce1f45',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Create a form and submit it
-                        const form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = `/events/delete/${eventId}/`;
-                        
-                        const csrfToken = document.createElement('input');
-                        csrfToken.type = 'hidden';
-                        csrfToken.name = 'csrfmiddlewaretoken';
-                        csrfToken.value = window.csrfToken;
-                        form.appendChild(csrfToken);
-                        
-                        document.body.appendChild(form);
-                        form.submit();
-                    }
-                });
-            });
-        });
-    }
-
     function applyFilters() {
         let company = document.getElementById("filter-company").value;
         let status = document.getElementById("filter-status").value;
@@ -45,7 +9,16 @@ document.addEventListener("DOMContentLoaded", function () {
         let params = new URLSearchParams();
         if (company) params.append("company", company);
         if (status) params.append("status", status);
-        if (date) params.append("date", date);
+        
+        if (date) {
+            // Convert date from dd/mm/yyyy to YYYY-MM-DD for the backend
+            const parts = date.split('/');
+            if (parts.length === 3) {
+                const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                params.append("date", formattedDate);
+            }
+        }
+
         if (month) params.append("month", month);
         if (year) params.append("year", year);
 
@@ -64,7 +37,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 return response.json();
             })
             .then(data => {
-                let eventContainer = document.querySelector(".events-grid");
+                let eventContainer = document.querySelector(".grid");
                 eventContainer.innerHTML = "";
 
                 let sortedEvents = data.events.sort((a, b) => {
@@ -74,58 +47,67 @@ document.addEventListener("DOMContentLoaded", function () {
                     return new Date(a.event_date) - new Date(b.event_date); // Sort by date
                 });
 
-                if (sortedEvents.length === 0) {
-                    eventContainer.innerHTML = `
-                        <div class="empty-state">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <h3>No Events Found</h3>
-                            <p>No events match your current filters.</p>
-                        </div>`;
-                } else {
-                    sortedEvents.forEach(event => {
-                        let eventHtml = `
-                            <div class="event-card">
-                                ${event.status ? `<div class="status-badge" style="background-color: ${event.status_color};">${event.status}</div>` : ''}
-                                ${event.image_url ? `<img src="${event.image_url}" alt="${event.event_name}" class="event-image">` : `<div class="event-image-placeholder"><span>No Image</span></div>`}
-                                <div class="event-content">
-                                    <h2 class="event-title">${event.event_name}</h2>
-                                    <p class="event-date">${event.event_date}</p>
-                                    <p class="event-time">${event.start_time} - ${event.end_time}</p>
-                                    <div class="event-actions">
-                                        <a href="/events/${event.id}/" class="btn-secondary">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                            View
-                                        </a>
-                                        <a href="/events/${event.id}/edit/?next=${window.location.pathname}" class="btn-light">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                            </svg>
-                                            Edit
-                                        </a>
-                                        <button data-event-id="${event.id}" class="delete-event-btn btn-danger">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="registration-badge">
-                                    ${event.participant_count || 0}
-                                    <div class="tooltip">Total Registrations</div>
-                                </div>
-                            </div>`;
-                        eventContainer.innerHTML += eventHtml;
-                    });
+                sortedEvents.forEach(event => {
+                    // Date formatting
+                    const eventDate = new Date(event.event_date + 'T00:00:00'); // Ensure correct parsing
+                    const formattedDate = eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                     
-                    // Reinitialize delete button functionality
-                    initializeDeleteButtons();
-                }
+                    // URLs
+                    const detailUrl = `${window.eventDetailUrlBase}${event.id}/`;
+                    const editUrl = `${window.eventEditUrlBase}${event.id}/?next=${window.location.pathname + window.location.search}`;
+
+                    let eventHtml = `
+                        <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col relative">
+                            <!-- Event Image and Status Badge -->
+                            <div class="relative w-full mb-3">
+                                ${event.image_url ? 
+                                    `<img src="${event.image_url}" alt="${event.event_name}" class="w-full h-48 object-cover rounded-lg">` : 
+                                    `<div class="w-full h-48 bg-[#e6f0f6] rounded-lg"></div>`
+                                }
+                                ${event.status ? `
+                                    <div class="absolute inset-y-0 right-0 flex items-center">
+                                        <span class="bg-[#00b8c4] text-white text-sm font-semibold px-4 py-1 rounded-l-full shadow-lg">
+                                            ${event.status}
+                                        </span>
+                                    </div>` : ''
+                                }
+                            </div>
+
+                            <!-- Event Details -->
+                            <div class="w-full text-left">
+                                <h2 class="text-xl font-semibold mb-1">${event.event_name}</h2>
+                                <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">
+                                    ${formattedDate} | ${event.start_time} - ${event.end_time}
+                                </p>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="mt-4 w-full flex justify-start space-x-2">
+                                <a href="${detailUrl}" class="btn btn-outline-blue">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                                    <span>View</span>
+                                </a>
+                                <a href="${editUrl}" class="btn btn-outline-blue">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                                    <span>Edit</span>
+                                </a>
+                                <button data-event-id="${event.id}" class="btn btn-outline-pink delete-event-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                             <!-- Registration Count Badge with Tooltip -->
+                            <div class="absolute bottom-2 right-2 group">
+                                <div class="bg-brand-blue text-white text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg cursor-pointer">
+                                    ${event.participant_count}
+                                </div>
+                                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    Total Registrations
+                                </div>
+                            </div>
+                        </div>`;
+                    eventContainer.innerHTML += eventHtml;
+                });
             })
             .catch(error => {
                 console.error('Filter error:', error);
@@ -137,36 +119,15 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Event Listeners for Filters
-    const filterElements = [
-        { id: "filter-company", element: document.getElementById("filter-company") },
-        { id: "filter-status", element: document.getElementById("filter-status") },
-        { id: "filter-date", element: document.getElementById("filter-date") },
-        { id: "filter-month", element: document.getElementById("filter-month") },
-        { id: "filter-year", element: document.getElementById("filter-year") }
-    ];
-    
-    filterElements.forEach(({ id, element }) => {
-        if (element) {
-            element.addEventListener("change", applyFilters);
-            console.log(`Event listener attached to ${id}`);
-        } else {
-            console.error(`Element with id ${id} not found`);
-        }
-    });
+    document.getElementById("filter-company").addEventListener("change", applyFilters);
+    document.getElementById("filter-status").addEventListener("change", applyFilters);
+    document.getElementById("filter-date").addEventListener("change", applyFilters);
+    document.getElementById("filter-month").addEventListener("change", applyFilters);
+    document.getElementById("filter-year").addEventListener("change", applyFilters);
     
     // Clear Filters Button
-    const clearButton = document.getElementById("clear-filters");
-    if (clearButton) {
-        clearButton.addEventListener("click", function () {
-            console.log('Clear filters clicked');
-            document.querySelectorAll("select, input").forEach(input => input.value = "");
-            applyFilters();
-        });
-        console.log('Clear filters button event listener attached');
-    } else {
-        console.error('Clear filters button not found');
-    }
-    
-    // Initialize delete buttons on page load
-    initializeDeleteButtons();
+    document.getElementById("clear-filters").addEventListener("click", function () {
+        document.querySelectorAll("select, input").forEach(input => input.value = "");
+        applyFilters();
+    });
 });
