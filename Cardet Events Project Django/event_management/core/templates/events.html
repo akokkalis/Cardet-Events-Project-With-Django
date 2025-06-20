@@ -80,10 +80,10 @@
 <!-- Events Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     {% for event in events %}
-    <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col relative">
+    <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col items-center relative">
         
         <!-- Event Image and Status Badge -->
-        <div class="mb-3 text-center">
+        <div class="mb-3">
             <div class="relative inline-block my-2.5"> <!-- Positioning context with vertical margin -->
                 {% if event.image %}
                     <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="block">
@@ -95,7 +95,7 @@
 
                 {% if event.status %}
                 <div class="absolute top-1/2 -translate-y-1/2 right-[-0px] mt-10">
-                    <span class="bg-[#00b8c4] text-white text-sm font-semibold pl-4 pr-6 py-2 shadow-lg" style="border-radius: 19px 0 0 19px; height: 35px; display: inline-flex; align-items: center;">
+                    <span class="status-badge-shape bg-[#00b8c4] text-white text-sm font-semibold pl-4 pr-6 py-2 shadow-lg">
                         {{ event.status.name }}
                     </span>
                 </div>
@@ -104,13 +104,13 @@
         </div>
 
         <!-- Event Details -->
-        <div class="w-full text-left">
+        <div class="text-left" style="width: 361px;">
             <h2 class="text-xl font-semibold mb-1">{{ event.event_name }}</h2>
             <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">{{ event.event_date|date:"F j, Y" }} | {{ event.start_time|time:"g:i a" }} - {{ event.end_time|time:"g:i a" }}</p>
         </div>
 
         <!-- Action Buttons -->
-        <div class="mt-4 w-full flex justify-start space-x-2">
+        <div class="mt-5 flex justify-start space-x-3" style="width: 361px;">
             <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue" style="width: 109px; height: 44.5px; border-radius: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />

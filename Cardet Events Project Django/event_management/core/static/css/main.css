@@ -154,6 +154,13 @@
     border-radius: 12px;
 }
 
+.status-badge-shape {
+    border-radius: 19px 0 0 19px;
+    height: 35px;
+    display: inline-flex;
+    align-items: center;
+}
+
 /* Custom Field Styling - Outlined with Blue Hover */
 .form-field {
     background-color: transparent;
