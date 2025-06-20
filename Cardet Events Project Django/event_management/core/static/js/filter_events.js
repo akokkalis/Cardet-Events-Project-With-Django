@@ -48,17 +48,53 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 sortedEvents.forEach(event => {
+                    // Date formatting
+                    const eventDate = new Date(event.event_date + 'T00:00:00'); // Ensure correct parsing
+                    const formattedDate = eventDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+                    
+                    // URLs
+                    const detailUrl = `${window.eventDetailUrlBase}${event.id}/`;
+                    const editUrl = `${window.eventEditUrlBase}${event.id}/?next=${window.location.pathname + window.location.search}`;
+
                     let eventHtml = `
-                        <div class="relative bg-white p-4 rounded-lg shadow-md flex flex-col items-center">
-                            ${event.status ? `<div class="absolute top-8 right-[-10px] bg-gray-700 text-white px-5 py-1 text-sm font-semibold rounded-lg shadow-md transform rotate-45" style="background-color: ${event.status_color};">${event.status}</div>` : ''}
-                            ${event.image_url ? `<img src="${event.image_url}" alt="${event.event_name}" class="w-full h-48 object-cover rounded-lg mb-3">` : `<div class="w-full h-48 bg-gray-300 flex items-center justify-center rounded-lg mb-3"><span class="text-gray-600">No Image</span></div>`}
-                            <h2 class="text-xl font-semibold text-center">${event.event_name}</h2>
-                            <p class="text-gray-600">${event.event_date}</p>
-                            <p class="text-gray-600">${event.start_time} - ${event.end_time}</p>
-                            <div class="mt-4 w-full flex justify-center space-x-3">
-                                <a href="/events/${event.id}/" class="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700">View</a>
-                                <a href="/events/edit/${event.id}/" class="bg-yellow-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-yellow-700">Edit</a>
-                                <button data-event-id="${event.id}" class="delete-event-btn bg-red-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-700">Delete</button>
+                        <div class="event-card bg-white p-8 rounded-lg shadow-md flex flex-col">
+                            <!-- Event Image and Status Badge -->
+                            <div class="relative w-full mb-3">
+                                ${event.image_url ? 
+                                    `<img src="${event.image_url}" alt="${event.event_name}" class="w-full h-48 object-cover rounded-lg">` : 
+                                    `<div class="w-full h-48 bg-[#e6f0f6] rounded-lg"></div>`
+                                }
+                                ${event.status ? `
+                                    <div class="absolute inset-y-0 right-0 flex items-center">
+                                        <span class="bg-[#00b8c4] text-white text-sm font-semibold px-4 py-1 rounded-l-full shadow-lg">
+                                            ${event.status}
+                                        </span>
+                                    </div>` : ''
+                                }
+                            </div>
+
+                            <!-- Event Details -->
+                            <div class="w-full text-left">
+                                <h2 class="text-xl font-semibold mb-1">${event.event_name}</h2>
+                                <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">
+                                    ${formattedDate} | ${event.start_time} - ${event.end_time}
+                                </p>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="mt-4 w-full flex justify-start space-x-2">
+                                <a href="${detailUrl}" class="btn btn-outline-blue">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" /></svg>
+                                    <span>View</span>
+                                </a>
+                                <a href="${editUrl}" class="btn btn-outline-blue">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" /><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" /></svg>
+                                    <span>Edit</span>
+                                </a>
+                                <button data-event-id="${event.id}" class="btn btn-outline-pink delete-event-btn">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>
+                                    <span>Delete</span>
+                                </button>
                             </div>
                         </div>`;
                     eventContainer.innerHTML += eventHtml;

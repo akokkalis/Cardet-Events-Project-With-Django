@@ -152,6 +152,9 @@
     window.csrfToken = '{{ csrf_token }}';
     // Add filter URL
     window.filterUrl = '{% url "filter_events" %}';
+    // Base URLs for dynamic links
+    window.eventDetailUrlBase = '/events/';
+    window.eventEditUrlBase = '/events/edit/';
 </script>
 <script src="{% static 'js/confirm_on_delete.js' %}"></script>
 <script src="{% static 'js/filter_events.js' %}"></script>
