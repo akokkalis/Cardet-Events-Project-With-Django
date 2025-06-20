@@ -161,6 +161,10 @@
     align-items: center;
 }
 
+.public-link-card {
+    background-color: #e6f0f6;
+}
+
 /* Custom Field Styling - Outlined with Blue Hover */
 .form-field {
     background-color: transparent;
