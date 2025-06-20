@@ -1,4 +1,5 @@
 from django import forms
+from django.db import models
 from .models import Event, Company, Status, Participant, EventCustomField
 
 
@@ -94,6 +95,17 @@ class EventCustomFieldForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.event = kwargs.pop("event", None)
         super().__init__(*args, **kwargs)
+
+        # Auto-populate the next available order number for new fields
+        if (
+            self.event and not self.instance.pk
+        ):  # Only for new fields (not editing existing ones)
+            # Get the highest order number for this event and add 1
+            max_order = EventCustomField.objects.filter(event=self.event).aggregate(
+                max_order=models.Max("order")
+            )["max_order"]
+            next_order = (max_order or 0) + 1
+            self.fields["order"].initial = next_order
 
     def clean_label(self):
         label = self.cleaned_data.get("label")

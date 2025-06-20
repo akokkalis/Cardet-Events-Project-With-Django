@@ -83,22 +83,24 @@
     <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col relative">
         
         <!-- Event Image and Status Badge -->
-        <div class="relative w-full mb-3">
-            {% if event.image %}
-                <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="w-full h-48 object-cover rounded-lg">
-            {% else %}
-                <div class="w-full h-48 bg-[#e6f0f6] rounded-lg">
-                    <!-- Placeholder for image -->
-                </div>
-            {% endif %}
+        <div class="mb-3 text-center">
+            <div class="relative inline-block my-2.5"> <!-- Positioning context with vertical margin -->
+                {% if event.image %}
+                    <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="block">
+                {% else %}
+                    <div class="bg-[#e6f0f6] img-placeholder">
+                        <!-- Placeholder for image -->
+                    </div>
+                {% endif %}
 
-            {% if event.status %}
-            <div class="absolute inset-y-0 right-0 flex items-center">
-                <span class="bg-[#00b8c4] text-white text-sm font-semibold px-4 py-1 rounded-l-full shadow-lg">
-                    {{ event.status.name }}
-                </span>
+                {% if event.status %}
+                <div class="absolute top-1/2 -translate-y-1/2 right-[-0px] mt-10">
+                    <span class="bg-[#00b8c4] text-white text-sm font-semibold pl-4 pr-6 py-2 shadow-lg" style="border-radius: 19px 0 0 19px; height: 35px; display: inline-flex; align-items: center;">
+                        {{ event.status.name }}
+                    </span>
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
 
         <!-- Event Details -->
@@ -109,14 +111,14 @@
 
         <!-- Action Buttons -->
         <div class="mt-4 w-full flex justify-start space-x-2">
-            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue" style="width: 109px; height: 44.5px; border-radius: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
                 </svg>
                 <span>View</span>
             </a>
-            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="btn btn-outline-blue">
+            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="btn btn-outline-blue" style="width: 93px; height: 44.5px; border-radius: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
                     <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
@@ -124,7 +126,7 @@
                 <span>Edit</span>
             </a>
 
-            <button data-event-id="{{ event.id }}" class="btn btn-outline-pink delete-event-btn">
+            <button data-event-id="{{ event.id }}" class="btn btn-outline-pink delete-event-btn" style="width: 109px; height: 44.5px; border-radius: 6px;">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>

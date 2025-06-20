@@ -134,11 +134,24 @@
 /* Event Card Hover Effect */
 .event-card {
     transition: all 0.3s ease-in-out;
+    width: 473px;
+    height: 518px;
+    border-radius: 10rem;
 }
 
 .event-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
+    border: 1px solid #0174b9;
+    box-shadow: 0 8px 16px #0174b9, 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
+}
+
+/* Event Card Image Styling */
+.event-card img,
+.event-card .img-placeholder {
+    width: 361px;
+    height: 237px;
+    object-fit: cover;
+    border-radius: 12px;
 }
 
 /* Custom Field Styling - Outlined with Blue Hover */
