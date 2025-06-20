@@ -52,7 +52,7 @@ class EventCustomFieldForm(forms.ModelForm):
 
     class Meta:
         model = EventCustomField
-        fields = ["label", "field_type", "required", "options", "help_text"]
+        fields = ["label", "field_type", "required", "options", "help_text", "order"]
         widgets = {
             "label": forms.TextInput(
                 attrs={
@@ -80,6 +80,13 @@ class EventCustomFieldForm(forms.ModelForm):
                 attrs={
                     "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
                     "placeholder": "Optional help text to guide users (e.g., 'Please enter your full legal name')",
+                }
+            ),
+            "order": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "min": "1",
+                    "placeholder": "Display order (1 = first, 2 = second, etc.)",
                 }
             ),
         }
@@ -161,5 +168,20 @@ class EventCustomFieldForm(forms.ModelForm):
             raise forms.ValidationError(
                 f"Options are not needed for {field_type} field type."
             )
+
+        # Validate order uniqueness within the event
+        order = cleaned_data.get("order")
+        if self.event and order:
+            existing_field = EventCustomField.objects.filter(
+                event=self.event, order=order
+            ).exclude(pk=self.instance.pk if self.instance else None)
+
+            if existing_field.exists():
+                existing_field_obj = existing_field.first()
+                raise forms.ValidationError(
+                    {
+                        "order": f'Order number {order} is already used by field "{existing_field_obj.label}". Please choose a different order number.'
+                    }
+                )
 
         return cleaned_data

@@ -22,6 +22,7 @@ from .views import (
     download_ics_file,
     event_custom_fields,
     delete_custom_field,
+    update_field_order,
 )
 
 urlpatterns = [
@@ -38,6 +39,11 @@ urlpatterns = [
         "events/<int:event_id>/custom-fields/<int:field_id>/delete/",
         delete_custom_field,
         name="delete_custom_field",
+    ),
+    path(
+        "events/<int:event_id>/update-field-order/",
+        update_field_order,
+        name="update_field_order",
     ),
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),

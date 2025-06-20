@@ -151,7 +151,7 @@ def export_participants_csv(event_id):
         writer.writerow([])  # Empty row for spacing
 
         # ✅ Get custom fields for headers
-        custom_fields = event.custom_fields.all().order_by("id")
+        custom_fields = event.custom_fields.all().order_by("order")
 
         # ✅ Write Table Headers (including custom fields)
         headers = ["#", "Name", "Email", "Phone"]
@@ -269,7 +269,7 @@ def export_participants_pdf(event_id):
     pdf.drawString(30, 470, f"Status: {event.status.name}")
 
     # ✅ Get custom fields for headers
-    custom_fields = event.custom_fields.all().order_by("id")
+    custom_fields = event.custom_fields.all().order_by("order")
 
     # ✅ Table Headers (with dynamic positioning for custom fields)
     y = 440

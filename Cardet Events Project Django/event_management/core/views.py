@@ -635,7 +635,7 @@ def export_participants_pdf_view(request, event_id):
 @ratelimit(key="ip")  # 5 requests per minute
 def public_register(request, event_uuid):
     event = get_object_or_404(Event, uuid=event_uuid)
-    custom_fields = EventCustomField.objects.filter(event=event).order_by("id")
+    custom_fields = EventCustomField.objects.filter(event=event).order_by("order")
 
     # Options are now handled automatically by the options_list property in the model
 
@@ -821,3 +821,85 @@ def delete_custom_field(request, event_id, field_id):
         field.delete()
         messages.success(request, "Custom field deleted successfully!")
     return redirect("event_custom_fields", event_id=event_id)
+
+
+@login_required
+def update_field_order(request, event_id):
+    """AJAX endpoint to update custom field order via drag and drop."""
+    if request.method == "POST":
+        try:
+            import json
+            from django.db import transaction
+
+            data = json.loads(request.body)
+            updates = data.get("updates", [])
+
+            event = get_object_or_404(Event, id=event_id)
+
+            # Use database transaction to ensure consistency
+            with transaction.atomic():
+                # Get all fields for this event ordered by current order
+                all_fields = list(
+                    EventCustomField.objects.filter(event=event).order_by("order")
+                )
+
+                # Create a mapping of field_id to new_order from the updates
+                new_order_map = {
+                    int(update["id"]): int(update["order"]) for update in updates
+                }
+
+                # Find which field was moved and determine the range that needs updating
+                moved_field_id = None
+                old_position = None
+                new_position = None
+
+                # Find the moved field by comparing current order with new order
+                for field in all_fields:
+                    if field.id in new_order_map:
+                        current_order = field.order
+                        target_order = new_order_map[field.id]
+
+                        if current_order != target_order:
+                            moved_field_id = field.id
+                            old_position = current_order
+                            new_position = target_order
+                            break
+
+                if moved_field_id and old_position and new_position:
+                    from django.db.models import F
+
+                    # Step 1: Temporarily set the moved field to a large number to avoid conflicts
+                    # Use 9999 as temporary value (larger than any normal order)
+                    EventCustomField.objects.filter(
+                        id=moved_field_id, event=event
+                    ).update(order=9999)
+
+                    # Step 2: Handle the reordering based on direction
+                    if old_position < new_position:
+                        # Moving down: shift fields up (decrease their order)
+                        # Example: field at position 2 moves to position 5
+                        # Fields at positions 3,4,5 should move up (decrease by 1)
+                        EventCustomField.objects.filter(
+                            event=event, order__gt=old_position, order__lte=new_position
+                        ).update(order=F("order") - 1)
+
+                    elif old_position > new_position:
+                        # Moving up: shift fields down (increase their order)
+                        # Example: field at position 8 moves to position 5
+                        # Fields at positions 5,6,7 should move down (increase by 1)
+                        EventCustomField.objects.filter(
+                            event=event, order__gte=new_position, order__lt=old_position
+                        ).update(order=F("order") + 1)
+
+                    # Step 3: Set the moved field to its final position
+                    EventCustomField.objects.filter(
+                        id=moved_field_id, event=event
+                    ).update(order=new_position)
+
+            return JsonResponse({"success": True})
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({"success": False, "error": str(e)})
+
+    return JsonResponse({"success": False, "error": "Invalid request method"})

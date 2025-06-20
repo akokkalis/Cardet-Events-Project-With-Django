@@ -189,6 +189,9 @@ class EventCustomField(models.Model):
         null=True,
         help_text="Optional help text to guide users when filling out this field",
     )
+    order = models.PositiveIntegerField(
+        default=1, help_text="Display order of this field (1 = first, 2 = second, etc.)"
+    )
 
     @property
     def options_list(self):
@@ -208,6 +211,35 @@ class EventCustomField(models.Model):
             except (ValueError, IndexError):
                 pass
         return 0, 100  # Default range if not specified or invalid
+
+    class Meta:
+        unique_together = ["event", "order"]
+        ordering = ["order"]
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+
+        # Check for duplicate order numbers within the same event
+        # Only validate if we have both event and order (during form validation this might not be set yet)
+        if hasattr(self, "event") and self.event and self.order:
+            existing_field = (
+                EventCustomField.objects.filter(event=self.event, order=self.order)
+                .exclude(pk=self.pk)
+                .first()
+            )
+
+            if existing_field:
+                raise ValidationError(
+                    {
+                        "order": f'Order number {self.order} is already used by field "{existing_field.label}". Please choose a different order number.'
+                    }
+                )
+
+    def save(self, *args, **kwargs):
+        # Only run validation if the event is set (to avoid RelatedObjectDoesNotExist during form processing)
+        if hasattr(self, "event") and self.event:
+            self.full_clean()
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.label} ({self.event.event_name})"

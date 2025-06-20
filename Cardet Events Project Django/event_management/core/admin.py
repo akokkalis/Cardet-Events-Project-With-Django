@@ -33,9 +33,10 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 
 class EventCustomFieldAdmin(admin.ModelAdmin):
-    list_display = ("label", "event", "field_type", "required", "help_text")
+    list_display = ("label", "event", "field_type", "required", "order", "help_text")
     list_filter = ("event", "field_type", "required")
     search_fields = ("label", "event__event_name")
+    ordering = ("event", "order")
 
 
 admin.site.register(Company)
