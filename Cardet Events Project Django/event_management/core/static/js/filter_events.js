@@ -9,7 +9,16 @@ document.addEventListener("DOMContentLoaded", function () {
         let params = new URLSearchParams();
         if (company) params.append("company", company);
         if (status) params.append("status", status);
-        if (date) params.append("date", date);
+        
+        if (date) {
+            // Convert date from dd/mm/yyyy to YYYY-MM-DD for the backend
+            const parts = date.split('/');
+            if (parts.length === 3) {
+                const formattedDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                params.append("date", formattedDate);
+            }
+        }
+
         if (month) params.append("month", month);
         if (year) params.append("year", year);
 

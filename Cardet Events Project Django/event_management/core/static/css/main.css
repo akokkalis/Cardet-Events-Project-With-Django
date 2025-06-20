@@ -1,0 +1,142 @@
+/* Custom Button Styles */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem; /* 8px */
+    padding-left: 1rem; /* 16px */
+    padding-right: 1rem; /* 16px */
+    padding-top: 0.5rem; /* 8px */
+    padding-bottom: 0.5rem; /* 8px */
+    border-radius: 0.5rem; /* 8px */
+    font-weight: 500;
+    color: white;
+    transition: background-color 0.2s ease-in-out;
+    border: 1px solid transparent;
+}
+
+.btn-blue {
+    background-color: #0174b9;
+    border-color: #0174b9;
+}
+.btn-blue:hover {
+    background-color: #015a8f;
+    border-color: #015a8f;
+}
+
+.btn-light-blue {
+    background-color: #00b8c4;
+    border-color: #00b8c4;
+}
+.btn-light-blue:hover {
+    background-color: #00939e;
+    border-color: #00939e;
+}
+
+.btn-pink {
+    background-color: #ce1f45;
+    border-color: #ce1f45;
+}
+.btn-pink:hover {
+    background-color: #a41937;
+    border-color: #a41937;
+}
+
+/* --- Outline Button Styles --- */
+
+.btn-outline-blue {
+    background-color: transparent;
+    border-color: #0174b9;
+    color: #0174b9;
+}
+.btn-outline-blue:hover {
+    background-color: #0174b9;
+    color: white;
+}
+
+.btn-outline-light-blue {
+    background-color: transparent;
+    border-color: #00b8c4;
+    color: #00b8c4;
+}
+.btn-outline-light-blue:hover {
+    background-color: #00b8c4;
+    color: white;
+}
+
+.btn-outline-pink {
+    background-color: transparent;
+    border-color: #ce1f45;
+    color: #ce1f45;
+}
+.btn-outline-pink:hover {
+    background-color: #ce1f45;
+    color: white;
+}
+
+/* --- Text Color Utilities --- */
+.text-brand-blue {
+    color: #0174b9;
+}
+
+.bg-brand-blue {
+    background-color: #0174b9;
+    color: white;
+}
+
+/* Filter Styles */
+.filter-select, .filter-date {
+    background-color: #e6f0f6;
+    color: #0174b9;
+    border: 1px solid #00b8c4; /* gray-300 */
+    border-radius: 0.5rem; /* 8px */
+    padding: 0.5rem 1rem;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%230174b9'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 1.25em 1.25em;
+    padding-right: 2.5rem;
+	color: black;
+}
+
+.filter-select:focus, .filter-date:focus {
+    outline: none;
+    border-color:#0174b9;
+    box-shadow: 0 0 0 2px rgba(1, 116, 185, 0.2);
+}
+
+/* Style for dropdown options on hover (works in Chrome/Edge) */
+.filter-select option:hover {
+    background-color: #0174b9;
+    color: white;
+}
+
+/* Style for the selected option in some browsers */
+.filter-select option:checked {
+    background-color: #0174b9 !important; /* Use important to override browser defaults */
+    color: white !important;
+}
+
+/* Ensure the placeholder/default option does not get the highlight */
+.filter-select option[value=""] {
+    background-color: white;
+    color: black;
+}
+
+.filter-date {
+    padding-right: 1rem; /* No arrow, so less padding */
+    background-image: none;
+}
+
+/* Event Card Hover Effect */
+.event-card {
+    transition: all 0.3s ease-in-out;
+}
+
+.event-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
+}

@@ -7,9 +7,8 @@
     <title>{% block title %}Staff Panel{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-
-
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body class="bg-gray-100">
     <div class="flex h-screen">
@@ -77,22 +76,16 @@
             </div>
             </nav>
         </div>
-
-        <!-- Mobile Toggle Button -->
-        <button id="sidebarToggle" class="md:hidden fixed top-4 left-4 bg-gray-800 text-white p-3 rounded-full shadow-lg transition-transform duration-300">
-            ☰
-        </button>
         {% endif %}
 
         <!-- Main Content -->
-        <div class="flex-1 p-5">
+        <div class="flex-1 p-5 overflow-y-auto">
  
 
             {% block content %}{% endblock %}
         </div>
     </div>
-
-    <!-- JavaScript for Sidebar Toggle -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{% static 'js/sidebar.js' %}"></script>
 </body>
 </html>
