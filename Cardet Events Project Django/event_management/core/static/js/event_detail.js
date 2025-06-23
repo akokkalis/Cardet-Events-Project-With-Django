@@ -64,48 +64,100 @@ $(document).ready(function () {
         let participantName = $(this).data("participant-name");
         let customDataString = $(this).data("custom-data");
         
+        console.log('Raw custom data string:', customDataString);
+        console.log('Type of custom data string:', typeof customDataString);
+        
+        // If it's already an object (jQuery parsed it), use it directly
+        if (typeof customDataString === 'object') {
+            console.log('Data is already an object:', customDataString);
+            displayCustomDataModal(participantName, customDataString);
+            return;
+        }
+        
         try {
             // Parse the custom data
-            let customData = typeof customDataString === 'string' ? JSON.parse(customDataString.replace(/'/g, '"')) : customDataString;
-            
-            // Build HTML content for the modal
-            let htmlContent = '<div class="text-left">';
-            
-            for (let key in customData) {
-                if (customData.hasOwnProperty(key)) {
-                    let value = customData[key];
-                    htmlContent += `
-                        <div class="mb-3 p-3 bg-gray-50 rounded-lg border">
-                            <div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
-                            <div class="text-gray-900">${value || '-'}</div>
-                        </div>
-                    `;
+            let customData;
+            if (typeof customDataString === 'string') {
+                if (customDataString.trim() === '' || customDataString.trim() === '{}') {
+                    customData = {};
+                } else {
+                    customData = JSON.parse(customDataString);
                 }
+            } else {
+                customData = customDataString || {};
             }
             
-            htmlContent += '</div>';
-            
-            // Show SweetAlert modal
-            Swal.fire({
-                title: `Custom Data for ${participantName}`,
-                html: htmlContent,
-                icon: 'info',
-                confirmButtonText: 'Close',
-                confirmButtonColor: '#3085d6',
-                width: '600px',
-                customClass: {
-                    popup: 'text-sm'
-                }
-            });
+            console.log('Parsed custom data:', customData);
+            displayCustomDataModal(participantName, customData);
             
         } catch (error) {
             console.error('Error parsing custom data:', error);
+            console.error('Custom data string that caused error:', customDataString);
             Swal.fire({
                 title: 'Error',
-                text: 'Unable to display custom data',
+                text: `Unable to display custom data. Check console for details. Error: ${error.message}`,
                 icon: 'error',
                 confirmButtonText: 'Close'
             });
         }
     });
+
+    // Function to display custom data modal
+    function displayCustomDataModal(participantName, customData) {
+        console.log('Displaying modal for:', participantName, 'with data:', customData);
+        
+        // Check if there's any data to display
+        if (!customData || Object.keys(customData).length === 0) {
+            Swal.fire({
+                title: `Custom Data for ${participantName}`,
+                html: '<div class="text-center text-gray-500">No custom data available</div>',
+                icon: 'info',
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#3085d6',
+                width: '600px'
+            });
+            return;
+        }
+        
+        // Build HTML content for the modal
+        let htmlContent = '<div class="text-left">';
+        
+        for (let key in customData) {
+            if (customData.hasOwnProperty(key)) {
+                let value = customData[key];
+                let displayValue;
+                
+                console.log(`Processing field: ${key}, value:`, value);
+                
+                // Check if this is a file field
+                if (typeof value === 'object' && value !== null && value.is_file) {
+                    displayValue = `<a href="/download-custom-file/${value.file_id}/" class="text-blue-600 hover:text-blue-800 underline" target="_blank">📁 ${value.filename}</a>`;
+                } else {
+                    displayValue = value || '-';
+                }
+                
+                htmlContent += `
+                    <div class="mb-3 p-3 bg-gray-50 rounded-lg border">
+                        <div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                        <div class="text-gray-900">${displayValue}</div>
+                    </div>
+                `;
+            }
+        }
+        
+        htmlContent += '</div>';
+        
+        // Show SweetAlert modal
+        Swal.fire({
+            title: `Custom Data for ${participantName}`,
+            html: htmlContent,
+            icon: 'info',
+            confirmButtonText: 'Close',
+            confirmButtonColor: '#3085d6',
+            width: '600px',
+            customClass: {
+                popup: 'text-sm'
+            }
+        });
+    }
 }); 

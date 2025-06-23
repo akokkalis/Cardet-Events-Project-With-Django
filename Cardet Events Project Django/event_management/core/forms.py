@@ -105,6 +105,8 @@ class ParticipantForm(forms.ModelForm):
                         ),
                         **field_kwargs,
                     )
+                elif field_model.field_type == "file":
+                    self.fields[field_name] = forms.FileField(**field_kwargs)
 
     class Meta:
         model = Participant
@@ -138,7 +140,7 @@ class EventCustomFieldForm(forms.ModelForm):
                 attrs={
                     "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
                     "rows": "3",
-                    "placeholder": "Enter comma-separated options (for select/multiselect) or min,max values (for range)",
+                    "placeholder": "Enter comma-separated options (for select/multiselect) or min,max values (for range). Leave empty for text, number, email, checkbox, date, time, datetime, and file fields.",
                 }
             ),
             "help_text": forms.TextInput(
@@ -238,6 +240,7 @@ class EventCustomFieldForm(forms.ModelForm):
                 "date",
                 "time",
                 "datetime",
+                "file",
             ]
             and options
         ):

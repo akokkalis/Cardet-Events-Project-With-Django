@@ -1,45 +1,203 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load widget_tweaks %}
+{% load static %}
 
 {% block title %}Create Event{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
 {% block content %}
-<h1 class="text-3xl font-semibold mb-6 text-center">Create New Event</h1>
-
-<div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-
-        <!-- Two Columns -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                {{ form.company|as_crispy_field }}
-                {{ form.event_name|as_crispy_field }}
-                {{ form.event_date|as_crispy_field }}
-                {{ form.start_time|as_crispy_field }}
-                {{ form.end_time|as_crispy_field }}
-				{{form.status|as_crispy_field}}
-            </div>
-
-            <div>
-                {{ form.location|as_crispy_field }}
-                {{ form.image|as_crispy_field }}
-                {{ form.description|as_crispy_field }}
-                {{ form.tickets|as_crispy_field }}
-                {{ form.signatures|as_crispy_field }}
-                {{ form.public_registration_enabled|as_crispy_field }}
-            </div>
-        </div>
-
-        <!-- Submit Button -->
-        <div class="flex justify-between">
-			<a href="{% url 'event_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
-                Cancel
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-semibold text-gray-800">Create New Event</h1>
+            <a href="{% url 'event_list' %}" class="btn btn-outline-secondary">
+                Back to Events
             </a>
-            <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-700">
-                ✅ Save Event
-            </button>
         </div>
-    </form>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.company.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.company.label }}
+                            {% if form.company.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.company|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.company.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.event_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.event_name.label }}
+                            {% if form.event_name.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.event_name|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.event_name.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.event_date.label }}
+                            {% if form.event_date.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.event_date|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.event_date.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.start_time.label }}
+                            {% if form.start_time.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.start_time|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.start_time.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.end_time.label }}
+                            {% if form.end_time.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.end_time|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.end_time.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.status.label }}
+                            {% if form.status.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.status|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.status.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.location.label }}
+                            {% if form.location.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.location|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.location.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.image.label }}
+                            {% if form.image.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.image|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.image.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.description.label }}
+                            {% if form.description.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.description|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.description.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.tickets|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.tickets.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                                {{ form.tickets.label }}
+                            </label>
+                        </div>
+                        {% for error in form.tickets.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.signatures|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.signatures.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                                {{ form.signatures.label }}
+                            </label>
+                        </div>
+                        {% for error in form.signatures.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.public_registration_enabled|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.public_registration_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                                {{ form.public_registration_enabled.label }}
+                            </label>
+                        </div>
+                        {% for error in form.public_registration_enabled.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="btn btn-outline-blue">Create Event</button>
+            </div>
+        </form>
+    </div>
 </div>
 {% endblock %}

@@ -24,6 +24,7 @@ from .views import (
     delete_custom_field,
     update_field_order,
     register_participant_view,
+    download_custom_field_file,
 )
 
 urlpatterns = [
@@ -95,6 +96,11 @@ urlpatterns = [
         "events/<int:event_id>/register-participant/",
         register_participant_view,
         name="register_participant",
+    ),
+    path(
+        "download-custom-file/<int:file_id>/",
+        download_custom_field_file,
+        name="download_custom_field_file",
     ),
 ]
 

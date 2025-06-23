@@ -235,6 +235,40 @@ def event_detail(request, event_id):
             participant=participant, event=event
         ).first()
 
+        # Add file information to submitted_data if it exists
+        if participant.submitted_data:
+            import json
+            from core.models import ParticipantCustomFieldFile
+
+            # Get custom field files for this participant
+            custom_files = ParticipantCustomFieldFile.objects.filter(
+                participant=participant
+            )
+
+            # Create a copy of submitted_data to modify
+            custom_data = participant.submitted_data.copy()
+
+            # Add file IDs to submitted_data for files
+            for file_obj in custom_files:
+                if file_obj.field_label in custom_data:
+                    # Replace filename with file info including download URL
+                    custom_data[file_obj.field_label] = {
+                        "is_file": True,
+                        "filename": file_obj.file.name.split("/")[-1],
+                        "file_id": file_obj.id,
+                    }
+
+            # Convert to JSON string for the template
+            try:
+                participant.custom_data_json = json.dumps(custom_data)
+            except Exception as e:
+                print(
+                    f"Error serializing custom data for participant {participant.name}: {e}"
+                )
+                participant.custom_data_json = "{}"
+        else:
+            participant.custom_data_json = "{}"
+
     return render(
         request,
         "event_detail.html",
@@ -624,7 +658,7 @@ def public_register(request, event_uuid):
         return render(request, "registration_closed.html", {"event": event})
 
     if request.method == "POST":
-        form = ParticipantForm(request.POST)
+        form = ParticipantForm(request.POST, request.FILES)
 
         # Collect custom field data
         custom_data = {}
@@ -706,6 +740,18 @@ def public_register(request, event_uuid):
                 # For date/time fields, we'll store the value as-is since HTML5 inputs provide ISO format
                 # The browser handles validation for invalid date/time formats
                 custom_data[field.label] = field_value
+            elif field.field_type == "file":
+                # Handle file uploads
+                uploaded_file = request.FILES.get(f"custom_field_{field.id}")
+                if field.required and not uploaded_file:
+                    messages.error(request, f"{field.label} is required.")
+                    return render(
+                        request,
+                        "public_register.html",
+                        {"form": form, "event": event, "custom_fields": custom_fields},
+                    )
+                # Store the file name for now, actual file will be saved after participant is created
+                custom_data[field.label] = uploaded_file.name if uploaded_file else None
             else:
                 # Handle other field types (text, textarea, number, email, select)
                 field_value = request.POST.get(f"custom_field_{field.id}")
@@ -744,6 +790,19 @@ def public_register(request, event_uuid):
 
             participant.save()
 
+            # Save uploaded files for custom fields
+            for field in custom_fields:
+                if field.field_type == "file":
+                    uploaded_file = request.FILES.get(f"custom_field_{field.id}")
+                    if uploaded_file:
+                        from core.models import ParticipantCustomFieldFile
+
+                        ParticipantCustomFieldFile.objects.create(
+                            participant=participant,
+                            field_label=field.label,
+                            file=uploaded_file,
+                        )
+
             messages.success(request, "✅ Registered successfully!")
             return redirect("public_register", event_uuid=event.uuid)
     else:
@@ -773,7 +832,7 @@ def download_ics_file(request, event_uuid):
 def register_participant_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     if request.method == "POST":
-        form = ParticipantForm(request.POST, event=event)
+        form = ParticipantForm(request.POST, request.FILES, event=event)
         if form.is_valid():
             participant = form.save(commit=False)
             participant.event = event
@@ -784,10 +843,30 @@ def register_participant_view(request, event_id):
                 if key.startswith("custom_field_"):
                     field_id = int(key.split("_")[-1])
                     field_model = EventCustomField.objects.get(id=field_id)
-                    custom_data[field_model.label] = value
+
+                    if field_model.field_type == "file" and value:
+                        # For file fields, store the filename in custom_data
+                        custom_data[field_model.label] = value.name
+                    else:
+                        custom_data[field_model.label] = value
 
             participant.submitted_data = custom_data
             participant.save()
+
+            # Save uploaded files for custom fields
+            for key, value in form.cleaned_data.items():
+                if key.startswith("custom_field_") and value:
+                    field_id = int(key.split("_")[-1])
+                    field_model = EventCustomField.objects.get(id=field_id)
+
+                    if field_model.field_type == "file":
+                        from core.models import ParticipantCustomFieldFile
+
+                        ParticipantCustomFieldFile.objects.create(
+                            participant=participant,
+                            field_label=field_model.label,
+                            file=value,
+                        )
             # form.save_m2m() is not needed unless ParticipantForm has M2M fields itself
 
             messages.success(
@@ -874,3 +953,30 @@ def update_field_order(request, event_id):
             return JsonResponse({"success": False, "error": str(e)})
 
     return JsonResponse({"success": False, "error": "Invalid request method"})
+
+
+@login_required
+def download_custom_field_file(request, file_id):
+    """View to serve custom field files"""
+    try:
+        from core.models import ParticipantCustomFieldFile
+
+        custom_file = get_object_or_404(ParticipantCustomFieldFile, id=file_id)
+
+        # Check if user has access to this event (basic security)
+        if (
+            hasattr(request.user, "staff")
+            and request.user.staff.company != custom_file.participant.event.company
+        ):
+            return HttpResponse("Unauthorized", status=403)
+
+        response = HttpResponse(
+            custom_file.file.read(), content_type="application/octet-stream"
+        )
+        response["Content-Disposition"] = (
+            f'attachment; filename="{custom_file.file.name.split("/")[-1]}"'
+        )
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"File not found: {str(e)}", status=404)

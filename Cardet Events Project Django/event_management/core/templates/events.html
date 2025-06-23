@@ -168,6 +168,12 @@
             altFormat: "d/m/Y",
             placeholder: "dd/mm/yyyy"
         });
+
+        // Clear Filters functionality
+        document.getElementById('clear-filters').addEventListener('click', function() {
+            // Reload the page to clear all filters
+            window.location.reload();
+        });
     });
 </script>
     

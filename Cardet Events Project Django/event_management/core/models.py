@@ -59,6 +59,15 @@ def qr_code_path(instance, filename):
     return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/qr_codes/{instance.name}_{instance.email}_qr.png"
 
 
+def custom_field_file_path(instance, filename):
+    """Returns the path to store custom field files inside the event folder."""
+    sanitized_email = instance.participant.email.replace("@", "_").replace(".", "_")
+    sanitized_field_name = (
+        instance.field_label.replace(" ", "_").replace("/", "_").replace("\\", "_")
+    )
+    return f"Events/{instance.participant.event.id}_{instance.participant.event.event_name.replace(' ', '_')}/custom_field_files/{sanitized_field_name}_{sanitized_email}_{filename}"
+
+
 class Company(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
@@ -171,6 +180,7 @@ class EventCustomField(models.Model):
         ("date", "Date"),
         ("time", "Time"),
         ("datetime", "Date & Time"),
+        ("file", "File Upload"),
     )
 
     event = models.ForeignKey(
@@ -307,6 +317,22 @@ class Participant(models.Model):
         )
 
         return os.path.abspath(qr_path)  # ✅ Return absolute path for PDF generation
+
+
+class ParticipantCustomFieldFile(models.Model):
+    """Model to store files uploaded through custom fields"""
+
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="custom_field_files"
+    )
+    field_label = models.CharField(
+        max_length=255
+    )  # Store the field label for reference
+    file = models.FileField(upload_to=custom_field_file_path)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.participant.name} - {self.field_label}"
 
 
 class Attendance(models.Model):
