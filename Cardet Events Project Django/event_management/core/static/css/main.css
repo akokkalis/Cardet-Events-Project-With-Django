@@ -54,6 +54,7 @@
     color: white;
 }
 
+
 .btn-outline-light-blue {
     background-color: transparent;
     border-color: #00b8c4;
@@ -163,6 +164,13 @@
 
 .public-link-card {
     background-color: #e6f0f6;
+}
+
+.event-detail-image {
+    width: 361px;
+    height: 237px;
+    object-fit: cover;
+    border-radius: 12px;
 }
 
 /* Custom Field Styling - Outlined with Blue Hover */

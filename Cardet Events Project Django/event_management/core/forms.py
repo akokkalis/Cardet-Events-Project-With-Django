@@ -42,6 +42,70 @@ class EventForm(forms.ModelForm):
 
 
 class ParticipantForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop("event", None)
+        super().__init__(*args, **kwargs)
+
+        if self.event:
+            custom_fields = EventCustomField.objects.filter(event=self.event).order_by(
+                "order"
+            )
+            for field_model in custom_fields:
+                field_name = f"custom_field_{field_model.id}"
+                field_kwargs = {
+                    "label": field_model.label,
+                    "required": field_model.required,
+                    "help_text": field_model.help_text,
+                }
+
+                if field_model.field_type == "text":
+                    self.fields[field_name] = forms.CharField(**field_kwargs)
+                elif field_model.field_type == "textarea":
+                    self.fields[field_name] = forms.CharField(
+                        widget=forms.Textarea, **field_kwargs
+                    )
+                elif field_model.field_type == "number":
+                    self.fields[field_name] = forms.IntegerField(**field_kwargs)
+                elif field_model.field_type == "email":
+                    self.fields[field_name] = forms.EmailField(**field_kwargs)
+                elif field_model.field_type == "checkbox":
+                    self.fields[field_name] = forms.BooleanField(**field_kwargs)
+                elif field_model.field_type == "date":
+                    self.fields[field_name] = forms.DateField(
+                        widget=forms.DateInput(attrs={"type": "date"}), **field_kwargs
+                    )
+                elif field_model.field_type == "time":
+                    self.fields[field_name] = forms.TimeField(
+                        widget=forms.TimeInput(attrs={"type": "time"}), **field_kwargs
+                    )
+                elif field_model.field_type == "datetime":
+                    self.fields[field_name] = forms.DateTimeField(
+                        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                        **field_kwargs,
+                    )
+                elif field_model.field_type in ["select", "multiselect"]:
+                    choices = [(option, option) for option in field_model.options_list]
+                    if field_model.field_type == "select":
+                        self.fields[field_name] = forms.ChoiceField(
+                            choices=choices, **field_kwargs
+                        )
+                    else:
+                        self.fields[field_name] = forms.MultipleChoiceField(
+                            choices=choices,
+                            widget=forms.CheckboxSelectMultiple,
+                            **field_kwargs,
+                        )
+                elif field_model.field_type == "range":
+                    min_val, max_val = field_model.range_values
+                    self.fields[field_name] = forms.IntegerField(
+                        min_value=min_val,
+                        max_value=max_val,
+                        widget=forms.NumberInput(
+                            attrs={"type": "range", "min": min_val, "max": max_val}
+                        ),
+                        **field_kwargs,
+                    )
+
     class Meta:
         model = Participant
         fields = ["name", "email", "phone"]

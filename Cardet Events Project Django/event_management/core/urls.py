@@ -23,6 +23,7 @@ from .views import (
     event_custom_fields,
     delete_custom_field,
     update_field_order,
+    register_participant_view,
 )
 
 urlpatterns = [
@@ -36,7 +37,7 @@ urlpatterns = [
         name="event_custom_fields",
     ),
     path(
-        "events/<int:event_id>/custom-fields/<int:field_id>/delete/",
+        "events/<int:event_id>/custom-fields/delete/<int:field_id>/",
         delete_custom_field,
         name="delete_custom_field",
     ),
@@ -90,6 +91,11 @@ urlpatterns = [
     ),
     path("register/<uuid:event_uuid>/", public_register, name="public_register"),
     path("download_ics/<uuid:event_uuid>/", download_ics_file, name="download_ics"),
+    path(
+        "events/<int:event_id>/register-participant/",
+        register_participant_view,
+        name="register_participant",
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -58,4 +58,54 @@ $(document).ready(function () {
             }
         });
     });
+
+    // ✅ View Custom Data Modal Button
+    $(".view-custom-data-btn").click(function () {
+        let participantName = $(this).data("participant-name");
+        let customDataString = $(this).data("custom-data");
+        
+        try {
+            // Parse the custom data
+            let customData = typeof customDataString === 'string' ? JSON.parse(customDataString.replace(/'/g, '"')) : customDataString;
+            
+            // Build HTML content for the modal
+            let htmlContent = '<div class="text-left">';
+            
+            for (let key in customData) {
+                if (customData.hasOwnProperty(key)) {
+                    let value = customData[key];
+                    htmlContent += `
+                        <div class="mb-3 p-3 bg-gray-50 rounded-lg border">
+                            <div class="font-semibold text-gray-700 mb-1">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</div>
+                            <div class="text-gray-900">${value || '-'}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            htmlContent += '</div>';
+            
+            // Show SweetAlert modal
+            Swal.fire({
+                title: `Custom Data for ${participantName}`,
+                html: htmlContent,
+                icon: 'info',
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#3085d6',
+                width: '600px',
+                customClass: {
+                    popup: 'text-sm'
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error parsing custom data:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Unable to display custom data',
+                icon: 'error',
+                confirmButtonText: 'Close'
+            });
+        }
+    });
 }); 

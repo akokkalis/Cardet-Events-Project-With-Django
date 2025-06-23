@@ -13,7 +13,8 @@ from .models import (
 )
 from .forms import EventForm, ParticipantForm, EventCustomFieldForm
 from django.core.paginator import Paginator
-from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models import Q, Case, When, Value, IntegerField, F, Window
+from django.db.models.functions import RowNumber
 from django.utils.timezone import now
 from django.http import JsonResponse, FileResponse, HttpResponse
 import base64
@@ -234,37 +235,12 @@ def event_detail(request, event_id):
             participant=participant, event=event
         ).first()
 
-    if request.method == "POST":
-        form = ParticipantForm(request.POST)
-        if form.is_valid():
-            # Check for duplicates
-            if Participant.objects.filter(
-                event=event, email=form.cleaned_data["email"]
-            ).exists():
-                messages.error(
-                    request, "This participant is already registered for this event."
-                )
-            else:
-                participant = form.save(commit=False)
-                participant.event = event  # Assign event to participant
-                participant.save()
-                messages.success(
-                    request, f"Participant {participant.name} added successfully."
-                )
-                return redirect(
-                    "event_detail", event_id=event.id
-                )  # Redirect to refresh page
-
-    else:
-        form = ParticipantForm()
-
     return render(
         request,
         "event_detail.html",
         {
             "event": event,
             "participants": participants,
-            "form": form,
             "present_participants": participants.filter(id__in=present_participants),
             "not_present_participants": not_present_participants,
         },
@@ -793,9 +769,40 @@ def download_ics_file(request, event_uuid):
         return response
 
 
-def event_custom_fields(request, event_id):
+@login_required
+def register_participant_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
-    existing_fields = EventCustomField.objects.filter(event=event)
+    if request.method == "POST":
+        form = ParticipantForm(request.POST, event=event)
+        if form.is_valid():
+            participant = form.save(commit=False)
+            participant.event = event
+
+            # Handling custom fields
+            custom_data = {}
+            for key, value in form.cleaned_data.items():
+                if key.startswith("custom_field_"):
+                    field_id = int(key.split("_")[-1])
+                    field_model = EventCustomField.objects.get(id=field_id)
+                    custom_data[field_model.label] = value
+
+            participant.submitted_data = custom_data
+            participant.save()
+            # form.save_m2m() is not needed unless ParticipantForm has M2M fields itself
+
+            messages.success(
+                request, f"Participant {participant.name} added successfully."
+            )
+            return redirect("event_detail", event_id=event.id)
+    else:
+        form = ParticipantForm(event=event)
+
+    return render(request, "register_participant.html", {"form": form, "event": event})
+
+
+def event_custom_fields(request, event_id):
+    event = get_object_or_404(Event, pk=event_id)
+    fields = EventCustomField.objects.filter(event=event).order_by("order")
 
     if request.method == "POST":
         form = EventCustomFieldForm(request.POST, event=event)
@@ -811,7 +818,7 @@ def event_custom_fields(request, event_id):
     return render(
         request,
         "event_custom_fields.html",
-        {"event": event, "form": form, "existing_fields": existing_fields},
+        {"event": event, "form": form, "existing_fields": fields},
     )
 
 
