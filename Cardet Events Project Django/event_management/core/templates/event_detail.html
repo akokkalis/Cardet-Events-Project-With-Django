@@ -176,7 +176,7 @@
                         <th class="border border-gray-300 px-4 py-2">Signature</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="mb-10">
                     {% for participant in participants %}
                     <tr class="text-center">
                         <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
@@ -185,7 +185,7 @@
                         <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.submitted_data %}
-                                <button class="view-custom-data-btn bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 flex items-center gap-1 mx-auto" 
+                                <button class="view-custom-data-btn btn btn-outline-blue  py-1 rounded  flex items-center gap-1 mx-auto" 
                                         data-participant-name="{{ participant.name }}"
                                         data-custom-data="{{ participant.submitted_data|safe }}">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -195,14 +195,14 @@
                                     View Data
                                 </button>
                             {% else %}
-                                -
+                                <span class="text-gray-500">No Data</span>    
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.pdf_ticket %}
                                 <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
                             {% else %}
-                                -
+                            <span class="text-gray-500">No Ticket</span>
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2">

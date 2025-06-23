@@ -88,8 +88,8 @@
                 {% if event.image %}
                     <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="block">
                 {% else %}
-                    <div class="bg-[#e6f0f6] img-placeholder">
-                        <!-- Placeholder for image -->
+                    <div class="bg-[#e6f0f6] img-placeholder flex items-center justify-center">
+                        <!-- Placeholder for image --><span class="text-gray-500 ">No Image</span>
                     </div>
                 {% endif %}
 

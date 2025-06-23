@@ -6,11 +6,19 @@
 {% block content %}
 <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md mt-6">
     <div class="flex items-center gap-3">
-        <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-        </a>
+        {% if request.GET.next %}
+            <a href="{{ request.GET.next }}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+        {% else %}
+            <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+        {% endif %}
         <h1 class="text-3xl font-semibold text-center flex items-center justify-center gap-2">
             
             Edit Event
@@ -62,12 +70,21 @@
 
 
         <div class="flex justify-between mt-6">
-            <a href="{% url 'event_list' %}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-                Cancel
-            </a>
+            {% if request.GET.next %}
+                <a href="{{ request.GET.next }}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Cancel
+                </a>
+            {% else %}
+                <a href="{% url 'event_list' %}" class="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-700 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Cancel
+                </a>
+            {% endif %}
             <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-700 flex items-center">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
