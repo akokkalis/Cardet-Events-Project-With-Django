@@ -11,7 +11,7 @@ from .models import (
     Staff,
     EventCustomField,
 )
-from .forms import EventForm, ParticipantForm, EventCustomFieldForm
+from .forms import EventForm, ParticipantForm, EventCustomFieldForm, CompanyForm
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, Value, IntegerField, F, Window
 from django.db.models.functions import RowNumber
@@ -465,6 +465,31 @@ def export_zip(request, event_id):
         signature_folder = os.path.join(event_folder, "signatures")
         if os.path.exists(signature_folder):
             for root, _, files in os.walk(signature_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, "media"))
+
+        # Add Custom Field Files if available
+        custom_files_folder = os.path.join(event_folder, "custom_field_files")
+        if os.path.exists(custom_files_folder):
+            for root, _, files in os.walk(custom_files_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, "media"))
+
+        # Add Event Image if available
+        if event.image:
+            event_image_folder = os.path.join(event_folder, "event_image")
+            if os.path.exists(event_image_folder):
+                for root, _, files in os.walk(event_image_folder):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        zipf.write(file_path, os.path.relpath(file_path, "media"))
+
+        # Add QR Codes if available
+        qr_codes_folder = os.path.join(event_folder, "qr_codes")
+        if os.path.exists(qr_codes_folder):
+            for root, _, files in os.walk(qr_codes_folder):
                 for file in files:
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, "media"))
@@ -980,3 +1005,67 @@ def download_custom_field_file(request, file_id):
 
     except Exception as e:
         return HttpResponse(f"File not found: {str(e)}", status=404)
+
+
+@login_required
+def company_list(request):
+    """Display list of companies"""
+    companies = Company.objects.all().order_by("name")
+
+    context = {
+        "companies": companies,
+    }
+
+    return render(request, "companies.html", context)
+
+
+@login_required
+def company_create(request):
+    """Create a new company"""
+    if request.method == "POST":
+        form = CompanyForm(request.POST, request.FILES)
+        if form.is_valid():
+            company = form.save()
+            messages.success(request, f"Company '{company.name}' created successfully!")
+            return redirect("company_list")
+    else:
+        form = CompanyForm()
+
+    return render(
+        request, "company_form.html", {"form": form, "title": "Add New Company"}
+    )
+
+
+@login_required
+def company_edit(request, company_id):
+    """Edit an existing company"""
+    company = get_object_or_404(Company, id=company_id)
+
+    if request.method == "POST":
+        form = CompanyForm(request.POST, request.FILES, instance=company)
+        if form.is_valid():
+            company = form.save()
+            messages.success(request, f"Company '{company.name}' updated successfully!")
+            return redirect("company_list")
+    else:
+        form = CompanyForm(instance=company)
+
+    return render(
+        request,
+        "company_form.html",
+        {"form": form, "title": f"Edit {company.name}", "company": company},
+    )
+
+
+@login_required
+def company_detail(request, company_id):
+    """View company details"""
+    company = get_object_or_404(Company, id=company_id)
+    events = Event.objects.filter(company=company).order_by("-event_date")
+
+    context = {
+        "company": company,
+        "events": events,
+    }
+
+    return render(request, "company_detail.html", context)

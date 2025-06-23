@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3">
+			<a href="{% url 'company_list' %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-800">{{ title }}</h1>
+
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-6">
+                    <!-- Company Name -->
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.name.label }}
+                            {% if form.name.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.name|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.name.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.email.label }}
+                            {% if form.email.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.email|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.email.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Phone -->
+                    <div>
+                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.phone.label }}
+                            {% if form.phone.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.phone|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.phone.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Address -->
+                    <div>
+                        <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.address.label }}
+                            {% if form.address.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.address|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.address.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Logo -->
+                    <div>
+                        <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.logo.label }}
+                            {% if form.logo.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        {% if company and company.logo %}
+                            <div class="mb-3">
+                                <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="h-20 w-20 object-contain border border-gray-200 rounded">
+                                <p class="text-sm text-gray-500 mt-1">Current logo</p>
+                            </div>
+                        {% endif %}
+                        <div class="mt-1">
+                            {{ form.logo|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.logo.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                        <p class="mt-1 text-sm text-gray-500">
+                            Upload a logo for your company (optional). Supported formats: JPG, PNG, GIF
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="btn btn-outline-blue">
+                    {% if company %}
+                        Update Company
+                    {% else %}
+                        Create Company
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Display form errors if any -->
+{% if form.non_field_errors %}
+    <div class="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">
+                    Please correct the following errors:
+                </h3>
+                <div class="mt-2 text-sm text-red-700">
+                    <ul class="list-disc list-inside">
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% endblock %} 

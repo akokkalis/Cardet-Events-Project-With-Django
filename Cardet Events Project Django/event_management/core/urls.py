@@ -25,10 +25,18 @@ from .views import (
     update_field_order,
     register_participant_view,
     download_custom_field_file,
+    company_list,
+    company_create,
+    company_edit,
+    company_detail,
 )
 
 urlpatterns = [
     path("", event_list, name="event_list"),
+    path("companies/", company_list, name="company_list"),
+    path("companies/create/", company_create, name="company_create"),
+    path("companies/<int:company_id>/", company_detail, name="company_detail"),
+    path("companies/<int:company_id>/edit/", company_edit, name="company_edit"),
     path("events/create/", event_create, name="event_create"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),
     path("events/<int:event_id>/edit/", event_edit, name="event_edit"),

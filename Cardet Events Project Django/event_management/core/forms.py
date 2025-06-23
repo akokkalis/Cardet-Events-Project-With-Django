@@ -3,6 +3,69 @@ from django.db import models
 from .models import Event, Company, Status, Participant, EventCustomField
 
 
+class CompanyForm(forms.ModelForm):
+    class Meta:
+        model = Company
+        fields = ["name", "email", "phone", "address", "logo"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter company name",
+                }
+            ),
+            "email": forms.EmailInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter company email",
+                }
+            ),
+            "phone": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter phone number (optional)",
+                }
+            ),
+            "address": forms.Textarea(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "rows": "3",
+                    "placeholder": "Enter company address (optional)",
+                }
+            ),
+            "logo": forms.ClearableFileInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "accept": "image/*",
+                }
+            ),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email:
+            # Check if email already exists for another company
+            existing_company = Company.objects.filter(email=email).exclude(
+                pk=self.instance.pk if self.instance else None
+            )
+            if existing_company.exists():
+                raise forms.ValidationError(
+                    "A company with this email address already exists."
+                )
+        return email
+
+    def clean_name(self):
+        name = self.cleaned_data.get("name")
+        if name:
+            # Check if company name already exists (case-insensitive)
+            existing_company = Company.objects.filter(name__iexact=name).exclude(
+                pk=self.instance.pk if self.instance else None
+            )
+            if existing_company.exists():
+                raise forms.ValidationError("A company with this name already exists.")
+        return name
+
+
 class EventForm(forms.ModelForm):
 
     class Meta:

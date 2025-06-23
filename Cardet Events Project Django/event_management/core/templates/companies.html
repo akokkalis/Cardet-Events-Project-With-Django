@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Companies{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-semibold flex items-center space-x-2">
+        <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <span class="hidden md:inline">Companies</span>
+    </h1>
+
+    <!-- Add Company Button (Aligned Right) -->
+    <a href="{% url 'company_create' %}" class="btn btn-outline-blue">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Add New Company</span>
+    </a>
+</div>
+
+<!-- Filters Section -->
+<div class="flex flex-wrap gap-4 mb-6">
+    <!-- Search Filter -->
+    <input type="text" id="filter-search" class="filter-date" placeholder="Search companies...">
+
+    <!-- Clear Filters -->
+    <button id="clear-filters" class="btn btn-outline-blue">
+        Clear Filters
+    </button>
+</div>
+
+{% if companies %}
+    <!-- Companies Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for company in companies %}
+        <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col items-center relative">
+            
+            <!-- Company Logo -->
+            <div class="mb-3">
+                <div class="relative inline-block my-2.5">
+                    {% if company.logo %}
+                        <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="block">
+                    {% else %}
+                        <div class="bg-[#e6f0f6] img-placeholder flex items-center justify-center">
+                            <span class="text-gray-500">No Logo</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Company Details -->
+            <div class="text-left" style="width: 361px;">
+                <h2 class="text-xl font-semibold mb-1">{{ company.name }}</h2>
+                <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">{{ company.email }}</p>
+                {% if company.phone %}
+                    <p class="text-gray-600 text-sm mt-1">
+					  {{ company.phone }}</p>
+				{% else %}
+					<p class="text-gray-600 text-sm mt-1">No phone number found</p>
+                {% endif %}
+                {% if company.address %}
+                    <p class="text-gray-600 text-sm mt-1">📍 {{ company.address|truncatechars:50 }}</p>
+				{% else %}
+					<p class="text-gray-600 text-sm mt-1">No address found</p>
+                {% endif %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="mt-5 flex justify-start space-x-3" style="width: 361px;">
+                <a href="{% url 'company_detail' company.id %}" class="btn btn-outline-blue" style="width: 109px; height: 44.5px; border-radius: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span>View</span>
+                </a>
+                <a href="{% url 'company_edit' company.id %}" class="btn btn-outline-blue" style="width: 93px; height: 44.5px; border-radius: 6px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                        <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Edit</span>
+                </a>
+				{% if  company.event_set.count == 0 %}
+					<button data-company-id="{{ company.id }}" class="btn btn-outline-pink delete-company-btn " style="width: 109px; height: 44.5px; border-radius: 6px;">
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+						</svg>
+						<span>Delete</span>
+					</button>
+				{% else %}
+					<button data-company-id="{{ company.id }}" class="btn btn-outline-pink delete-company-btn disabled" style="width: 109px; height: 44.5px; border-radius: 6px; opacity: 0.5; cursor: not-allowed;" disabled>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+							<path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+						</svg>
+						<span>Delete</span>
+					</button>
+				{% endif %}
+            </div>
+
+            <!-- Events Count Badge with Tooltip -->
+            <div class="absolute bottom-2 right-2 group">
+                <div class="bg-brand-blue text-white text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg cursor-pointer">
+                    {{ company.event_set.count }}
+                </div>
+                <!-- Tooltip -->
+                <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    Total Events
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-12">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6" />
+        </svg>
+        <h3 class="text-xl font-medium text-gray-900 mb-2">No companies found</h3>
+        <p class="text-gray-500 mb-6">Get started by creating your first company.</p>
+        <a href="{% url 'company_create' %}" class="btn btn-outline-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Add First Company
+        </a>
+    </div>
+{% endif %}
+
+<script>
+    // Add CSRF token for AJAX requests
+    window.csrfToken = '{{ csrf_token }}';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Clear Filters functionality
+        document.getElementById('clear-filters').addEventListener('click', function() {
+            // Reload the page to clear all filters
+            window.location.reload();
+        });
+
+        // Simple search functionality
+        document.getElementById('filter-search').addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const companyCards = document.querySelectorAll('.event-card');
+            
+            companyCards.forEach(card => {
+                const companyName = card.querySelector('h2').textContent.toLowerCase();
+                const companyEmail = card.querySelector('.text-brand-blue').textContent.toLowerCase();
+                
+                if (companyName.includes(searchTerm) || companyEmail.includes(searchTerm)) {
+                    card.style.display = 'flex';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Delete company functionality
+        document.querySelectorAll('.delete-company-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Prevent action if button is disabled
+                if (this.hasAttribute('disabled') || this.classList.contains('disabled')) {
+                    e.preventDefault();
+                    return false;
+                }
+                
+                const companyId = this.getAttribute('data-company-id');
+                if (confirm('Are you sure you want to delete this company?')) {
+                    // Add delete functionality here
+                    console.log('Delete company with ID:', companyId);
+                }
+            });
+        });
+    });
+</script>
+
+{% endblock %} 
