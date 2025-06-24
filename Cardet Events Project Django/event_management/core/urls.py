@@ -29,6 +29,7 @@ from .views import (
     company_create,
     company_edit,
     company_detail,
+    help_view,
 )
 
 urlpatterns = [
@@ -110,6 +111,7 @@ urlpatterns = [
         download_custom_field_file,
         name="download_custom_field_file",
     ),
+    path("help/", help_view, name="help"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

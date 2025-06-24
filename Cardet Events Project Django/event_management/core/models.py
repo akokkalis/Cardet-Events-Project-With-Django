@@ -152,6 +152,10 @@ class Event(models.Model):
         default=False,
         help_text="Enable this if you want to allow public registration via link.",
     )
+    auto_approval_enabled = models.BooleanField(
+        default=True,
+        help_text="Enable this if you want registrations to be automatically approved. If disabled, registrations will require manual approval.",
+    )
     image = models.ImageField(upload_to=event_image_path, blank=True, null=True)
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -256,10 +260,22 @@ class EventCustomField(models.Model):
 
 
 class Participant(models.Model):
+    APPROVAL_CHOICES = [
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
+        ("pending", "Pending"),
+    ]
+
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=50, blank=True, null=True)
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_CHOICES,
+        default="pending",
+        help_text="Status of the participant's registration approval",
+    )
     pdf_ticket = models.FileField(upload_to=pdf_ticket_path, blank=True, null=True)
     qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
     registered_at = models.DateTimeField(auto_now_add=True)
@@ -344,6 +360,27 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.participant.name} - {'Present' if self.present else 'Absent'} - {self.event.event_name}"
+
+
+class EventEmail(models.Model):
+    REASON_CHOICES = [
+        ("approval", "Approval"),
+        ("rejection", "Rejection"),
+        ("registration", "On Registration"),
+    ]
+
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="emails")
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    subject = models.CharField(max_length=255)
+    body = models.TextField(
+        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}"
+    )
+
+    class Meta:
+        unique_together = ("event", "reason")  # One template per reason per event
+
+    def __str__(self):
+        return f"{self.get_reason_display()} Email for {self.event.event_name}"
 
 
 ###  - Signal Section - ###

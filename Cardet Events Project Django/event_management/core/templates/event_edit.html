@@ -6,22 +6,33 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="stylesheet" href="{% static 'css/tooltips.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-semibold text-gray-800">Edit Event - {{ event.event_name }}</h1>
+        <div class="flex  items-center mb-6 gap-3">
+            
             {% if request.GET.next %}
-                <a href="{{ request.GET.next }}" class="btn btn-outline-secondary">
-                    Back to Event
+                <a href="{{ request.GET.next }}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
                 </a>
+            
+                
             {% else %}
-                <a href="{% url 'event_list' %}" class="btn btn-outline-secondary">
-                    Back to Events
+
+                <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
                 </a>
+                
             {% endif %}
+
+            <h1 class="text-2xl font-semibold text-gray-800">Edit Event - {{ event.event_name }}</h1>
         </div>
 
         <form method="POST" enctype="multipart/form-data" class="space-y-6">
@@ -169,8 +180,23 @@
                     <div class="space-y-4">
                         <div class="flex items-center">
                             {{ form.tickets|add_class:"checkbox-field h-5 w-5 rounded" }}
-                            <label for="{{ form.tickets.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                            <label for="{{ form.tickets.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
                                 {{ form.tickets.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Automatic Ticket Generation</strong><br>
+                                        When enabled, registered participants will automatically receive:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Confirmation email with registration details</li>
+                                            <li>PDF ticket attachment with unique QR code</li>
+                                            <li>QR code for easy check-in at the event</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            💡 Perfect for events requiring entry verification
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                         </div>
                         {% for error in form.tickets.errors %}
@@ -179,8 +205,23 @@
 
                         <div class="flex items-center">
                             {{ form.signatures|add_class:"checkbox-field h-5 w-5 rounded" }}
-                            <label for="{{ form.signatures.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                            <label for="{{ form.signatures.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
                                 {{ form.signatures.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Digital Signature Collection</strong><br>
+                                        When enabled, participants can provide digital signatures during registration.
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Capture signatures via touchscreen or mouse</li>
+                                            <li>Store signatures securely for legal compliance</li>
+                                            <li>Include signatures in exported participant data</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            📝 Useful for waivers, agreements, or attendance confirmation
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                         </div>
                         {% for error in form.signatures.errors %}
@@ -189,11 +230,49 @@
 
                         <div class="flex items-center">
                             {{ form.public_registration_enabled|add_class:"checkbox-field h-5 w-5 rounded" }}
-                            <label for="{{ form.public_registration_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700">
+                            <label for="{{ form.public_registration_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
                                 {{ form.public_registration_enabled.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Public Registration Access</strong><br>
+                                        Controls who can register for this event:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li><strong>Enabled:</strong> Anyone can register via public form</li>
+                                            <li><strong>Disabled:</strong> Only admin can add participants</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            🔒 Disable for private/invitation-only events
+                                        </div>
+                                    </div>
+                                </div>
                             </label>
                         </div>
                         {% for error in form.public_registration_enabled.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.auto_approval_enabled|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.auto_approval_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.auto_approval_enabled.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Automatic Registration Approval</strong><br>
+                                        Controls how registrations are processed:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li><strong>Enabled:</strong> Registrations are immediately approved and confirmed</li>
+                                            <li><strong>Disabled:</strong> Registrations require manual admin approval</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            ⚡ Enable for open events, disable for exclusive/capacity-limited events
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.auto_approval_enabled.errors %}
                             <p class="mt-2 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>

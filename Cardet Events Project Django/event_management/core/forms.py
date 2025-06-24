@@ -83,6 +83,7 @@ class EventForm(forms.ModelForm):
             "signatures",
             "status",
             "public_registration_enabled",
+            "auto_approval_enabled",
         ]
         widgets = {
             "company": forms.Select(attrs={"class": "form-select"}),

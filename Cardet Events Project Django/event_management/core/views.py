@@ -1069,3 +1069,8 @@ def company_detail(request, company_id):
     }
 
     return render(request, "company_detail.html", context)
+
+
+@login_required
+def help_view(request):
+    return render(request, "help.html")

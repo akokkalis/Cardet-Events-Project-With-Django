@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+
 {% block title %}Event Details{% endblock %}
 
 {% block content %}
@@ -7,11 +8,11 @@
 
     <!-- Header: Event Details + Edit Button -->
     <div class="flex justify-between items-center">
+        
+        
         <div class="flex items-center gap-3">
             <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                {% heroicon_outline "arrow-left" size=30 class="mr-4" %}
             </button>
             <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -97,7 +98,7 @@
     </div>
 
     <!-- Stats & Actions Card -->
-    <div class="bg-white p-10 rounded-lg shadow-md space-y-5">
+    <div class="bg-white p-8 rounded-lg shadow-md space-y-5">
         <div class="public-link-card p-4 rounded-lg shadow-md">
             <!-- Public Registration Link Card -->
             <h3 class="font-semibold text-gray-800 mb-1">Public Registration Link:</h3>
@@ -123,12 +124,12 @@
         <div class="flex flex-wrap gap-4 justify-start items-center">
             {% if event.tickets and event.signatures %}
                 <a href="{% url 'scan_qr' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    {% heroicon_outline "qr-code" size=30 class="mr-4" %}
                     Scan & Collect Signatures
                 </a>
             {% elif event.tickets %}
                  <a href="{% url 'scan_qr' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    {% heroicon_outline "qr-code" size=30 class="mr-1" %}
                     Scan Tickets
                 </a>
             {% endif %}
@@ -137,7 +138,7 @@
                 Export ZIP
             </a>
             <a href="{% url 'export_participants_csv' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                {% heroicon_outline "table-cells" size=30 class="mr-1" %}
                 Export CSV
             </a>
             <a href="{% url 'export_participants_pdf' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
@@ -170,6 +171,7 @@
                         <th class="border border-gray-300 px-4 py-2">Name</th>
                         <th class="border border-gray-300 px-4 py-2">Email</th>
                         <th class="border border-gray-300 px-4 py-2">Phone</th>
+                        <th class="border border-gray-300 px-4 py-2">Status</th>
                         <th class="border border-gray-300 px-4 py-2">Custom Data</th>
                         <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
                         <th class="border border-gray-300 px-4 py-2">Send Ticket</th>
@@ -183,6 +185,21 @@
                         <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            {% if participant.approval_status == 'approved' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    ✅ Approved
+                                </span>
+                            {% elif participant.approval_status == 'rejected' %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    ❌ Rejected
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    🟡 Pending
+                                </span>
+                            {% endif %}
+                        </td>
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.submitted_data %}
                                 <button class="view-custom-data-btn btn btn-outline-blue  py-1 rounded  flex items-center gap-1 mx-auto" 
@@ -227,7 +244,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="8" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
+                        <td colspan="9" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
                     </tr>
                     {% endfor %}
                 </tbody>
