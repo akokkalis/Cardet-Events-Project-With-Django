@@ -1,6 +1,7 @@
 from django import forms
 from django.db import models
-from .models import Event, Company, Status, Participant, EventCustomField
+from .models import Event, Company, Status, Participant, EventCustomField, EventEmail
+from ckeditor.widgets import CKEditorWidget
 
 
 class CompanyForm(forms.ModelForm):
@@ -325,6 +326,59 @@ class EventCustomFieldForm(forms.ModelForm):
                     {
                         "order": f'Order number {order} is already used by field "{existing_field_obj.label}". Please choose a different order number.'
                     }
+                )
+
+        return cleaned_data
+
+
+class EventEmailForm(forms.ModelForm):
+    class Meta:
+        model = EventEmail
+        fields = ["reason", "subject", "body"]
+        widgets = {
+            "reason": forms.Select(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                }
+            ),
+            "subject": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter email subject line",
+                }
+            ),
+            "body": CKEditorWidget(attrs={"class": "django-ckeditor-widget"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.event = kwargs.pop("event", None)
+        self.initial_reason = kwargs.pop("initial_reason", None)
+        super().__init__(*args, **kwargs)
+
+        # If creating a new template and reason is provided, set it and disable the field
+        if not self.instance.pk and self.initial_reason:
+            self.fields["reason"].initial = self.initial_reason
+            self.fields["reason"].widget.attrs["readonly"] = True
+
+        # Add help text for placeholders
+        self.fields["body"].help_text = (
+            "Available placeholders: {{ name }}, {{ event_name }}, {{ event_date }}, "
+            "{{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}"
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        reason = cleaned_data.get("reason")
+
+        if self.event and reason:
+            # Check if a template with this reason already exists for this event
+            existing_template = EventEmail.objects.filter(
+                event=self.event, reason=reason
+            ).exclude(pk=self.instance.pk if self.instance else None)
+
+            if existing_template.exists():
+                raise forms.ValidationError(
+                    f'An email template for "{reason}" already exists for this event.'
                 )
 
         return cleaned_data

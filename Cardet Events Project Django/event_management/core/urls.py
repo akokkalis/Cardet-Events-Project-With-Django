@@ -30,6 +30,10 @@ from .views import (
     company_edit,
     company_detail,
     help_view,
+    event_email_templates,
+    add_email_template,
+    edit_email_template,
+    delete_email_template,
 )
 
 urlpatterns = [
@@ -45,6 +49,26 @@ urlpatterns = [
         "events/<int:event_id>/custom-fields/",
         event_custom_fields,
         name="event_custom_fields",
+    ),
+    path(
+        "events/<int:event_id>/email-templates/",
+        event_email_templates,
+        name="event_email_templates",
+    ),
+    path(
+        "events/<int:event_id>/email-templates/add/",
+        add_email_template,
+        name="add_email_template",
+    ),
+    path(
+        "events/<int:event_id>/email-templates/<int:template_id>/edit/",
+        edit_email_template,
+        name="edit_email_template",
+    ),
+    path(
+        "events/<int:event_id>/email-templates/<int:template_id>/delete/",
+        delete_email_template,
+        name="delete_email_template",
     ),
     path(
         "events/<int:event_id>/custom-fields/delete/<int:field_id>/",

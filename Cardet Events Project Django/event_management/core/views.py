@@ -10,8 +10,15 @@ from .models import (
     Company,
     Staff,
     EventCustomField,
+    EventEmail,
 )
-from .forms import EventForm, ParticipantForm, EventCustomFieldForm, CompanyForm
+from .forms import (
+    EventForm,
+    ParticipantForm,
+    EventCustomFieldForm,
+    CompanyForm,
+    EventEmailForm,
+)
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, Value, IntegerField, F, Window
 from django.db.models.functions import RowNumber
@@ -1074,3 +1081,131 @@ def company_detail(request, company_id):
 @login_required
 def help_view(request):
     return render(request, "help.html")
+
+
+@login_required
+def event_email_templates(request, event_id):
+    """Display and manage email templates for a specific event"""
+    event = get_object_or_404(Event, id=event_id)
+
+    # Get all email templates for this event
+    email_templates = EventEmail.objects.filter(event=event).order_by("reason")
+
+    # Create a dictionary to track which reasons exist
+    existing_reasons = {template.reason for template in email_templates}
+
+    # Define all possible reasons and their display names
+    all_reasons = [
+        ("registration", "Registration Email"),
+        ("approval", "Approval Email"),
+        ("rejection", "Rejection Email"),
+    ]
+
+    # Find missing templates that can be created
+    missing_templates = [
+        (reason, display_name)
+        for reason, display_name in all_reasons
+        if reason not in existing_reasons
+    ]
+
+    context = {
+        "event": event,
+        "email_templates": email_templates,
+        "missing_templates": missing_templates,
+        "all_reasons": dict(all_reasons),  # For display purposes
+    }
+
+    return render(request, "event_email_templates.html", context)
+
+
+@login_required
+def add_email_template(request, event_id):
+    """Add a new email template for a specific event"""
+    event = get_object_or_404(Event, id=event_id)
+    reason = request.GET.get("reason")
+
+    # Validate that the reason is valid
+    valid_reasons = ["registration", "approval", "rejection"]
+    if reason not in valid_reasons:
+        messages.error(request, "Invalid email template type.")
+        return redirect("event_email_templates", event_id=event.id)
+
+    # Check if template already exists
+    if EventEmail.objects.filter(event=event, reason=reason).exists():
+        messages.error(
+            request, f'An email template for "{reason}" already exists for this event.'
+        )
+        return redirect("event_email_templates", event_id=event.id)
+
+    if request.method == "POST":
+        form = EventEmailForm(request.POST, event=event, initial_reason=reason)
+        if form.is_valid():
+            email_template = form.save(commit=False)
+            email_template.event = event
+            email_template.save()
+
+            reason_display = dict(EventEmail.REASON_CHOICES)[reason]
+            messages.success(
+                request, f"{reason_display} email template created successfully!"
+            )
+            return redirect("event_email_templates", event_id=event.id)
+    else:
+        form = EventEmailForm(event=event, initial_reason=reason)
+
+    reason_display = dict(EventEmail.REASON_CHOICES)[reason]
+    context = {
+        "event": event,
+        "form": form,
+        "reason": reason,
+        "reason_display": reason_display,
+        "is_edit": False,
+    }
+
+    return render(request, "email_template_form.html", context)
+
+
+@login_required
+def edit_email_template(request, event_id, template_id):
+    """Edit an existing email template"""
+    event = get_object_or_404(Event, id=event_id)
+    template = get_object_or_404(EventEmail, id=template_id, event=event)
+
+    if request.method == "POST":
+        form = EventEmailForm(request.POST, instance=template, event=event)
+        if form.is_valid():
+            form.save()
+
+            reason_display = dict(EventEmail.REASON_CHOICES)[template.reason]
+            messages.success(
+                request, f"{reason_display} email template updated successfully!"
+            )
+            return redirect("event_email_templates", event_id=event.id)
+    else:
+        form = EventEmailForm(instance=template, event=event)
+
+    reason_display = dict(EventEmail.REASON_CHOICES)[template.reason]
+    context = {
+        "event": event,
+        "form": form,
+        "template": template,
+        "reason_display": reason_display,
+        "is_edit": True,
+    }
+
+    return render(request, "email_template_form.html", context)
+
+
+@login_required
+def delete_email_template(request, event_id, template_id):
+    """Delete an email template"""
+    event = get_object_or_404(Event, id=event_id)
+    template = get_object_or_404(EventEmail, id=template_id, event=event)
+
+    if request.method == "POST":
+        reason_display = dict(EventEmail.REASON_CHOICES)[template.reason]
+        template.delete()
+        messages.success(
+            request, f"{reason_display} email template deleted successfully!"
+        )
+
+    return redirect("event_email_templates", event_id=event.id)

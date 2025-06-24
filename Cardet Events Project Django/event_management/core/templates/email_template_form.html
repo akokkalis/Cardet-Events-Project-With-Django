@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}
+    {% if is_edit %}Edit{% else %}Create{% endif %} {{ reason_display }} Template - {{ event.event_name }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{{ form.media }}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Header -->
+        <div class="flex items-center mb-6 gap-3">
+            <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800">
+                    {% if is_edit %}Edit{% else %}Create{% endif %} {{ reason_display }} Template
+                </h1>
+                <p class="text-gray-600">{{ event.event_name }}</p>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-blue-800 font-medium mb-2">
+                {% if form.reason.value == 'registration' %}
+                    📋 Registration Email Template
+                {% elif form.reason.value == 'approval' %}
+                    ✅ Approval Email Template
+                {% elif form.reason.value == 'rejection' %}
+                    ❌ Rejection Email Template
+                {% endif %}
+            </h3>
+            <p class="text-blue-700 text-sm mb-2">
+                {% if form.reason.value == 'registration' %}
+                    This email will be sent automatically when participants register for the event (if auto-approval is enabled).
+                {% elif form.reason.value == 'approval' %}
+                    This email will be sent when a participant's registration is manually approved by an admin.
+                {% elif form.reason.value == 'rejection' %}
+                    This email will be sent when a participant's registration is rejected by an admin.
+                {% endif %}
+            </p>
+            <div class="text-blue-600 text-xs">
+                <strong>Available placeholders:</strong> {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}
+            </div>
+        </div>
+
+        <!-- Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Reason Field (hidden for new templates) -->
+            {% if not is_edit %}
+                <input type="hidden" name="reason" value="{{ form.reason.value }}">
+            {% else %}
+                <div>
+                    <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Type
+                    </label>
+                    <div class="mt-1">
+                        {{ form.reason|add_class:"form-field bg-gray-100" }}
+                    </div>
+                    {% for error in form.reason.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Subject Field -->
+            <div>
+                <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Subject *
+                </label>
+                <div class="mt-1">
+                    {{ form.subject|add_class:"form-field" }}
+                </div>
+                {% for error in form.subject.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Body Field -->
+            <div>
+                <label for="{{ form.body.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Body *
+                </label>
+                <div class="mt-1">
+                    {{ form.body|add_class:"form-field" }}
+                </div>
+                {% if form.body.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">{{ form.body.help_text }}</p>
+                {% endif %}
+                {% for error in form.body.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    {% for error in form.non_field_errors %}
+                        <p class="text-red-800 text-sm">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <div class="flex gap-3">
+                    <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-gray">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-outline-blue">
+                        {% if is_edit %}Update{% else %}Create{% endif %} Template
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Preview Section -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Template Preview</h3>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="mb-2">
+                    <strong class="text-sm text-gray-700">Subject:</strong>
+                    <span class="text-sm text-gray-900" id="subject-preview">{{ form.subject.value|default:"[Subject will appear here]" }}</span>
+                </div>
+                <div>
+                    <strong class="text-sm text-gray-700">Body:</strong>
+                    <div class="text-sm text-gray-900 whitespace-pre-wrap mt-1" id="body-preview">{{ form.body.value|default:"[Email body will appear here]" }}</div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                Note: Placeholders like {{ name }}, {{ event_name }}, etc. will be replaced with actual values when the email is sent.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Live preview functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectField = document.getElementById('{{ form.subject.id_for_label }}');
+    const subjectPreview = document.getElementById('subject-preview');
+    const bodyPreview = document.getElementById('body-preview');
+
+    function updateSubjectPreview() {
+        const subjectValue = subjectField.value || '[Subject will appear here]';
+        subjectPreview.textContent = subjectValue;
+    }
+
+    function updateBodyPreview() {
+        // Get CKEditor instance for body field
+        const editorName = '{{ form.body.id_for_label }}';
+        if (window.CKEDITOR && window.CKEDITOR.instances[editorName]) {
+            const editorData = window.CKEDITOR.instances[editorName].getData();
+            const bodyValue = editorData || '[Email body will appear here]';
+            bodyPreview.innerHTML = bodyValue;
+        }
+    }
+
+    // Subject field listener
+    subjectField.addEventListener('input', updateSubjectPreview);
+
+    // CKEditor listener - wait for CKEditor to be ready
+    if (window.CKEDITOR) {
+        window.CKEDITOR.on('instanceReady', function(evt) {
+            const editorName = '{{ form.body.id_for_label }}';
+            if (evt.editor.name === editorName) {
+                // Update preview when CKEditor content changes
+                evt.editor.on('change', updateBodyPreview);
+                evt.editor.on('key', function() {
+                    // Use setTimeout to ensure the content is updated
+                    setTimeout(updateBodyPreview, 100);
+                });
+                // Initial update
+                updateBodyPreview();
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

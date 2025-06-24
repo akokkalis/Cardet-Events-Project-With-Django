@@ -372,8 +372,8 @@ class EventEmail(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="emails")
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     subject = models.CharField(max_length=255)
-    body = models.TextField(
-        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}"
+    body = RichTextField(
+        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}. HTML formatting is supported."
     )
 
     class Meta:
