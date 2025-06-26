@@ -92,36 +92,68 @@ def delete_event_folder(sender, instance, **kwargs):
 ## **QR Code & PDF Ticket Generation for Participants**
 @receiver(post_save, sender=Participant)
 def generate_qr_and_pdf(sender, instance, created, **kwargs):
-    """Generates a QR code and a PDF ticket when a participant is registered."""
+    """Handles participant registration logic based on auto_approval and tickets settings."""
     if created:
-        # ✅ Handle auto approval and registration email
-        if instance.event.auto_approval_enabled:
-            instance.approval_status = "approved"
-            instance.save(update_fields=["approval_status"])
 
-        # ✅ Send registration email if auto approval is enabled
-        if instance.event.auto_approval_enabled:
-            send_registration_email(instance)
+        # ✅ Define background processing function
+        def process_registration():
+            try:
+                # ✅ ALWAYS send registration email when someone registers
+                send_registration_email(instance)
 
-        # ✅ Handle ticket generation
-        if instance.event.tickets:  # ✅ Check if tickets are enabled
-            qr_path = instance.generate_qr_code()  # Generate and get correct QR path
-            pdf_path = generate_pdf_ticket(instance, qr_path)  # Generate PDF
+                # ✅ Handle auto approval
+                if instance.event.auto_approval_enabled:
+                    instance.approval_status = "approved"
+                    instance.save(update_fields=["approval_status"])
 
-            if pdf_path:  # Only save if the PDF was generated successfully
-                instance.pdf_ticket = pdf_path
-                instance.save(update_fields=["pdf_ticket"])
-                # ✅ Send email asynchronously with PDF ticket
-                send_ticket_email(instance)
-        else:
-            print(
-                f"🚫 Skipping QR & PDF: Tickets are disabled for {instance.event.event_name}"
-            )
+                    # ✅ If auto approval AND tickets are enabled: generate tickets and send ticket email
+                    if instance.event.tickets:
+                        qr_path = instance.generate_qr_code()  # Generate QR code
+                        pdf_path = generate_pdf_ticket(
+                            instance, qr_path
+                        )  # Generate PDF
+
+                        if pdf_path:  # Only save if the PDF was generated successfully
+                            instance.pdf_ticket = pdf_path
+                            instance.save(update_fields=["pdf_ticket"])
+                            # ✅ Send ticket email with PDF attachment
+                            send_ticket_email(instance)
+                            print(
+                                f"✅ Auto-approved with tickets: {instance.name} for {instance.event.event_name}"
+                            )
+                        else:
+                            print(
+                                f"❌ Failed to generate PDF ticket for {instance.name}"
+                            )
+                    else:
+                        print(
+                            f"✅ Auto-approved without tickets: {instance.name} for {instance.event.event_name}"
+                        )
+                else:
+                    # ✅ Auto approval disabled: participant remains in "pending" status
+                    print(
+                        f"📋 Registration pending approval: {instance.name} for {instance.event.event_name}"
+                    )
+                    if instance.event.tickets:
+                        print(
+                            f"🎫 Tickets will be generated upon manual approval: {instance.name}"
+                        )
+                    else:
+                        print(
+                            f"📋 No tickets needed: {instance.name} for {instance.event.event_name}"
+                        )
+
+            except Exception as e:
+                print(f"❌ Error processing registration for {instance.name}: {e}")
+
+        # ✅ Run registration processing in background thread
+        registration_thread = threading.Thread(target=process_registration)
+        registration_thread.start()
+
+        print(f"🚀 Registration processing started in background for: {instance.name}")
 
 
 ### **Email Ticket to Participant**
-
-
 def send_ticket_email(participant):
     """Send an email with the event ticket attached asynchronously using the company's SMTP settings."""
 
@@ -202,6 +234,234 @@ def send_ticket_email(participant):
     # ✅ Run the email function in a separate thread (non-blocking)
     email_thread = threading.Thread(target=send_email)
     email_thread.start()
+
+
+def send_approval_email(participant):
+    """Send an approval email to the participant using custom email templates."""
+
+    # ✅ Get the event's approval email template
+    try:
+        event_email = EventEmail.objects.get(event=participant.event, reason="approval")
+    except EventEmail.DoesNotExist:
+        print(f"📧 No approval email template found for {participant.event.event_name}")
+        return
+
+    # ✅ Get company email configuration
+    email_config = getattr(participant.event.company, "email_config", None)
+    if not email_config:
+        print(f"⚠️ No email configuration found for {participant.event.company.name}")
+        return
+
+    # ✅ Prepare template context with placeholders
+    context_data = {
+        "name": participant.name,
+        "event_name": participant.event.event_name,
+        "event_date": participant.event.event_date.strftime("%B %d, %Y"),
+        "event_location": participant.event.location or "TBA",
+        "start_time": (
+            participant.event.start_time.strftime("%I:%M %p")
+            if participant.event.start_time
+            else "TBA"
+        ),
+        "end_time": (
+            participant.event.end_time.strftime("%I:%M %p")
+            if participant.event.end_time
+            else "TBA"
+        ),
+        "email": participant.email,
+        "phone": participant.phone or "N/A",
+    }
+
+    # ✅ Render the email subject and body with template placeholders
+    subject_template = Template(event_email.subject)
+    body_template = Template(event_email.body)
+    context = Context(context_data)
+
+    rendered_subject = subject_template.render(context)
+    rendered_body = body_template.render(context)
+
+    # ✅ Create the SMTP connection
+    connection = get_connection(
+        host=email_config.smtp_server,
+        port=email_config.smtp_port,
+        username=email_config.email_address,
+        password=email_config.email_password,
+        use_tls=email_config.use_tls,
+        use_ssl=email_config.use_ssl,
+    )
+
+    # ✅ Define email sending function
+    def send_email():
+        try:
+            email = EmailMessage(
+                rendered_subject,
+                rendered_body,
+                from_email=email_config.email_address,
+                to=[participant.email],
+                connection=connection,
+            )
+            email.content_subtype = "html"  # Support HTML in email templates
+            email.send()
+            print(
+                f"✅ Approval email sent to {participant.email} for {participant.event.event_name}"
+            )
+
+        except Exception as e:
+            print(f"❌ Error sending approval email to {participant.email}: {e}")
+
+    # ✅ Run the email function in a separate thread (non-blocking)
+    email_thread = threading.Thread(target=send_email)
+    email_thread.start()
+
+
+def send_rejection_email(participant):
+    """Send a rejection email to the participant using custom email templates."""
+
+    # ✅ Get the event's rejection email template
+    try:
+        event_email = EventEmail.objects.get(
+            event=participant.event, reason="rejection"
+        )
+    except EventEmail.DoesNotExist:
+        print(
+            f"📧 No rejection email template found for {participant.event.event_name}"
+        )
+        return
+
+    # ✅ Get company email configuration
+    email_config = getattr(participant.event.company, "email_config", None)
+    if not email_config:
+        print(f"⚠️ No email configuration found for {participant.event.company.name}")
+        return
+
+    # ✅ Prepare template context with placeholders
+    context_data = {
+        "name": participant.name,
+        "event_name": participant.event.event_name,
+        "event_date": participant.event.event_date.strftime("%B %d, %Y"),
+        "event_location": participant.event.location or "TBA",
+        "start_time": (
+            participant.event.start_time.strftime("%I:%M %p")
+            if participant.event.start_time
+            else "TBA"
+        ),
+        "end_time": (
+            participant.event.end_time.strftime("%I:%M %p")
+            if participant.event.end_time
+            else "TBA"
+        ),
+        "email": participant.email,
+        "phone": participant.phone or "N/A",
+    }
+
+    # ✅ Render the email subject and body with template placeholders
+    subject_template = Template(event_email.subject)
+    body_template = Template(event_email.body)
+    context = Context(context_data)
+
+    rendered_subject = subject_template.render(context)
+    rendered_body = body_template.render(context)
+
+    # ✅ Create the SMTP connection
+    connection = get_connection(
+        host=email_config.smtp_server,
+        port=email_config.smtp_port,
+        username=email_config.email_address,
+        password=email_config.email_password,
+        use_tls=email_config.use_tls,
+        use_ssl=email_config.use_ssl,
+    )
+
+    # ✅ Define email sending function
+    def send_email():
+        try:
+            email = EmailMessage(
+                rendered_subject,
+                rendered_body,
+                from_email=email_config.email_address,
+                to=[participant.email],
+                connection=connection,
+            )
+            email.content_subtype = "html"  # Support HTML in email templates
+            email.send()
+            print(
+                f"✅ Rejection email sent to {participant.email} for {participant.event.event_name}"
+            )
+
+        except Exception as e:
+            print(f"❌ Error sending rejection email to {participant.email}: {e}")
+
+    # ✅ Run the email function in a separate thread (non-blocking)
+    email_thread = threading.Thread(target=send_email)
+    email_thread.start()
+
+
+def handle_participant_approval(participant):
+    """Handle the approval process for a participant."""
+
+    # ✅ Define background processing function
+    def process_approval():
+        try:
+            # ✅ Send approval email
+            send_approval_email(participant)
+
+            # ✅ If tickets are enabled, generate tickets and send ticket email
+            if participant.event.tickets:
+                # Generate tickets if they don't exist yet (for manual approval cases)
+                if not participant.pdf_ticket:
+                    qr_path = participant.generate_qr_code()  # Generate QR code
+                    pdf_path = generate_pdf_ticket(participant, qr_path)  # Generate PDF
+
+                    if pdf_path:
+                        participant.pdf_ticket = pdf_path
+                        participant.save(update_fields=["pdf_ticket"])
+                        print(
+                            f"🎫 Tickets generated for manual approval: {participant.name}"
+                        )
+                    else:
+                        print(
+                            f"❌ Failed to generate PDF ticket for {participant.name}"
+                        )
+                        return
+
+                # Send ticket email
+                send_ticket_email(participant)
+                print(f"🎫 Ticket email sent after manual approval: {participant.name}")
+            else:
+                print(f"✅ Participant approved without tickets: {participant.name}")
+
+        except Exception as e:
+            print(f"❌ Error processing approval for {participant.name}: {e}")
+
+    # ✅ Run approval processing in background thread
+    approval_thread = threading.Thread(target=process_approval)
+    approval_thread.start()
+
+    print(f"🚀 Approval processing started in background for: {participant.name}")
+
+
+def handle_participant_rejection(participant):
+    """Handle the rejection process for a participant."""
+
+    # ✅ Define background processing function
+    def process_rejection():
+        try:
+            # ✅ Send rejection email
+            send_rejection_email(participant)
+            print(f"❌ Participant rejected: {participant.name}")
+
+        except Exception as e:
+            print(f"❌ Error processing rejection for {participant.name}: {e}")
+
+    # ✅ Run rejection processing in background thread
+    rejection_thread = threading.Thread(target=process_rejection)
+    rejection_thread.start()
+
+    print(f"🚀 Rejection processing started in background for: {participant.name}")
+
+
+# ✅ We'll handle manual approval/rejection through views or admin actions
+# The signals above handle automatic approval on registration
 
 
 def send_registration_email(participant):

@@ -8,10 +8,91 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+/* Loading spinner styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.loading-subtext {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Button loading state */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.btn-loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid transparent;
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+</style>
 {{ form.media }}
 {% endblock %}
 
 {% block content %}
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <div class="loading-text">Processing Email Template</div>
+        <div class="loading-subtext">Please wait while we save your template...</div>
+    </div>
+</div>
+
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     <div class="bg-white p-6 rounded-lg shadow-md">
         <!-- Header -->
@@ -55,7 +136,7 @@
         </div>
 
         <!-- Form -->
-        <form method="post" class="space-y-6">
+        <form id="emailTemplateForm" method="post" class="space-y-6">
             {% csrf_token %}
 
             <!-- Reason Field (hidden for new templates) -->
@@ -119,7 +200,7 @@
                     <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-gray">
                         Cancel
                     </a>
-                    <button type="submit" class="btn btn-outline-blue">
+                    <button type="submit" id="submitBtn" class="btn btn-outline-blue">
                         {% if is_edit %}Update{% else %}Create{% endif %} Template
                     </button>
                 </div>
@@ -147,12 +228,37 @@
 </div>
 
 <script>
-// Live preview functionality
+// Loading and form submission handling
 document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('emailTemplateForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
     const subjectField = document.getElementById('{{ form.subject.id_for_label }}');
     const subjectPreview = document.getElementById('subject-preview');
     const bodyPreview = document.getElementById('body-preview');
 
+    // Show loading spinner on form submission
+    form.addEventListener('submit', function(e) {
+        // Show loading overlay
+        loadingOverlay.style.display = 'flex';
+        
+        // Add loading state to button
+        submitBtn.classList.add('btn-loading');
+        submitBtn.textContent = 'Processing...';
+        
+        // Disable form elements
+        const formElements = form.querySelectorAll('input, textarea, select, button');
+        formElements.forEach(element => {
+            element.disabled = true;
+        });
+    });
+
+    // Hide loading on page unload (in case of errors)
+    window.addEventListener('beforeunload', function() {
+        loadingOverlay.style.display = 'none';
+    });
+
+    // Live preview functionality
     function updateSubjectPreview() {
         const subjectValue = subjectField.value || '[Subject will appear here]';
         subjectPreview.textContent = subjectValue;
@@ -169,7 +275,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Subject field listener
-    subjectField.addEventListener('input', updateSubjectPreview);
+    if (subjectField) {
+        subjectField.addEventListener('input', updateSubjectPreview);
+    }
 
     // CKEditor listener - wait for CKEditor to be ready
     if (window.CKEDITOR) {
@@ -187,6 +295,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Handle page errors - hide loading if there's an error
+    window.addEventListener('error', function() {
+        loadingOverlay.style.display = 'none';
+        submitBtn.classList.remove('btn-loading');
+        submitBtn.textContent = '{% if is_edit %}Update{% else %}Create{% endif %} Template';
+        
+        // Re-enable form elements
+        const formElements = form.querySelectorAll('input, textarea, select, button');
+        formElements.forEach(element => {
+            element.disabled = false;
+        });
+    });
 });
 </script>
 {% endblock %} 

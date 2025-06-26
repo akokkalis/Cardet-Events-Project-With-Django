@@ -34,6 +34,10 @@ from .views import (
     add_email_template,
     edit_email_template,
     delete_email_template,
+    approve_participant,
+    reject_participant,
+    set_participant_pending,
+    check_participant_status,
 )
 
 urlpatterns = [
@@ -136,6 +140,28 @@ urlpatterns = [
         name="download_custom_field_file",
     ),
     path("help/", help_view, name="help"),
+    # Participant approval/rejection URLs
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/approve/",
+        approve_participant,
+        name="approve_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/reject/",
+        reject_participant,
+        name="reject_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/pending/",
+        set_participant_pending,
+        name="set_participant_pending",
+    ),
+    # AJAX endpoint for checking participant status
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/status/",
+        check_participant_status,
+        name="check_participant_status",
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

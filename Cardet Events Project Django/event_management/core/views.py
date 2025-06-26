@@ -1209,3 +1209,165 @@ def delete_email_template(request, event_id, template_id):
         )
 
     return redirect("event_email_templates", event_id=event.id)
+
+
+@login_required
+def approve_participant(request, event_id, participant_id):
+    """Approve a participant and send approval and ticket emails if applicable."""
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    # Import here to avoid circular imports
+    from .signals import handle_participant_approval
+
+    if participant.approval_status != "approved":
+        participant.approval_status = "approved"
+        participant.save(update_fields=["approval_status"])
+
+        # Handle approval emails and ticket sending
+        handle_participant_approval(participant)
+
+        messages.success(
+            request, f"✅ {participant.name} has been approved and notified via email."
+        )
+    else:
+        messages.info(request, f"{participant.name} is already approved.")
+
+    return redirect("event_detail", event_id=event.id)
+
+
+@login_required
+def reject_participant(request, event_id, participant_id):
+    """Reject a participant and send rejection email."""
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    # Import here to avoid circular imports
+    from .signals import handle_participant_rejection
+
+    if participant.approval_status != "rejected":
+        participant.approval_status = "rejected"
+        participant.save(update_fields=["approval_status"])
+
+        # Handle rejection email
+        handle_participant_rejection(participant)
+
+        messages.success(
+            request, f"❌ {participant.name} has been rejected and notified via email."
+        )
+    else:
+        messages.info(request, f"{participant.name} is already rejected.")
+
+    return redirect("event_detail", event_id=event.id)
+
+
+@login_required
+def set_participant_pending(request, event_id, participant_id):
+    """Set a participant back to pending status."""
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    if participant.approval_status != "pending":
+        participant.approval_status = "pending"
+        participant.save(update_fields=["approval_status"])
+
+        messages.success(
+            request, f"🔄 {participant.name} has been set to pending status."
+        )
+    else:
+        messages.info(request, f"{participant.name} is already pending.")
+
+    return redirect("event_detail", event_id=event.id)
+
+
+@login_required
+def check_participant_status(request, event_id, participant_id):
+    """AJAX endpoint to check participant PDF generation status."""
+    try:
+        event = get_object_or_404(Event, id=event_id)
+        participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+        response_data = {
+            "participant_id": participant.id,
+            "approval_status": participant.approval_status,
+            "has_pdf_ticket": bool(participant.pdf_ticket),
+            "pdf_url": participant.pdf_ticket.url if participant.pdf_ticket else None,
+            "status_badge_html": "",
+            "pdf_download_html": "",
+            "send_ticket_html": "",
+        }
+
+        # Generate status badge HTML
+        if participant.approval_status == "approved":
+            response_data[
+                "status_badge_html"
+            ] = """
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    ✅ Approved
+                </span>
+            """
+        elif participant.approval_status == "rejected":
+            response_data[
+                "status_badge_html"
+            ] = """
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    ❌ Rejected
+                </span>
+            """
+        else:
+            response_data[
+                "status_badge_html"
+            ] = """
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    🟡 Pending
+                </span>
+            """
+
+        # Generate PDF download HTML
+        if participant.pdf_ticket:
+            response_data[
+                "pdf_download_html"
+            ] = f"""
+                <a href="{participant.pdf_ticket.url}" target="_blank" class="text-blue-500 underline">Download</a>
+            """
+            response_data[
+                "send_ticket_html"
+            ] = f"""
+                <button class="send-ticket-btn btn btn-outline-blue" data-participant-id="{participant.id}">
+                    Send Ticket
+                </button>
+            """
+        else:
+            if participant.approval_status == "approved":
+                response_data[
+                    "pdf_download_html"
+                ] = """
+                    <div class="flex items-center gap-2 text-orange-500 font-medium">
+                        <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Generating...</span>
+                    </div>
+                """
+                response_data[
+                    "send_ticket_html"
+                ] = """
+                    <div class="flex items-center gap-2 text-orange-500">
+                        <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span>Generating...</span>
+                    </div>
+                """
+            else:
+                response_data[
+                    "pdf_download_html"
+                ] = """
+                    <span class="text-gray-500">No Ticket</span>
+                """
+                response_data[
+                    "send_ticket_html"
+                ] = """
+                    <span class="text-gray-500">No Ticket</span>
+                """
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=404)
