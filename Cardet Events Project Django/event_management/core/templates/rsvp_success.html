@@ -39,6 +39,16 @@
                 </p>
                 
                 <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <!-- Company Logo and Event Image -->
+                    <div class="flex items-center justify-center gap-3 mb-3">
+                        {% if event.company.logo %}
+                            <img src="{{ event.company.logo.url }}" alt="{{ event.company.name }}" class="h-8 w-8 object-contain rounded">
+                        {% endif %}
+                        {% if event.image %}
+                            <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="h-8 w-8 object-cover rounded">
+                        {% endif %}
+                    </div>
+                    
                     <h3 class="text-lg font-semibold text-gray-800">{{ event.event_name }}</h3>
                     <p class="text-sm text-gray-600 mt-1">
                         📅 {{ event.event_date|date:"F j, Y" }}
@@ -46,6 +56,9 @@
                     </p>
                     {% if event.location %}
                         <p class="text-sm text-gray-600 mt-1">📍 {{ event.location }}</p>
+                    {% endif %}
+                    {% if event.company.name %}
+                        <p class="text-xs text-gray-500 mt-2">Organized by {{ event.company.name }}</p>
                     {% endif %}
                 </div>
                 
