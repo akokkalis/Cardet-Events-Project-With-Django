@@ -54,6 +54,7 @@
     color: white;
 }
 
+
 .btn-outline-light-blue {
     background-color: transparent;
     border-color: #00b8c4;
@@ -134,11 +135,42 @@
 /* Event Card Hover Effect */
 .event-card {
     transition: all 0.3s ease-in-out;
+    width: 473px;
+    height: 518px;
+    border-radius: 10rem;
 }
 
 .event-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
+    border: 1px solid #0174b9;
+    box-shadow: 0 8px 16px #0174b9, 0 4px 8px rgba(1, 116, 185, 0.2); /* Black shadow + Blue glow */
+}
+
+/* Event Card Image Styling */
+.event-card img,
+.event-card .img-placeholder {
+    width: 361px;
+    height: 237px;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.status-badge-shape {
+    border-radius: 19px 0 0 19px;
+    height: 35px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.public-link-card {
+    background-color: #e6f0f6;
+}
+
+.event-detail-image {
+    width: 361px;
+    height: 237px;
+    object-fit: cover;
+    border-radius: 12px;
 }
 
 /* Custom Field Styling - Outlined with Blue Hover */
@@ -241,9 +273,222 @@
 /* Checkbox styling */
 .checkbox-field {
     accent-color: #0174b9;
-    transition: all 0.3s ease;
+    width: 1rem;
+    height: 1rem;
 }
 
 .checkbox-field:hover {
-    transform: scale(1.05);
+    transform: scale(1.1);
+}
+
+/* DataTables Custom Styling */
+/* DataTables Buttons */
+.dt-buttons .dt-button {
+    background-color: transparent !important;
+    border: 1px solid #0174b9 !important;
+    color: #0174b9 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease-in-out !important;
+    margin-right: 0.5rem !important;
+    margin-left:0.5rem !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+.dt-buttons .dt-button:hover {
+    background-color: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+}
+
+.dt-buttons .dt-button:active,
+.dt-buttons .dt-button:focus {
+    background-color: #0174b9 !important;
+    border-color: #0174b9 !important;
+    color: white !important;
+    outline: none !important;
+    box-shadow: 0 0 0 2px rgba(1, 116, 185, 0.2) !important;
+}
+
+/* DataTables Search Input */
+.dataTables_filter input {
+    background-color: transparent !important;
+    border: 2px solid #0174b9 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+    transition: all 0.3s ease !important;
+    outline: none !important;
+    margin-left: 0.5rem !important;
+}
+
+.dataTables_filter input:hover {
+    border-color: #e6f0f6 !important;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.1) !important;
+}
+
+.dataTables_filter input:focus {
+    border-color: #0174b9 !important;
+    box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.2) !important;
+}
+
+/* DataTables Length Select */
+.dataTables_length select {
+    background-color: transparent !important;
+    color: #0174b9 !important;
+    border: 1px solid #0174b9 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 1rem !important;
+    margin: 0 0.5rem !important;
+    outline: none !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease-in-out !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='%230174b9'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 0.5rem center !important;
+    background-size: 1.25em 1.25em !important;
+    padding-right: 2.5rem !important;
+}
+
+.dataTables_length select:hover {
+    background-color: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E") !important;
+}
+
+.dataTables_length select:focus {
+    background-color: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+    box-shadow: 0 0 0 2px rgba(1, 116, 185, 0.2) !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5' /%3E%3C/svg%3E") !important;
+}
+
+/* DataTables Pagination - More Specific Overrides */
+.dataTables_wrapper .dataTables_paginate .paginate_button,
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next {
+    background-color: transparent !important;
+    border: 1px solid #0174b9 !important;
+    color: #0174b9 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.5rem 0.75rem !important;
+    margin: 0 0.25rem !important;
+    transition: all 0.2s ease-in-out !important;
+    text-decoration: none !important;
+    background: transparent !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next:hover {
+    background-color: #0174b9 !important;
+    background: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+    background-color: #0174b9 !important;
+    background: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background-color: #0174b9 !important;
+    background: #0174b9 !important;
+    color: white !important;
+    border-color: #0174b9 !important;
+}
+
+/* Additional specificity for current button text color */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current a {
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.current:hover a {
+    color: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next.disabled {
+    background-color: #f9fafb !important;
+    background: #f9fafb !important;
+    color: #9ca3af !important;
+    border-color: #d1d5db !important;
+    cursor: not-allowed !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.previous.disabled:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.next.disabled:hover {
+    background-color: #f9fafb !important;
+    background: #f9fafb !important;
+    color: #9ca3af !important;
+    border-color: #d1d5db !important;
+}
+
+/* DataTables Info Text */
+.dataTables_info {
+    color: #0174b9 !important;
+    font-weight: 500 !important;
+}
+
+/* DataTables Labels */
+.dataTables_length label,
+.dataTables_filter label {
+    color: #374151 !important;
+    font-weight: 500 !important;
+}
+
+/* DataTables Table Styling */
+.dataTable {
+    border: 2px solid #0174b9 !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    border-radius: 0.5rem !important;
+}
+
+.dataTable thead th {
+    background-color: #f9fafb !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-bottom: 2px solid #0174b9 !important;
+    text-align: center !important;
+}
+
+.dataTable tbody td {
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.dataTable tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+.dataTable tbody tr:hover {
+    background-color: #f0f9ff !important;
+}
+
+/* Remove all internal borders */
+.dataTable th,
+.dataTable td {
+    border-left: none !important;
+    border-right: none !important;
+}
+
+/* DataTables Responsive */
+.dtr-details {
+    background-color: #f9fafb !important;
 }

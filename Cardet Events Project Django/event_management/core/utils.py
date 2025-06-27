@@ -19,6 +19,7 @@ from django.core.files.storage import default_storage
 import base64
 import shutil
 from datetime import datetime
+from django.urls import reverse
 
 
 def generate_pdf_ticket(participant, qr_code_path):
@@ -470,3 +471,54 @@ END:VCALENDAR
         f.write(ics_content)
 
     return file_path
+
+
+def generate_rsvp_urls(participant, request_or_site_url=None):
+    """Generate RSVP URLs for email templates."""
+    from django.urls import reverse
+
+    # Get the base URL - either from request or settings
+    if hasattr(request_or_site_url, "build_absolute_uri"):
+        # It's a request object
+        base_url = request_or_site_url.build_absolute_uri("/")[
+            :-1
+        ]  # Remove trailing slash
+    elif isinstance(request_or_site_url, str):
+        # It's a site URL string
+        base_url = request_or_site_url.rstrip("/")
+    else:
+        # Fallback to settings
+        base_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000").rstrip("/")
+
+    # Generate the RSVP URLs
+    rsvp_urls = {
+        "rsvp_accept_url": base_url
+        + reverse(
+            "rsvp_response",
+            kwargs={
+                "event_uuid": participant.event.uuid,
+                "participant_id": participant.id,
+                "response": "attend",
+            },
+        ),
+        "rsvp_decline_url": base_url
+        + reverse(
+            "rsvp_response",
+            kwargs={
+                "event_uuid": participant.event.uuid,
+                "participant_id": participant.id,
+                "response": "cant_make_it",
+            },
+        ),
+        "rsvp_maybe_url": base_url
+        + reverse(
+            "rsvp_response",
+            kwargs={
+                "event_uuid": participant.event.uuid,
+                "participant_id": participant.id,
+                "response": "maybe",
+            },
+        ),
+    }
+
+    return rsvp_urls

@@ -11,6 +11,7 @@ from .models import (
     Staff,
     EventCustomField,
     EventEmail,
+    RSVPResponse,
 )
 from .forms import (
     EventForm,
@@ -41,6 +42,7 @@ from .utils import (
     export_participants_csv,
     generate_ics_file,
 )
+from .signals import send_rsvp_email
 from django_ratelimit.decorators import ratelimit
 
 from django.utils.decorators import method_decorator
@@ -581,7 +583,10 @@ def send_ticket_email_view(request):
         # ✅ Ensure event requires tickets and participant has a ticket
         if not participant.event.tickets or not participant.pdf_ticket:
             return JsonResponse(
-                {"message": "This event does not require tickets or no ticket found."},
+                {
+                    "status": "error",
+                    "message": "This event does not require tickets or no ticket found.",
+                },
                 status=400,
             )
 
@@ -589,7 +594,10 @@ def send_ticket_email_view(request):
         email_config = getattr(participant.event.company, "email_config", None)
         if not email_config:
             return JsonResponse(
-                {"message": "No email configuration found for this company."},
+                {
+                    "status": "error",
+                    "message": "No email configuration found for this company.",
+                },
                 status=400,
             )
 
@@ -656,9 +664,13 @@ def send_ticket_email_view(request):
         email_thread = threading.Thread(target=send_email)
         email_thread.start()
 
-        return JsonResponse({"message": "Ticket sent successfully!"}, status=200)
+        return JsonResponse(
+            {"status": "success", "message": "Ticket sent successfully!"}, status=200
+        )
 
-    return JsonResponse({"message": "Invalid request method."}, status=400)
+    return JsonResponse(
+        {"status": "error", "message": "Invalid request method."}, status=400
+    )
 
 
 def export_participants_csv_view(request, event_id):
@@ -1099,6 +1111,7 @@ def event_email_templates(request, event_id):
         ("registration", "Registration Email"),
         ("approval", "Approval Email"),
         ("rejection", "Rejection Email"),
+        ("rsvp", "RSVP Request Email"),
     ]
 
     # Find missing templates that can be created
@@ -1125,7 +1138,7 @@ def add_email_template(request, event_id):
     reason = request.GET.get("reason")
 
     # Validate that the reason is valid
-    valid_reasons = ["registration", "approval", "rejection"]
+    valid_reasons = ["registration", "approval", "rejection", "rsvp"]
     if reason not in valid_reasons:
         messages.error(request, "Invalid email template type.")
         return redirect("event_email_templates", event_id=event.id)
@@ -1227,9 +1240,17 @@ def approve_participant(request, event_id, participant_id):
         # Handle approval emails and ticket sending
         handle_participant_approval(participant)
 
-        messages.success(
-            request, f"✅ {participant.name} has been approved and notified via email."
-        )
+        if event.tickets:
+            messages.success(
+                request,
+                f"✅ {participant.name} has been approved and notified via email. "
+                f"Ticket generation is in progress and will be sent automatically.",
+            )
+        else:
+            messages.success(
+                request,
+                f"✅ {participant.name} has been approved and notified via email.",
+            )
     else:
         messages.info(request, f"{participant.name} is already approved.")
 
@@ -1338,36 +1359,230 @@ def check_participant_status(request, event_id, participant_id):
                 </button>
             """
         else:
-            if participant.approval_status == "approved":
-                response_data[
-                    "pdf_download_html"
-                ] = """
-                    <div class="flex items-center gap-2 text-orange-500 font-medium">
-                        <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Generating...</span>
-                    </div>
-                """
-                response_data[
-                    "send_ticket_html"
-                ] = """
-                    <div class="flex items-center gap-2 text-orange-500">
-                        <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Generating...</span>
-                    </div>
-                """
+            # Check if the event requires tickets
+            if event.tickets:
+                if participant.approval_status == "approved":
+                    response_data[
+                        "pdf_download_html"
+                    ] = """
+                        <div class="flex items-center gap-2 text-orange-500 font-medium">
+                            <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span>Generating...</span>
+                        </div>
+                    """
+                    response_data[
+                        "send_ticket_html"
+                    ] = """
+                        <div class="flex items-center gap-2 text-orange-500">
+                            <div class="inline-block w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                            <span>Generating...</span>
+                        </div>
+                    """
+                else:
+                    response_data[
+                        "pdf_download_html"
+                    ] = """
+                        <span class="text-gray-500">No Ticket</span>
+                    """
+                    response_data[
+                        "send_ticket_html"
+                    ] = """
+                        <span class="text-gray-500">No Ticket</span>
+                    """
             else:
+                # Event doesn't require tickets
                 response_data[
                     "pdf_download_html"
                 ] = """
-                    <span class="text-gray-500">No Ticket</span>
+                    <span class="text-gray-500">No Tickets Required</span>
                 """
                 response_data[
                     "send_ticket_html"
                 ] = """
-                    <span class="text-gray-500">No Ticket</span>
+                    <span class="text-gray-500">No Tickets Required</span>
                 """
 
         return JsonResponse(response_data)
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=404)
+
+
+# RSVP Views
+def rsvp_response(request, event_uuid, participant_id, response):
+    """Handle RSVP responses from email links"""
+    try:
+        event = get_object_or_404(Event, uuid=event_uuid)
+        participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+        # Validate response
+        valid_responses = ["attend", "cant_make_it", "maybe"]
+        if response not in valid_responses:
+            messages.error(request, "Invalid RSVP response.")
+            return render(request, "rsvp_error.html", {"event": event})
+
+        # Create or update RSVP response
+        rsvp, created = RSVPResponse.objects.update_or_create(
+            participant=participant,
+            event=event,
+            defaults={
+                "response": response,
+                "notes": (
+                    request.POST.get("notes", "") if request.method == "POST" else ""
+                ),
+            },
+        )
+
+        # Get display text for the response
+        response_display = {
+            "attend": "Attend",
+            "cant_make_it": "Can't make it",
+            "maybe": "Maybe",
+        }[response]
+
+        context = {
+            "event": event,
+            "participant": participant,
+            "rsvp": rsvp,
+            "response_display": response_display,
+            "created": created,
+        }
+
+        return render(request, "rsvp_success.html", context)
+
+    except Exception as e:
+        return render(request, "rsvp_error.html", {"error": str(e)})
+
+
+@csrf_exempt
+def rsvp_response_with_notes(request, event_uuid, participant_id, response):
+    """Handle RSVP responses with optional notes"""
+    if request.method == "POST":
+        try:
+            event = get_object_or_404(Event, uuid=event_uuid)
+            participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+            # Validate response
+            valid_responses = ["attend", "cant_make_it", "maybe"]
+            if response not in valid_responses:
+                return JsonResponse({"error": "Invalid RSVP response."}, status=400)
+
+            notes = request.POST.get("notes", "")
+
+            # Create or update RSVP response
+            rsvp, created = RSVPResponse.objects.update_or_create(
+                participant=participant,
+                event=event,
+                defaults={"response": response, "notes": notes},
+            )
+
+            # Get display text for the response
+            response_display = {
+                "attend": "Attend",
+                "cant_make_it": "Can't make it",
+                "maybe": "Maybe",
+            }[response]
+
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": f"Thank you! Your RSVP has been recorded as '{response_display}'.",
+                    "response": response,
+                    "response_display": response_display,
+                    "created": created,
+                }
+            )
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    # If GET request, show the RSVP form page
+    try:
+        event = get_object_or_404(Event, uuid=event_uuid)
+        participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+        # Get existing RSVP if it exists
+        existing_rsvp = RSVPResponse.objects.filter(
+            participant=participant, event=event
+        ).first()
+
+        response_display = {
+            "attend": "Attend",
+            "cant_make_it": "Can't make it",
+            "maybe": "Maybe",
+        }[response]
+
+        context = {
+            "event": event,
+            "participant": participant,
+            "response": response,
+            "response_display": response_display,
+            "existing_rsvp": existing_rsvp,
+        }
+
+        return render(request, "rsvp_form.html", context)
+
+    except Exception as e:
+        return render(request, "rsvp_error.html", {"error": str(e)})
+
+
+@login_required
+def event_rsvp_summary(request, event_id):
+    """View RSVP summary for an event"""
+    event = get_object_or_404(Event, id=event_id)
+
+    # Get RSVP statistics
+    rsvp_responses = RSVPResponse.objects.filter(event=event)
+
+    stats = {
+        "attend": rsvp_responses.filter(response="attend").count(),
+        "cant_make_it": rsvp_responses.filter(response="cant_make_it").count(),
+        "maybe": rsvp_responses.filter(response="maybe").count(),
+        "total_responses": rsvp_responses.count(),
+        "total_participants": event.participant_set.count(),
+    }
+
+    # Calculate response rate
+    if stats["total_participants"] > 0:
+        stats["response_rate"] = (
+            stats["total_responses"] / stats["total_participants"]
+        ) * 100
+    else:
+        stats["response_rate"] = 0
+
+    # Get detailed responses
+    detailed_responses = rsvp_responses.select_related("participant").order_by(
+        "-response_date"
+    )
+
+    context = {"event": event, "stats": stats, "detailed_responses": detailed_responses}
+
+    return render(request, "event_rsvp_summary.html", context)
+
+
+@login_required
+def send_rsvp_email_participant_view(request, event_id, participant_id):
+    """View to trigger sending an RSVP email to a single participant."""
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    # Check if an RSVP email template exists
+    if not EventEmail.objects.filter(event=event, reason="rsvp").exists():
+        messages.error(
+            request,
+            f"No RSVP email template found for this event. Please create one first.",
+        )
+        return redirect("event_detail", event_id=event.id)
+
+    try:
+        # Call the email sending function from signals.py
+        send_rsvp_email(participant)
+        messages.success(
+            request, f"RSVP email sent successfully to {participant.name}."
+        )
+    except Exception as e:
+        messages.error(
+            request, f"Failed to send RSVP email to {participant.name}. Error: {e}"
+        )
+
+    return redirect("event_detail", event_id=event.id)

@@ -38,6 +38,10 @@ from .views import (
     reject_participant,
     set_participant_pending,
     check_participant_status,
+    rsvp_response,
+    rsvp_response_with_notes,
+    event_rsvp_summary,
+    send_rsvp_email_participant_view,
 )
 
 urlpatterns = [
@@ -161,6 +165,28 @@ urlpatterns = [
         "events/<int:event_id>/participants/<int:participant_id>/status/",
         check_participant_status,
         name="check_participant_status",
+    ),
+    # RSVP URLs
+    path(
+        "rsvp/<uuid:event_uuid>/<int:participant_id>/<str:response>/",
+        rsvp_response,
+        name="rsvp_response",
+    ),
+    path(
+        "rsvp-form/<uuid:event_uuid>/<int:participant_id>/<str:response>/",
+        rsvp_response_with_notes,
+        name="rsvp_response_with_notes",
+    ),
+    path(
+        "events/<int:event_id>/rsvp-summary/",
+        event_rsvp_summary,
+        name="event_rsvp_summary",
+    ),
+    # Send RSVP to a single participant
+    path(
+        "events/<int:event_id>/send-rsvp/<int:participant_id>/",
+        send_rsvp_email_participant_view,
+        name="send_rsvp_email_participant",
     ),
 ]
 

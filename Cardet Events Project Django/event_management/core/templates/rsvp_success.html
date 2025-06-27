@@ -1,0 +1,65 @@
+{% extends 'base_public.html' %}
+
+{% block title %}RSVP Confirmed - {{ event.event_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div class="text-center">
+                {% if response == 'attend' %}
+                    <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-green-800 mb-2">Great! See you there!</h2>
+                {% elif response == 'cant_make_it' %}
+                    <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-red-800 mb-2">Sorry you can't make it!</h2>
+                {% else %}
+                    <div class="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <h2 class="text-2xl font-bold text-yellow-800 mb-2">Thanks for letting us know!</h2>
+                {% endif %}
+                
+                <p class="text-gray-600 mb-6">
+                    {% if created %}
+                        Your RSVP response has been recorded as <strong>"{{ response_display }}"</strong> for:
+                    {% else %}
+                        Your RSVP response has been updated to <strong>"{{ response_display }}"</strong> for:
+                    {% endif %}
+                </p>
+                
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800">{{ event.event_name }}</h3>
+                    <p class="text-sm text-gray-600 mt-1">
+                        📅 {{ event.event_date|date:"F j, Y" }}
+                        {% if event.start_time %} at {{ event.start_time|time:"g:i A" }}{% endif %}
+                    </p>
+                    {% if event.location %}
+                        <p class="text-sm text-gray-600 mt-1">📍 {{ event.location }}</p>
+                    {% endif %}
+                </div>
+                
+                {% if rsvp.notes %}
+                    <div class="bg-blue-50 rounded-lg p-3 mb-4">
+                        <p class="text-sm text-blue-800"><strong>Your notes:</strong> {{ rsvp.notes }}</p>
+                    </div>
+                {% endif %}
+                
+                <p class="text-xs text-gray-500">
+                    You can change your RSVP response anytime by clicking the links in your original email.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -19,6 +19,11 @@ document.addEventListener("DOMContentLoaded", function () {
         overlay.classList.add("hidden");
     }
 
-    toggleButton.addEventListener("click", openSidebar);
-    overlay.addEventListener("click", closeSidebar);
+    if (toggleButton) {
+        toggleButton.addEventListener("click", openSidebar);
+    }
+    
+    if (overlay) {
+        overlay.addEventListener("click", closeSidebar);
+    }
 });

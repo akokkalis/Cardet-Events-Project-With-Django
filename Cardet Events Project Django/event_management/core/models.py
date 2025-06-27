@@ -367,13 +367,14 @@ class EventEmail(models.Model):
         ("approval", "Approval"),
         ("rejection", "Rejection"),
         ("registration", "On Registration"),
+        ("rsvp", "RSVP Request"),
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="emails")
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     subject = models.CharField(max_length=255)
     body = RichTextField(
-        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}. HTML formatting is supported."
+        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}, {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}. HTML formatting is supported."
     )
 
     class Meta:
@@ -381,6 +382,35 @@ class EventEmail(models.Model):
 
     def __str__(self):
         return f"{self.get_reason_display()} Email for {self.event.event_name}"
+
+
+class RSVPResponse(models.Model):
+    RESPONSE_CHOICES = [
+        ("attend", "Attend"),
+        ("cant_make_it", "Can't make it"),
+        ("maybe", "Maybe"),
+    ]
+
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="rsvp_responses"
+    )
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="rsvp_responses"
+    )
+    response = models.CharField(max_length=12, choices=RESPONSE_CHOICES)
+    response_date = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(
+        blank=True, null=True, help_text="Optional notes from the participant"
+    )
+
+    class Meta:
+        unique_together = (
+            "participant",
+            "event",
+        )  # One RSVP response per participant per event
+
+    def __str__(self):
+        return f"{self.participant.name} - {self.get_response_display()} - {self.event.event_name}"
 
 
 ###  - Signal Section - ###

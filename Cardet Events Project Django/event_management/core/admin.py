@@ -1,4 +1,7 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import reverse
+from django.utils.safestring import mark_safe
 from .models import Event
 from ckeditor.widgets import CKEditorWidget
 from django.db import models
@@ -15,16 +18,99 @@ from .models import (
     EmailConfiguration,
     EventCustomField,
     EventEmail,
+    RSVPResponse,
 )
+
+
+class ParticipantInline(admin.TabularInline):
+    model = Participant
+    extra = 0  # Don't show extra empty forms
+    readonly_fields = (
+        "registered_at",
+        "approval_status_display",
+        "pdf_ticket_link",
+        "qr_code_display",
+    )
+    fields = (
+        "name",
+        "email",
+        "phone",
+        "approval_status_display",
+        "pdf_ticket_link",
+        "qr_code_display",
+        "registered_at",
+    )
+
+    def approval_status_display(self, obj):
+        """Display approval status with color coding"""
+        if obj.approval_status == "approved":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Approved</span>'
+            )
+        elif obj.approval_status == "rejected":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Rejected</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ Pending</span>'
+            )
+
+    approval_status_display.short_description = "Status"
+
+    def pdf_ticket_link(self, obj):
+        """Display PDF ticket download link if available"""
+        if obj.pdf_ticket:
+            return format_html(
+                '<a href="{}" target="_blank">📄 Download PDF</a>', obj.pdf_ticket.url
+            )
+        return format_html('<span style="color: gray;">No PDF</span>')
+
+    pdf_ticket_link.short_description = "PDF Ticket"
+
+    def qr_code_display(self, obj):
+        """Display QR code thumbnail if available"""
+        if obj.qr_code:
+            return format_html(
+                '<img src="{}" width="30" height="30" title="QR Code" />',
+                obj.qr_code.url,
+            )
+        return format_html('<span style="color: gray;">No QR</span>')
+
+    qr_code_display.short_description = "QR Code"
+
+    def has_add_permission(self, request, obj=None):
+        return False  # Disable adding participants through admin (use registration form instead)
 
 
 class EventAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {"widget": CKEditorWidget()},
     }
-    list_display = ("event_name", "event_date", "status", "uuid")
+    list_display = ("event_name", "event_date", "status", "participant_count", "uuid")
     list_filter = ("status", "event_date")
     search_fields = ("event_name", "location")
+    inlines = [ParticipantInline]
+
+    def participant_count(self, obj):
+        """Show participant count in the event list"""
+        count = obj.participant_set.count()
+        approved = obj.participant_set.filter(approval_status="approved").count()
+        pending = obj.participant_set.filter(approval_status="pending").count()
+        rejected = obj.participant_set.filter(approval_status="rejected").count()
+
+        return format_html(
+            "<strong>{}</strong> total<br/>"
+            '<span style="color: green;">✅ {}</span> | '
+            '<span style="color: orange;">⏳ {}</span> | '
+            '<span style="color: red;">❌ {}</span>',
+            count,
+            approved,
+            pending,
+            rejected,
+        )
+
+    participant_count.short_description = "Participants"
 
 
 class AttendanceAdmin(admin.ModelAdmin):
@@ -65,14 +151,133 @@ class EventEmailAdmin(admin.ModelAdmin):
     }
 
 
+class ParticipantAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "email",
+        "event",
+        "approval_status_display",
+        "registered_at",
+        "pdf_ticket_status",
+        "qr_code_status",
+    )
+    list_filter = ("approval_status", "event", "registered_at")
+    search_fields = ("name", "email", "event__event_name")
+    readonly_fields = ("registered_at", "pdf_ticket_link", "qr_code_display")
+
+    def approval_status_display(self, obj):
+        """Display approval status with color coding"""
+        if obj.approval_status == "approved":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Approved</span>'
+            )
+        elif obj.approval_status == "rejected":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Rejected</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ Pending</span>'
+            )
+
+    approval_status_display.short_description = "Status"
+
+    def pdf_ticket_status(self, obj):
+        """Show if PDF ticket exists"""
+        if obj.pdf_ticket:
+            return format_html('<span style="color: green;">✅ Generated</span>')
+        return format_html('<span style="color: gray;">❌ Not Generated</span>')
+
+    pdf_ticket_status.short_description = "PDF Ticket"
+
+    def qr_code_status(self, obj):
+        """Show if QR code exists"""
+        if obj.qr_code:
+            return format_html('<span style="color: green;">✅ Generated</span>')
+        return format_html('<span style="color: gray;">❌ Not Generated</span>')
+
+    qr_code_status.short_description = "QR Code"
+
+    def pdf_ticket_link(self, obj):
+        """Display PDF ticket download link if available"""
+        if obj.pdf_ticket:
+            return format_html(
+                '<a href="{}" target="_blank">📄 Download PDF Ticket</a>',
+                obj.pdf_ticket.url,
+            )
+        return format_html('<span style="color: gray;">No PDF ticket generated</span>')
+
+    pdf_ticket_link.short_description = "PDF Ticket Download"
+
+    def qr_code_display(self, obj):
+        """Display QR code image if available"""
+        if obj.qr_code:
+            return format_html(
+                '<img src="{}" width="100" height="100" title="QR Code for {}" />',
+                obj.qr_code.url,
+                obj.name,
+            )
+        return format_html('<span style="color: gray;">No QR code generated</span>')
+
+    qr_code_display.short_description = "QR Code"
+
+    fieldsets = (
+        ("Participant Information", {"fields": ("event", "name", "email", "phone")}),
+        ("Registration Status", {"fields": ("approval_status", "registered_at")}),
+        (
+            "Generated Files",
+            {
+                "fields": ("pdf_ticket_link", "qr_code_display"),
+                "classes": ("collapse",),
+            },
+        ),
+        (
+            "Custom Data",
+            {
+                "fields": ("submitted_data",),
+                "classes": ("collapse",),
+                "description": "JSON data submitted through custom fields",
+            },
+        ),
+    )
+
+
 admin.site.register(Company)
 admin.site.register(Staff)
 admin.site.register(Event, EventAdmin)
-admin.site.register(Participant)
+admin.site.register(Participant, ParticipantAdmin)
 admin.site.register(Attendance, AttendanceAdmin)
 admin.site.register(EmailConfiguration)
 admin.site.register(EventCustomField, EventCustomFieldAdmin)
 admin.site.register(EventEmail, EventEmailAdmin)
+
+
+class RSVPResponseAdmin(admin.ModelAdmin):
+    list_display = ("participant", "event", "response_display", "response_date")
+    list_filter = ("response", "event", "response_date")
+    search_fields = ("participant__name", "participant__email", "event__event_name")
+    readonly_fields = ("response_date",)
+    ordering = ("-response_date",)
+
+    def response_display(self, obj):
+        """Display RSVP response with color coding"""
+        if obj.response == "attend":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Attend</span>'
+            )
+        elif obj.response == "cant_make_it":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Can\'t make it</span>'
+            )
+        else:  # maybe
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">❓ Maybe</span>'
+            )
+
+    response_display.short_description = "Response"
+
+
+admin.site.register(RSVPResponse, RSVPResponseAdmin)
 
 
 @admin.register(Status)

@@ -8,91 +8,12 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
-<style>
-/* Loading spinner styles */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 9999;
-    align-items: center;
-    justify-content: center;
-}
-
-.loading-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 0.5rem;
-    text-align: center;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.spinner {
-    border: 4px solid #f3f4f6;
-    border-top: 4px solid #3b82f6;
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.loading-text {
-    color: #374151;
-    font-size: 1.1rem;
-    font-weight: 500;
-}
-
-.loading-subtext {
-    color: #6b7280;
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
-}
-
-/* Button loading state */
-.btn-loading {
-    position: relative;
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-.btn-loading::after {
-    content: '';
-    position: absolute;
-    width: 16px;
-    height: 16px;
-    top: 50%;
-    left: 50%;
-    margin-left: -8px;
-    margin-top: -8px;
-    border: 2px solid transparent;
-    border-top-color: #ffffff;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-</style>
 {{ form.media }}
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 {% endblock %}
 
 {% block content %}
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-content">
-        <div class="spinner"></div>
-        <div class="loading-text">Processing Email Template</div>
-        <div class="loading-subtext">Please wait while we save your template...</div>
-    </div>
-</div>
-
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     <div class="bg-white p-6 rounded-lg shadow-md">
         <!-- Header -->
@@ -119,6 +40,8 @@
                     ✅ Approval Email Template
                 {% elif form.reason.value == 'rejection' %}
                     ❌ Rejection Email Template
+                {% elif form.reason.value == 'rsvp' %}
+                    📩 RSVP Request Email Template
                 {% endif %}
             </h3>
             <p class="text-blue-700 text-sm mb-2">
@@ -128,15 +51,44 @@
                     This email will be sent when a participant's registration is manually approved by an admin.
                 {% elif form.reason.value == 'rejection' %}
                     This email will be sent when a participant's registration is rejected by an admin.
+                {% elif form.reason.value == 'rsvp' %}
+                    This email is used to request RSVP responses from participants.
                 {% endif %}
             </p>
             <div class="text-blue-600 text-xs">
                 <strong>Available placeholders:</strong> {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}
+                {% if form.reason.value == 'rsvp' %}
+                    , {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}
+                {% endif %}
             </div>
+            
+            {% if form.reason.value == 'rsvp' %}
+            <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <h4 class="text-indigo-800 font-medium text-sm mb-2">🔗 RSVP URL Placeholders</h4>
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "I will attend" response</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_decline_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "I can't make it" response</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_maybe_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "Maybe" response</span>
+                    </div>
+                </div>
+                <p class="text-indigo-600 text-xs mt-2">
+                    💡 <strong>Tip:</strong> You can create HTML buttons like: 
+                    <code class="bg-white px-1 rounded">&lt;a href="{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"&gt;Yes, I'll attend&lt;/a&gt;</code>
+                </p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Form -->
-        <form id="emailTemplateForm" method="post" class="space-y-6">
+        <form method="post" class="space-y-6">
             {% csrf_token %}
 
             <!-- Reason Field (hidden for new templates) -->
@@ -200,7 +152,7 @@
                     <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-gray">
                         Cancel
                     </a>
-                    <button type="submit" id="submitBtn" class="btn btn-outline-blue">
+                    <button type="submit" class="btn btn-outline-blue">
                         {% if is_edit %}Update{% else %}Create{% endif %} Template
                     </button>
                 </div>
@@ -217,97 +169,57 @@
                 </div>
                 <div>
                     <strong class="text-sm text-gray-700">Body:</strong>
-                    <div class="text-sm text-gray-900 whitespace-pre-wrap mt-1" id="body-preview">{{ form.body.value|default:"[Email body will appear here]" }}</div>
+                    <div class="text-sm text-gray-900 whitespace-pre-wrap mt-1" id="body-preview">{{ form.body.value|default:"[Email body will appear here]"|safe }}</div>
                 </div>
             </div>
             <p class="text-xs text-gray-500 mt-2">
                 Note: Placeholders like {{ name }}, {{ event_name }}, etc. will be replaced with actual values when the email is sent.
             </p>
+            
+            {% if form.reason.value == 'rsvp' %}
+            <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 class="text-gray-800 font-medium text-sm mb-3">📋 Ready-to-Use RSVP Button Template</h4>
+                <p class="text-xs text-gray-600 mb-3">Copy and paste this HTML code into your email template:</p>
+                <div class="bg-white border border-gray-300 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <pre class="whitespace-pre-wrap text-gray-800" id="rsvp-template-code">&lt;div style="margin: 20px 0; text-align: center;"&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}" style="background-color: #22c55e; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ✅ I'll Attend
+    &lt;/a&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_decline_url {% templatetag closevariable %}" style="background-color: #ef4444; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ❌ Can't Make It
+    &lt;/a&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_maybe_url {% templatetag closevariable %}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ❓ Maybe
+    &lt;/a&gt;
+&lt;/div&gt;</pre>
+                </div>
+                <button onclick="copyRsvpTemplate()" class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
+                    📋 Copy to Clipboard
+                </button>
+            </div>
+            {% endif %}
+            {% comment %}
+            <p class="text-xs text-gray-500 mt-2">
+                <div style="margin: 20px 0; text-align: center;">
+                    <a href="{{ rsvp_accept_url }}" style="background-color: #22c55e; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ✅ I’ll Attend
+                    </a>
+                    <a href="{{ rsvp_decline_url }}" style="background-color: #ef4444; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ❌ Can’t Make It
+                    </a>
+                    <a href="{{ rsvp_maybe_url }}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ❓ Maybe
+                    </a>
+                  </div>
+            </p>
+            {% endcomment %}
         </div>
     </div>
 </div>
 
-<script>
-// Loading and form submission handling
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('emailTemplateForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const subjectField = document.getElementById('{{ form.subject.id_for_label }}');
-    const subjectPreview = document.getElementById('subject-preview');
-    const bodyPreview = document.getElementById('body-preview');
+<!-- SweetAlert2 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    // Show loading spinner on form submission
-    form.addEventListener('submit', function(e) {
-        // Show loading overlay
-        loadingOverlay.style.display = 'flex';
-        
-        // Add loading state to button
-        submitBtn.classList.add('btn-loading');
-        submitBtn.textContent = 'Processing...';
-        
-        // Disable form elements
-        const formElements = form.querySelectorAll('input, textarea, select, button');
-        formElements.forEach(element => {
-            element.disabled = true;
-        });
-    });
-
-    // Hide loading on page unload (in case of errors)
-    window.addEventListener('beforeunload', function() {
-        loadingOverlay.style.display = 'none';
-    });
-
-    // Live preview functionality
-    function updateSubjectPreview() {
-        const subjectValue = subjectField.value || '[Subject will appear here]';
-        subjectPreview.textContent = subjectValue;
-    }
-
-    function updateBodyPreview() {
-        // Get CKEditor instance for body field
-        const editorName = '{{ form.body.id_for_label }}';
-        if (window.CKEDITOR && window.CKEDITOR.instances[editorName]) {
-            const editorData = window.CKEDITOR.instances[editorName].getData();
-            const bodyValue = editorData || '[Email body will appear here]';
-            bodyPreview.innerHTML = bodyValue;
-        }
-    }
-
-    // Subject field listener
-    if (subjectField) {
-        subjectField.addEventListener('input', updateSubjectPreview);
-    }
-
-    // CKEditor listener - wait for CKEditor to be ready
-    if (window.CKEDITOR) {
-        window.CKEDITOR.on('instanceReady', function(evt) {
-            const editorName = '{{ form.body.id_for_label }}';
-            if (evt.editor.name === editorName) {
-                // Update preview when CKEditor content changes
-                evt.editor.on('change', updateBodyPreview);
-                evt.editor.on('key', function() {
-                    // Use setTimeout to ensure the content is updated
-                    setTimeout(updateBodyPreview, 100);
-                });
-                // Initial update
-                updateBodyPreview();
-            }
-        });
-    }
-
-    // Handle page errors - hide loading if there's an error
-    window.addEventListener('error', function() {
-        loadingOverlay.style.display = 'none';
-        submitBtn.classList.remove('btn-loading');
-        submitBtn.textContent = '{% if is_edit %}Update{% else %}Create{% endif %} Template';
-        
-        // Re-enable form elements
-        const formElements = form.querySelectorAll('input, textarea, select, button');
-        formElements.forEach(element => {
-            element.disabled = false;
-        });
-    });
-});
-</script>
+<!-- Email Template Form JavaScript -->
+<script src="{% static 'js/email_template_form.js' %}"></script>
 {% endblock %} 

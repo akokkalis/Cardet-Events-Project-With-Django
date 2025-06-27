@@ -5,7 +5,12 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
 from .models import Company, Event, Participant, EventEmail
-from .utils import generate_pdf_ticket, email_body, generate_ics_file
+from .utils import (
+    generate_pdf_ticket,
+    generate_rsvp_urls,
+    email_body,
+    generate_ics_file,
+)
 import threading
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
@@ -272,6 +277,10 @@ def send_approval_email(participant):
         "phone": participant.phone or "N/A",
     }
 
+    # ✅ Add RSVP URLs to context for all email templates
+    rsvp_urls = generate_rsvp_urls(participant)
+    context_data.update(rsvp_urls)
+
     # ✅ Render the email subject and body with template placeholders
     subject_template = Template(event_email.subject)
     body_template = Template(event_email.body)
@@ -354,6 +363,10 @@ def send_rejection_email(participant):
         "phone": participant.phone or "N/A",
     }
 
+    # ✅ Add RSVP URLs to context for all email templates
+    rsvp_urls = generate_rsvp_urls(participant)
+    context_data.update(rsvp_urls)
+
     # ✅ Render the email subject and body with template placeholders
     subject_template = Template(event_email.subject)
     body_template = Template(event_email.body)
@@ -407,6 +420,7 @@ def handle_participant_approval(participant):
 
             # ✅ If tickets are enabled, generate tickets and send ticket email
             if participant.event.tickets:
+                print(f"🎫 Tickets are enabled for {participant.event.event_name}")
                 # Generate tickets if they don't exist yet (for manual approval cases)
                 if not participant.pdf_ticket:
                     qr_path = participant.generate_qr_code()  # Generate QR code
@@ -504,6 +518,10 @@ def send_registration_email(participant):
         "phone": participant.phone or "N/A",
     }
 
+    # ✅ Add RSVP URLs to context for all email templates
+    rsvp_urls = generate_rsvp_urls(participant)
+    context_data.update(rsvp_urls)
+
     # ✅ Render the email subject and body with template placeholders
     subject_template = Template(event_email.subject)
     body_template = Template(event_email.body)
@@ -540,6 +558,90 @@ def send_registration_email(participant):
 
         except Exception as e:
             print(f"❌ Error sending registration email to {participant.email}: {e}")
+
+    # ✅ Run the email function in a separate thread (non-blocking)
+    email_thread = threading.Thread(target=send_email)
+    email_thread.start()
+
+
+def send_rsvp_email(participant):
+    """Send an RSVP request email to the participant using custom email templates."""
+
+    # ✅ Get the event's RSVP email template
+    try:
+        event_email = EventEmail.objects.get(event=participant.event, reason="rsvp")
+    except EventEmail.DoesNotExist:
+        print(f"📧 No RSVP email template found for {participant.event.event_name}")
+        return
+
+    # ✅ Get company email configuration
+    email_config = getattr(participant.event.company, "email_config", None)
+    if not email_config:
+        print(f"⚠️ No email configuration found for {participant.event.company.name}")
+        return
+
+    # ✅ Prepare template context with placeholders
+    context_data = {
+        "name": participant.name,
+        "event_name": participant.event.event_name,
+        "event_date": participant.event.event_date.strftime("%B %d, %Y"),
+        "event_location": participant.event.location or "TBA",
+        "start_time": (
+            participant.event.start_time.strftime("%I:%M %p")
+            if participant.event.start_time
+            else "TBA"
+        ),
+        "end_time": (
+            participant.event.end_time.strftime("%I:%M %p")
+            if participant.event.end_time
+            else "TBA"
+        ),
+        "email": participant.email,
+        "phone": participant.phone or "N/A",
+    }
+
+    # ✅ Add RSVP URLs to context for RSVP email templates
+    rsvp_urls = generate_rsvp_urls(participant)
+    print("🔍 RSVP URLs:")
+    print(rsvp_urls)
+    context_data.update(rsvp_urls)
+
+    # ✅ Render the email subject and body with template placeholders
+    subject_template = Template(event_email.subject)
+    body_template = Template(event_email.body)
+    context = Context(context_data)
+
+    rendered_subject = subject_template.render(context)
+    rendered_body = body_template.render(context)
+
+    # ✅ Create the SMTP connection
+    connection = get_connection(
+        host=email_config.smtp_server,
+        port=email_config.smtp_port,
+        username=email_config.email_address,
+        password=email_config.email_password,
+        use_tls=email_config.use_tls,
+        use_ssl=email_config.use_ssl,
+    )
+
+    # ✅ Define email sending function
+    def send_email():
+        try:
+            email = EmailMessage(
+                rendered_subject,
+                rendered_body,
+                from_email=email_config.email_address,
+                to=[participant.email],
+                connection=connection,
+            )
+            email.content_subtype = "html"  # Support HTML in email templates
+            email.send()
+            print(
+                f"✅ RSVP email sent to {participant.email} for {participant.event.event_name}"
+            )
+
+        except Exception as e:
+            print(f"❌ Error sending RSVP email to {participant.email}: {e}")
 
     # ✅ Run the email function in a separate thread (non-blocking)
     email_thread = threading.Thread(target=send_email)
