@@ -379,6 +379,8 @@ class EventEmail(models.Model):
 
     class Meta:
         unique_together = ("event", "reason")  # One template per reason per event
+        verbose_name = "Event Email Template"
+        verbose_name_plural = "Event Email Templates"
 
     def __str__(self):
         return f"{self.get_reason_display()} Email for {self.event.event_name}"

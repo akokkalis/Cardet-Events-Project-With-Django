@@ -230,6 +230,30 @@ def event_delete(request, event_id):
     return redirect("event_list")
 
 
+def get_missing_email_templates(event):
+    """Check which email templates are missing for an event"""
+    # Get existing templates for this event
+    existing_templates = EventEmail.objects.filter(event=event).values_list(
+        "reason", flat=True
+    )
+
+    # Define all possible template types
+    all_template_types = [
+        ("registration", "Registration Email"),
+        ("approval", "Approval Email"),
+        ("rejection", "Rejection Email"),
+        ("rsvp", "RSVP Request Email"),
+    ]
+
+    # Find missing templates
+    missing_templates = []
+    for reason, display_name in all_template_types:
+        if reason not in existing_templates:
+            missing_templates.append({"reason": reason, "display_name": display_name})
+
+    return missing_templates
+
+
 @login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
@@ -238,6 +262,17 @@ def event_detail(request, event_id):
         event=event, present=True
     ).values_list("participant", flat=True)
     not_present_participants = participants.exclude(id__in=present_participants)
+
+    # Check for missing email templates
+    missing_email_templates = get_missing_email_templates(event)
+    import json
+
+    missing_email_templates_json = json.dumps(missing_email_templates)
+
+    # Check specifically if RSVP template is missing
+    rsvp_template_missing = any(
+        template["reason"] == "rsvp" for template in missing_email_templates
+    )
 
     for participant in participants:
         participant.attendance = Attendance.objects.filter(
@@ -278,16 +313,17 @@ def event_detail(request, event_id):
         else:
             participant.custom_data_json = "{}"
 
-    return render(
-        request,
-        "event_detail.html",
-        {
-            "event": event,
-            "participants": participants,
-            "present_participants": participants.filter(id__in=present_participants),
-            "not_present_participants": not_present_participants,
-        },
-    )
+    context = {
+        "event": event,
+        "participants": participants,
+        "present_participants": participants.filter(id__in=present_participants),
+        "not_present_participants": not_present_participants,
+        "missing_email_templates": missing_email_templates,
+        "missing_email_templates_json": missing_email_templates_json,
+        "rsvp_template_missing": rsvp_template_missing,
+    }
+
+    return render(request, "event_detail.html", context)
 
 
 @login_required
@@ -1422,6 +1458,8 @@ def rsvp_response(request, event_uuid, participant_id, response):
             return render(request, "rsvp_error.html", {"event": event})
 
         # Create or update RSVP response
+        from django.utils import timezone
+
         rsvp, created = RSVPResponse.objects.update_or_create(
             participant=participant,
             event=event,
@@ -1430,6 +1468,7 @@ def rsvp_response(request, event_uuid, participant_id, response):
                 "notes": (
                     request.POST.get("notes", "") if request.method == "POST" else ""
                 ),
+                "response_date": timezone.now(),
             },
         )
 
@@ -1473,7 +1512,11 @@ def rsvp_response_with_notes(request, event_uuid, participant_id, response):
             rsvp, created = RSVPResponse.objects.update_or_create(
                 participant=participant,
                 event=event,
-                defaults={"response": response, "notes": notes},
+                defaults={
+                    "response": response,
+                    "notes": notes,
+                    "response_date": timezone.now(),
+                },
             )
 
             # Get display text for the response

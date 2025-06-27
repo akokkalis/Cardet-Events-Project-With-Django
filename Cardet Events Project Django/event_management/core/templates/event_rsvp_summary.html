@@ -114,18 +114,18 @@
                     <table class="w-full border-collapse border border-gray-300">
                         <thead class="bg-gray-100">
                             <tr>
-                                <th class="border border-gray-300 px-4 py-2 text-left">Participant</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left">Email</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center">Participant</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center">Email</th>
                                 <th class="border border-gray-300 px-4 py-2 text-center">Response</th>
-                                <th class="border border-gray-300 px-4 py-2 text-left">Notes</th>
+                                <th class="border border-gray-300 px-4 py-2 text-center">Notes</th>
                                 <th class="border border-gray-300 px-4 py-2 text-center">Response Date</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for response in detailed_responses %}
                             <tr class="hover:bg-gray-50">
-                                <td class="border border-gray-300 px-4 py-2">{{ response.participant.name }}</td>
-                                <td class="border border-gray-300 px-4 py-2">{{ response.participant.email }}</td>
+                                <td class="border border-gray-300 px-4 py-2 text-center">{{ response.participant.name }}</td>
+                                <td class="border border-gray-300 px-4 py-2 text-center">{{ response.participant.email }}</td>
                                 <td class="border border-gray-300 px-4 py-2 text-center">
                                     {% if response.response == 'attend' %}
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -141,7 +141,7 @@
                                         </span>
                                     {% endif %}
                                 </td>
-                                <td class="border border-gray-300 px-4 py-2">
+                                <td class="border border-gray-300 px-4 py-2 text-center">
                                     {% if response.notes %}
                                         {{ response.notes|truncatechars:100 }}
                                     {% else %}
