@@ -42,6 +42,8 @@ from .views import (
     rsvp_response_with_notes,
     event_rsvp_summary,
     send_rsvp_email_participant_view,
+    send_bulk_rsvp_emails,
+    check_rsvp_email_status,
 )
 
 urlpatterns = [
@@ -187,6 +189,17 @@ urlpatterns = [
         "events/<int:event_id>/send-rsvp/<int:participant_id>/",
         send_rsvp_email_participant_view,
         name="send_rsvp_email_participant",
+    ),
+    # Bulk RSVP email sending
+    path(
+        "events/<int:event_id>/send-bulk-rsvp/",
+        send_bulk_rsvp_emails,
+        name="send_bulk_rsvp_emails",
+    ),
+    path(
+        "rsvp-email-status/<int:log_id>/",
+        check_rsvp_email_status,
+        name="check_rsvp_email_status",
     ),
 ]
 

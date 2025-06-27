@@ -415,6 +415,40 @@ class RSVPResponse(models.Model):
         return f"{self.participant.name} - {self.get_response_display()} - {self.event.event_name}"
 
 
+class RSVPEmailLog(models.Model):
+    """Track bulk RSVP email sending operations"""
+
+    STATUS_CHOICES = [
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="rsvp_email_logs"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE
+    )  # Who initiated the sending
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="in_progress"
+    )
+    total_recipients = models.PositiveIntegerField(default=0)
+    emails_sent = models.PositiveIntegerField(default=0)
+    emails_failed = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return (
+            f"RSVP Email Log for {self.event.event_name} - {self.get_status_display()}"
+        )
+
+
 ###  - Signal Section - ###
 
 

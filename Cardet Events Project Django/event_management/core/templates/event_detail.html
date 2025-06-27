@@ -243,10 +243,27 @@
 
     <!-- Participants Table Card -->
     <div class="bg-white p-6 rounded-lg shadow-md">
-        <a href="{% url 'register_participant' event.id %}" id="addParticipantBtn" class="btn btn-outline-blue mb-4 ">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-           <span>Add Participant</span>
-       </a>
+        <div class="flex gap-3 mb-4">
+            <a href="{% url 'register_participant' event.id %}" id="addParticipantBtn" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
+               <span>Add Participant</span>
+           </a>
+           {% if rsvp_template_missing %}
+               <button class="btn btn-outline-gray opacity-50 cursor-not-allowed" disabled title="RSVP template is required">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                   </svg>
+                   <span>Send RSVP Notification</span>
+               </button>
+           {% else %}
+               <button id="sendRsvpBtn" class="btn btn-outline-purple" data-event-id="{{ event.id }}">
+                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                   </svg>
+                   <span>Send RSVP Notification</span>
+               </button>
+           {% endif %}
+        </div>
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Registered Participants</h2>
 

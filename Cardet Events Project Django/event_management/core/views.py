@@ -1629,3 +1629,118 @@ def send_rsvp_email_participant_view(request, event_id, participant_id):
         )
 
     return redirect("event_detail", event_id=event.id)
+
+
+@login_required
+def send_bulk_rsvp_emails(request, event_id):
+    """Send RSVP emails to all approved participants who haven't responded yet"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST requests allowed"}, status=405)
+
+    event = get_object_or_404(Event, id=event_id)
+
+    # Check if RSVP template exists
+    if not EventEmail.objects.filter(event=event, reason="rsvp").exists():
+        return JsonResponse(
+            {"error": "No RSVP email template found for this event."}, status=400
+        )
+
+    # Get approved participants who haven't responded to RSVP
+    from .models import RSVPResponse, RSVPEmailLog
+
+    responded_participants = RSVPResponse.objects.filter(event=event).values_list(
+        "participant_id", flat=True
+    )
+
+    eligible_participants = Participant.objects.filter(
+        event=event, approval_status="approved"
+    ).exclude(id__in=responded_participants)
+
+    if not eligible_participants.exists():
+        return JsonResponse(
+            {
+                "error": "No eligible participants found. All approved participants have already responded."
+            },
+            status=400,
+        )
+
+    # Create email log entry
+    email_log = RSVPEmailLog.objects.create(
+        event=event,
+        user=request.user,
+        total_recipients=eligible_participants.count(),
+        status="in_progress",
+    )
+
+    # Start background email sending
+    import threading
+    from .signals import send_rsvp_email
+    from django.utils import timezone
+
+    def send_emails_in_background():
+        emails_sent = 0
+        emails_failed = 0
+
+        try:
+            for participant in eligible_participants:
+                try:
+                    send_rsvp_email(participant)
+                    emails_sent += 1
+                except Exception as e:
+                    emails_failed += 1
+                    print(f"Failed to send RSVP email to {participant.email}: {e}")
+
+            # Update log as completed
+            email_log.emails_sent = emails_sent
+            email_log.emails_failed = emails_failed
+            email_log.status = "completed"
+            email_log.completed_at = timezone.now()
+            email_log.save()
+
+        except Exception as e:
+            # Update log as failed
+            email_log.status = "failed"
+            email_log.error_message = str(e)
+            email_log.completed_at = timezone.now()
+            email_log.save()
+
+    # Start the background thread
+    email_thread = threading.Thread(target=send_emails_in_background)
+    email_thread.daemon = True
+    email_thread.start()
+
+    return JsonResponse(
+        {
+            "success": True,
+            "message": f"Started sending RSVP emails to {eligible_participants.count()} participants.",
+            "log_id": email_log.id,
+            "total_recipients": eligible_participants.count(),
+        }
+    )
+
+
+@login_required
+def check_rsvp_email_status(request, log_id):
+    """Check the status of a bulk RSVP email sending operation"""
+    try:
+        from .models import RSVPEmailLog
+
+        email_log = get_object_or_404(RSVPEmailLog, id=log_id, user=request.user)
+
+        return JsonResponse(
+            {
+                "status": email_log.status,
+                "total_recipients": email_log.total_recipients,
+                "emails_sent": email_log.emails_sent,
+                "emails_failed": email_log.emails_failed,
+                "started_at": email_log.started_at.strftime("%Y-%m-%d %H:%M:%S"),
+                "completed_at": (
+                    email_log.completed_at.strftime("%Y-%m-%d %H:%M:%S")
+                    if email_log.completed_at
+                    else None
+                ),
+                "error_message": email_log.error_message,
+            }
+        )
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=404)

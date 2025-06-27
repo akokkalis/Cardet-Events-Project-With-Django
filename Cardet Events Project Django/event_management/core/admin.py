@@ -19,6 +19,7 @@ from .models import (
     EventCustomField,
     EventEmail,
     RSVPResponse,
+    RSVPEmailLog,
 )
 
 
@@ -278,6 +279,52 @@ class RSVPResponseAdmin(admin.ModelAdmin):
 
 
 admin.site.register(RSVPResponse, RSVPResponseAdmin)
+
+
+class RSVPEmailLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "event",
+        "user",
+        "status_display",
+        "email_stats",
+        "started_at",
+        "completed_at",
+    )
+    list_filter = ("status", "event", "started_at")
+    search_fields = ("event__event_name", "user__username")
+    readonly_fields = ("started_at", "completed_at")
+    ordering = ("-started_at",)
+
+    def status_display(self, obj):
+        """Display status with color coding"""
+        if obj.status == "completed":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Completed</span>'
+            )
+        elif obj.status == "failed":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Failed</span>'
+            )
+        else:  # in_progress
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ In Progress</span>'
+            )
+
+    status_display.short_description = "Status"
+
+    def email_stats(self, obj):
+        """Display email sending statistics"""
+        return format_html(
+            "📧 {}/{} sent<br/>" "❌ {} failed",
+            obj.emails_sent,
+            obj.total_recipients,
+            obj.emails_failed,
+        )
+
+    email_stats.short_description = "Email Stats"
+
+
+admin.site.register(RSVPEmailLog, RSVPEmailLogAdmin)
 
 
 @admin.register(Status)
