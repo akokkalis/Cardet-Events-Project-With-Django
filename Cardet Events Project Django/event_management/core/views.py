@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import IntegrityError
 from .models import (
     Event,
     Participant,
@@ -12,6 +13,7 @@ from .models import (
     EventCustomField,
     EventEmail,
     RSVPResponse,
+    EmailConfiguration,
 )
 from .forms import (
     EventForm,
@@ -19,6 +21,7 @@ from .forms import (
     EventCustomFieldForm,
     CompanyForm,
     EventEmailForm,
+    EmailConfigurationForm,
 )
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, When, Value, IntegerField, F, Window
@@ -914,45 +917,55 @@ def register_participant_view(request, event_id):
     if request.method == "POST":
         form = ParticipantForm(request.POST, request.FILES, event=event)
         if form.is_valid():
-            participant = form.save(commit=False)
-            participant.event = event
+            try:
+                participant = form.save(commit=False)
+                participant.event = event
 
-            # Handling custom fields
-            custom_data = {}
-            for key, value in form.cleaned_data.items():
-                if key.startswith("custom_field_"):
-                    field_id = int(key.split("_")[-1])
-                    field_model = EventCustomField.objects.get(id=field_id)
+                # Handling custom fields
+                custom_data = {}
+                for key, value in form.cleaned_data.items():
+                    if key.startswith("custom_field_"):
+                        field_id = int(key.split("_")[-1])
+                        field_model = EventCustomField.objects.get(id=field_id)
 
-                    if field_model.field_type == "file" and value:
-                        # For file fields, store the filename in custom_data
-                        custom_data[field_model.label] = value.name
-                    else:
-                        custom_data[field_model.label] = value
+                        if field_model.field_type == "file" and value:
+                            # For file fields, store the filename in custom_data
+                            custom_data[field_model.label] = value.name
+                        else:
+                            custom_data[field_model.label] = value
 
-            participant.submitted_data = custom_data
-            participant.save()
+                participant.submitted_data = custom_data
+                participant.save()
 
-            # Save uploaded files for custom fields
-            for key, value in form.cleaned_data.items():
-                if key.startswith("custom_field_") and value:
-                    field_id = int(key.split("_")[-1])
-                    field_model = EventCustomField.objects.get(id=field_id)
+                # Save uploaded files for custom fields
+                for key, value in form.cleaned_data.items():
+                    if key.startswith("custom_field_") and value:
+                        field_id = int(key.split("_")[-1])
+                        field_model = EventCustomField.objects.get(id=field_id)
 
-                    if field_model.field_type == "file":
-                        from core.models import ParticipantCustomFieldFile
+                        if field_model.field_type == "file":
+                            from core.models import ParticipantCustomFieldFile
 
-                        ParticipantCustomFieldFile.objects.create(
-                            participant=participant,
-                            field_label=field_model.label,
-                            file=value,
-                        )
-            # form.save_m2m() is not needed unless ParticipantForm has M2M fields itself
+                            ParticipantCustomFieldFile.objects.create(
+                                participant=participant,
+                                field_label=field_model.label,
+                                file=value,
+                            )
+                # form.save_m2m() is not needed unless ParticipantForm has M2M fields itself
 
-            messages.success(
-                request, f"Participant {participant.name} added successfully."
-            )
-            return redirect("event_detail", event_id=event.id)
+                messages.success(
+                    request, f"Participant {participant.name} added successfully."
+                )
+                return redirect("event_detail", event_id=event.id)
+
+            except IntegrityError:
+                # Handle duplicate email error
+                email = form.cleaned_data.get("email", "")
+                messages.error(
+                    request,
+                    f"❌ This email address ({email}) is already registered for this event. Please use a different email address.",
+                )
+                # The form will be re-displayed with the error message
     else:
         form = ParticipantForm(event=event)
 
@@ -1118,9 +1131,34 @@ def company_detail(request, company_id):
     company = get_object_or_404(Company, id=company_id)
     events = Event.objects.filter(company=company).order_by("-event_date")
 
+    # Check if email configuration exists
+    try:
+        email_config = EmailConfiguration.objects.get(company=company)
+        has_email_config = True
+    except EmailConfiguration.DoesNotExist:
+        has_email_config = False
+
+        # Add RSVP statistics for each event
+    events_with_rsvp_stats = []
+    for event in events:
+        total_participants = event.participant_set.count()
+        total_rsvp_responses = RSVPResponse.objects.filter(event=event).count()
+
+        # Check if event has RSVP template
+        has_rsvp_template = EventEmail.objects.filter(
+            event=event, reason="rsvp"
+        ).exists()
+
+        # Add the statistics to the event object
+        event.rsvp_responses_count = total_rsvp_responses
+        event.total_participants_count = total_participants
+        event.has_rsvp_template = has_rsvp_template
+        events_with_rsvp_stats.append(event)
+
     context = {
         "company": company,
-        "events": events,
+        "events": events_with_rsvp_stats,
+        "has_email_config": has_email_config,
     }
 
     return render(request, "company_detail.html", context)
@@ -1442,6 +1480,42 @@ def check_participant_status(request, event_id, participant_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=404)
+
+
+@login_required
+def company_email_settings(request, company_id):
+    """Add or edit email settings for a company"""
+    company = get_object_or_404(Company, id=company_id)
+
+    try:
+        email_config = EmailConfiguration.objects.get(company=company)
+        is_editing = True
+    except EmailConfiguration.DoesNotExist:
+        email_config = None
+        is_editing = False
+
+    if request.method == "POST":
+        form = EmailConfigurationForm(request.POST, instance=email_config)
+        if form.is_valid():
+            email_config = form.save(commit=False)
+            email_config.company = company
+            email_config.save()
+
+            action = "updated" if is_editing else "added"
+            messages.success(
+                request, f"✅ Email settings {action} successfully for {company.name}!"
+            )
+            return redirect("company_detail", company_id=company.id)
+    else:
+        form = EmailConfigurationForm(instance=email_config)
+
+    context = {
+        "form": form,
+        "company": company,
+        "is_editing": is_editing,
+    }
+
+    return render(request, "company_email_settings.html", context)
 
 
 # RSVP Views

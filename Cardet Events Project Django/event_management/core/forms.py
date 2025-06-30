@@ -1,6 +1,14 @@
 from django import forms
 from django.db import models
-from .models import Event, Company, Status, Participant, EventCustomField, EventEmail
+from .models import (
+    Event,
+    Company,
+    Status,
+    Participant,
+    EventCustomField,
+    EventEmail,
+    EmailConfiguration,
+)
 from ckeditor.widgets import CKEditorWidget
 
 
@@ -380,5 +388,104 @@ class EventEmailForm(forms.ModelForm):
                 raise forms.ValidationError(
                     f'An email template for "{reason}" already exists for this event.'
                 )
+
+        return cleaned_data
+
+
+class EmailConfigurationForm(forms.ModelForm):
+    class Meta:
+        model = EmailConfiguration
+        fields = [
+            "smtp_server",
+            "smtp_port",
+            "email_address",
+            "email_password",
+            "use_tls",
+            "use_ssl",
+        ]
+        widgets = {
+            "smtp_server": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "e.g., smtp.gmail.com",
+                }
+            ),
+            "smtp_port": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "587",
+                    "min": "1",
+                    "max": "65535",
+                }
+            ),
+            "email_address": forms.EmailInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "your-email@domain.com",
+                }
+            ),
+            "email_password": forms.PasswordInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Your email password or app-specific password",
+                }
+            ),
+            "use_tls": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                }
+            ),
+            "use_ssl": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Add help text
+        self.fields["smtp_server"].help_text = (
+            "SMTP server address (e.g., smtp.gmail.com, smtp.outlook.com)"
+        )
+        self.fields["smtp_port"].help_text = (
+            "SMTP port number (typically 587 for TLS or 465 for SSL)"
+        )
+        self.fields["email_address"].help_text = (
+            "The email address used to send emails from this company"
+        )
+        self.fields["email_password"].help_text = (
+            "Email password or app-specific password"
+        )
+        self.fields["use_tls"].help_text = (
+            "Enable TLS encryption (recommended for port 587)"
+        )
+        self.fields["use_ssl"].help_text = (
+            "Enable SSL encryption (recommended for port 465)"
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        use_tls = cleaned_data.get("use_tls")
+        use_ssl = cleaned_data.get("use_ssl")
+        smtp_port = cleaned_data.get("smtp_port")
+
+        # Validate that TLS and SSL are not both enabled
+        if use_tls and use_ssl:
+            raise forms.ValidationError(
+                "Cannot use both TLS and SSL. Please select only one."
+            )
+
+        # Suggest appropriate port based on encryption method
+        if use_tls and smtp_port and smtp_port != 587:
+            self.add_error(
+                "smtp_port", "Port 587 is typically used with TLS encryption."
+            )
+
+        if use_ssl and smtp_port and smtp_port != 465:
+            self.add_error(
+                "smtp_port", "Port 465 is typically used with SSL encryption."
+            )
 
         return cleaned_data

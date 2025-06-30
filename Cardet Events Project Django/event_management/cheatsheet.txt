@@ -17,3 +17,15 @@ T@#ot6cXKkYt7JgR
 
 heroicons
 https://www.youtube.com/watch?v=S2VlzDqlAsQ&t=186s
+
+
+
+email settings
+smtp.gmail.com
+587
+cardetngo@gmail.com
+sovh crot apeo pgsf
+tls= true
+
+events@cardet.org
+rnlb tssa uqzc lfen
