@@ -45,6 +45,9 @@ from .views import (
     send_bulk_rsvp_emails,
     check_rsvp_email_status,
     company_email_settings,
+    bulk_approve_participants,
+    export_participant_template,
+    import_participants_csv,
 )
 
 urlpatterns = [
@@ -206,6 +209,23 @@ urlpatterns = [
         "rsvp-email-status/<int:log_id>/",
         check_rsvp_email_status,
         name="check_rsvp_email_status",
+    ),
+    # Bulk participant approval
+    path(
+        "events/<int:event_id>/bulk-approve/",
+        bulk_approve_participants,
+        name="bulk_approve_participants",
+    ),
+    # Participant import/export
+    path(
+        "events/<int:event_id>/export-participant-template/",
+        export_participant_template,
+        name="export_participant_template",
+    ),
+    path(
+        "events/<int:event_id>/import-participants/",
+        import_participants_csv,
+        name="import_participants_csv",
     ),
 ]
 

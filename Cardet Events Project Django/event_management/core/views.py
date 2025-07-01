@@ -282,6 +282,24 @@ def event_detail(request, event_id):
             participant=participant, event=event
         ).first()
 
+        # Get RSVP response for this participant
+        rsvp_response = RSVPResponse.objects.filter(
+            participant=participant, event=event
+        ).first()
+
+        if rsvp_response:
+            participant.rsvp_response = rsvp_response.response
+            participant.rsvp_response_display = {
+                "attend": "✅ Will Attend",
+                "cant_make_it": "❌ Can't Make It",
+                "maybe": "🤔 Maybe",
+            }.get(rsvp_response.response, "Unknown")
+            participant.has_rsvp_response = True
+        else:
+            participant.rsvp_response = None
+            participant.rsvp_response_display = "No Response"
+            participant.has_rsvp_response = False
+
         # Add file information to submitted_data if it exists
         if participant.submitted_data:
             import json
@@ -1818,3 +1836,367 @@ def check_rsvp_email_status(request, log_id):
         )
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=404)
+
+
+@login_required
+def bulk_approve_participants(request, event_id):
+    """Bulk approve/reject/set pending for multiple participants"""
+    if request.method != "POST":
+        return JsonResponse({"error": "Only POST requests allowed"}, status=405)
+
+    try:
+        event = get_object_or_404(Event, id=event_id)
+        data = json.loads(request.body)
+        participant_ids = data.get("participant_ids", [])
+        action = data.get("action")  # 'approve', 'reject', or 'pending'
+
+        if not participant_ids:
+            return JsonResponse({"error": "No participants selected"}, status=400)
+
+        if action not in ["approve", "reject", "pending"]:
+            return JsonResponse({"error": "Invalid action"}, status=400)
+
+        # Get participants
+        participants = Participant.objects.filter(id__in=participant_ids, event=event)
+
+        if not participants.exists():
+            return JsonResponse({"error": "No valid participants found"}, status=400)
+
+        # Update participants based on action
+        status_mapping = {
+            "approve": "approved",
+            "reject": "rejected",
+            "pending": "pending",
+        }
+
+        new_status = status_mapping[action]
+        updated_count = 0
+
+        # Import here to avoid circular imports
+        from .signals import handle_participant_approval, handle_participant_rejection
+
+        for participant in participants:
+            if participant.approval_status != new_status:
+                participant.approval_status = new_status
+                participant.save(update_fields=["approval_status"])
+                updated_count += 1
+
+                # Handle email notifications for approval/rejection
+                if action == "approve":
+                    handle_participant_approval(participant)
+                elif action == "reject":
+                    handle_participant_rejection(participant)
+
+        action_display = {
+            "approve": "approved",
+            "reject": "rejected",
+            "pending": "set to pending",
+        }
+
+        return JsonResponse(
+            {
+                "success": True,
+                "message": f"Successfully {action_display[action]} {updated_count} participants.",
+                "updated_count": updated_count,
+            }
+        )
+
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON data"}, status=400)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def export_participant_template(request, event_id):
+    """Export a CSV template for participant import with all required fields and custom fields"""
+    event = get_object_or_404(Event, id=event_id)
+
+    # Get all custom fields for this event
+    custom_fields = EventCustomField.objects.filter(event=event).order_by("order")
+
+    # Create response object
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = (
+        f'attachment; filename="{event.event_name}_participant_template.csv"'
+    )
+
+    import csv
+
+    writer = csv.writer(response)
+
+    # Create header row with required fields and custom fields
+    headers = [
+        "name *REQUIRED*",
+        "email *REQUIRED*",
+        "phone",
+        "approval_status (approved/rejected/pending)",
+    ]
+
+    # Add custom fields to headers with required indicators
+    for field in custom_fields:
+        field_header = field.label
+        if field.required:
+            field_header += " *REQUIRED*"
+
+        # Add field type and options info for clarity
+        if field.field_type == "select" and field.options:
+            field_header += f" (Options: {field.options})"
+        elif field.field_type == "multiselect" and field.options:
+            field_header += f" (Multi-select: {field.options})"
+        elif field.field_type == "checkbox":
+            field_header += " (true/false)"
+        elif field.field_type == "range" and field.options:
+            field_header += f" (Range: {field.options})"
+        elif field.field_type == "file":
+            field_header += " (File uploads not supported in CSV import)"
+
+        headers.append(field_header)
+
+    writer.writerow(headers)
+
+    # Add example row with sample data
+    example_row = ["John Doe", "john.doe@example.com", "+1234567890", "pending"]
+
+    # Add example values for custom fields
+    for field in custom_fields:
+        if field.field_type == "text":
+            example_row.append("Sample text")
+        elif field.field_type == "textarea":
+            example_row.append("Sample longer text")
+        elif field.field_type == "number":
+            example_row.append("123")
+        elif field.field_type == "email":
+            example_row.append("sample@example.com")
+        elif field.field_type == "select":
+            if field.options:
+                example_row.append(field.options.split(",")[0].strip())
+            else:
+                example_row.append("Option1")
+        elif field.field_type == "multiselect":
+            if field.options:
+                options = field.options.split(",")
+                example_row.append(
+                    f"{options[0].strip()}, {options[1].strip() if len(options) > 1 else options[0].strip()}"
+                )
+            else:
+                example_row.append("Option1, Option2")
+        elif field.field_type == "checkbox":
+            example_row.append("true")
+        elif field.field_type == "range":
+            example_row.append("5")
+        elif field.field_type == "date":
+            example_row.append("2024-12-31")
+        elif field.field_type == "time":
+            example_row.append("14:30")
+        elif field.field_type == "datetime":
+            example_row.append("2024-12-31 14:30")
+        elif field.field_type == "file":
+            example_row.append("Not supported in CSV")
+        else:
+            example_row.append("Sample value")
+
+    writer.writerow(example_row)
+
+    # Add instruction rows
+    writer.writerow([])  # Empty row
+    writer.writerow(["INSTRUCTIONS:"])
+    writer.writerow(["1. Fill in the participant data in the rows below"])
+    writer.writerow(["2. Fields marked with *REQUIRED* must be filled"])
+    writer.writerow(["3. Delete this instruction section before importing"])
+    writer.writerow(
+        ["4. approval_status options: approved, rejected, pending (default: pending)"]
+    )
+    writer.writerow(["5. For multi-select fields, separate values with commas"])
+    writer.writerow(["6. For checkbox fields, use: true or false"])
+    writer.writerow(
+        ["7. Date format: YYYY-MM-DD, Time format: HH:MM, DateTime: YYYY-MM-DD HH:MM"]
+    )
+    writer.writerow(["8. File uploads are not supported via CSV import"])
+    writer.writerow([])  # Empty row
+    writer.writerow(["START ENTERING DATA BELOW THIS LINE:"])
+    writer.writerow([])  # Empty row for data entry
+
+    return response
+
+
+@login_required
+def import_participants_csv(request, event_id):
+    """Import participants from CSV file"""
+    event = get_object_or_404(Event, id=event_id)
+
+    if request.method == "POST":
+        csv_file = request.FILES.get("csv_file")
+
+        if not csv_file:
+            messages.error(request, "Please select a CSV file to upload.")
+            return redirect("event_detail", event_id=event.id)
+
+        if not csv_file.name.endswith(".csv"):
+            messages.error(request, "Please upload a valid CSV file.")
+            return redirect("event_detail", event_id=event.id)
+
+        try:
+            import csv
+            import io
+
+            # Read CSV file
+            file_data = csv_file.read().decode("utf-8")
+            csv_data = csv.reader(io.StringIO(file_data))
+
+            # Get headers
+            headers = next(csv_data)
+
+            # Clean headers (remove *REQUIRED* markers and extra info)
+            clean_headers = []
+            for header in headers:
+                clean_header = header.split(" *REQUIRED*")[0].split(" (")[0].strip()
+                clean_headers.append(clean_header)
+
+            # Get custom fields for validation
+            custom_fields = EventCustomField.objects.filter(event=event).order_by(
+                "order"
+            )
+            custom_field_labels = [field.label for field in custom_fields]
+            required_custom_fields = [
+                field.label for field in custom_fields if field.required
+            ]
+
+            # Validate headers
+            required_headers = ["name", "email"]
+            missing_required = []
+            for req_header in required_headers:
+                if req_header not in clean_headers:
+                    missing_required.append(req_header)
+
+            if missing_required:
+                messages.error(
+                    request, f'Missing required columns: {", ".join(missing_required)}'
+                )
+                return redirect("event_detail", event_id=event.id)
+
+            # Process data rows
+            imported_count = 0
+            error_count = 0
+            errors = []
+
+            for row_num, row in enumerate(
+                csv_data, start=2
+            ):  # Start at 2 because header is row 1
+                if not any(row):  # Skip empty rows
+                    continue
+
+                if len(row) != len(clean_headers):
+                    errors.append(f"Row {row_num}: Column count mismatch")
+                    error_count += 1
+                    continue
+
+                # Create data dictionary
+                row_data = dict(zip(clean_headers, row))
+
+                # Validate required fields
+                if not row_data.get("name", "").strip():
+                    errors.append(f"Row {row_num}: Name is required")
+                    error_count += 1
+                    continue
+
+                if not row_data.get("email", "").strip():
+                    errors.append(f"Row {row_num}: Email is required")
+                    error_count += 1
+                    continue
+
+                # Validate required custom fields
+                missing_custom = []
+                for req_field in required_custom_fields:
+                    if not row_data.get(req_field, "").strip():
+                        missing_custom.append(req_field)
+
+                if missing_custom:
+                    errors.append(
+                        f'Row {row_num}: Required custom fields missing: {", ".join(missing_custom)}'
+                    )
+                    error_count += 1
+                    continue
+
+                # Check for duplicate email in this event
+                if Participant.objects.filter(
+                    event=event, email=row_data["email"]
+                ).exists():
+                    errors.append(
+                        f'Row {row_num}: Email {row_data["email"]} already exists for this event'
+                    )
+                    error_count += 1
+                    continue
+
+                try:
+                    # Create participant
+                    approval_status = row_data.get("approval_status", "pending").lower()
+                    if approval_status not in ["approved", "rejected", "pending"]:
+                        approval_status = "pending"
+
+                    # Prepare custom field data
+                    submitted_data = {}
+                    for field in custom_fields:
+                        if field.label in row_data and row_data[field.label].strip():
+                            value = row_data[field.label].strip()
+
+                            # Validate and process field types
+                            if field.field_type == "checkbox":
+                                submitted_data[field.label] = value.lower() in [
+                                    "true",
+                                    "1",
+                                    "yes",
+                                ]
+                            elif field.field_type == "number":
+                                try:
+                                    submitted_data[field.label] = float(value)
+                                except ValueError:
+                                    errors.append(
+                                        f"Row {row_num}: Invalid number for {field.label}: {value}"
+                                    )
+                                    error_count += 1
+                                    continue
+                            elif field.field_type == "multiselect":
+                                # Split comma-separated values
+                                submitted_data[field.label] = [
+                                    v.strip() for v in value.split(",")
+                                ]
+                            else:
+                                submitted_data[field.label] = value
+
+                    participant = Participant.objects.create(
+                        event=event,
+                        name=row_data["name"].strip(),
+                        email=row_data["email"].strip(),
+                        phone=row_data.get("phone", "").strip(),
+                        approval_status=approval_status,
+                        submitted_data=submitted_data if submitted_data else None,
+                    )
+
+                    imported_count += 1
+
+                except Exception as e:
+                    errors.append(
+                        f"Row {row_num}: Error creating participant: {str(e)}"
+                    )
+                    error_count += 1
+                    continue
+
+            # Show results
+            if imported_count > 0:
+                messages.success(
+                    request, f"Successfully imported {imported_count} participants."
+                )
+
+            if error_count > 0:
+                error_message = f"{error_count} errors occurred during import:"
+                for error in errors[:10]:  # Show first 10 errors
+                    error_message += f"\n• {error}"
+                if len(errors) > 10:
+                    error_message += f"\n... and {len(errors) - 10} more errors."
+                messages.error(request, error_message)
+
+        except Exception as e:
+            messages.error(request, f"Error processing CSV file: {str(e)}")
+
+    return redirect("event_detail", event_id=event.id)

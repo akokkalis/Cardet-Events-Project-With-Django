@@ -164,9 +164,9 @@
 /* Event Card Hover Effect */
 .event-card {
     transition: all 0.3s ease-in-out;
-    width: 473px;
-    height: 518px;
-    border-radius: 10rem;
+    width: 400px;
+    height: 445px;
+    border-radius: 1rem;
 }
 
 .event-card:hover {

@@ -375,3 +375,73 @@ $(document).ready(function() {
         }
     });
 }); 
+
+
+
+$(document).ready(function() {
+    // Add tooltip functionality to Email Templates button if templates are missing
+    if (window.MISSING_EMAIL_TEMPLATES && window.MISSING_EMAIL_TEMPLATES.length > 0) {
+        const emailTemplatesBtn = document.getElementById('emailTemplatesBtn');
+        const missingTemplates = window.MISSING_EMAIL_TEMPLATES;
+        
+        // Create tooltip content
+        let tooltipContent = 'Missing Templates:<br>';
+        missingTemplates.forEach(template => {
+            let icon = '';
+            switch(template.reason) {
+                case 'registration':
+                    icon = '📋';
+                    break;
+                case 'approval':
+                    icon = '✅';
+                    break;
+                case 'rejection':
+                    icon = '❌';
+                    break;
+                case 'rsvp':
+                    icon = '📩';
+                    break;
+                default:
+                    icon = '📧';
+            }
+            tooltipContent += `• ${icon} ${template.display_name}<br>`;
+        });
+        
+        // Add tooltip using basic HTML title attribute for now, but we'll enhance it
+        emailTemplatesBtn.setAttribute('data-tooltip', tooltipContent);
+        
+        // Create custom tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = tooltipContent;
+        tooltip.style.cssText = `
+            position: absolute;
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 200px;
+        `;
+        document.body.appendChild(tooltip);
+        
+        // Show tooltip on hover
+        emailTemplatesBtn.addEventListener('mouseenter', (e) => {
+            const rect = emailTemplatesBtn.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+            tooltip.style.top = (rect.bottom + 8) + 'px';
+            tooltip.style.opacity = '1';
+        });
+        
+        // Hide tooltip on mouse leave
+        emailTemplatesBtn.addEventListener('mouseleave', () => {
+            tooltip.style.opacity = '0';
+        });
+    }
+});

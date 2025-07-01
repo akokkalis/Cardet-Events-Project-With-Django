@@ -243,11 +243,26 @@
 
     <!-- Participants Table Card -->
     <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex gap-3 mb-4">
+        <div class="flex gap-3 mb-4 flex-wrap">
             <a href="{% url 'register_participant' event.id %}" id="addParticipantBtn" class="btn btn-outline-blue">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
                <span>Add Participant</span>
            </a>
+           
+           <!-- Import/Export Buttons -->
+           <a href="{% url 'export_participant_template' event.id %}" class="btn btn-outline-blue">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+               </svg>
+               <span>Download CSV Template</span>
+           </a>
+           
+           <button id="importParticipantsBtn" class="btn btn-outline-blue">
+               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+               </svg>
+               <span>Import from CSV</span>
+           </button>
            {% if rsvp_template_missing %}
                <button class="btn btn-outline-gray opacity-50 cursor-not-allowed" disabled title="RSVP template is required">
                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -266,7 +281,23 @@
         </div>
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Registered Participants</h2>
-
+            
+            <!-- Bulk Actions Controls -->
+            <div id="bulkActionsContainer" class="hidden flex items-center gap-2">
+                <span id="selectedCount" class="text-sm text-gray-600">0 selected</span>
+                <button id="bulkApproveBtn" class="btn btn-outline-blue">
+                    ✅ Approve Selected
+                </button>
+                <button id="bulkRejectBtn" class="btn btn-outline-blue">
+                    ❌ Reject Selected
+                </button>
+                <button id="bulkPendingBtn" class="btn btn-outline-blue">
+                    🔄 Set Pending
+                </button>
+                <button id="clearSelectionBtn" class="btn btn-outline-blue">
+                    Clear Selection
+                </button>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -277,11 +308,15 @@
                    data-csrf-token="{{ csrf_token }}">
                 <thead class="bg-gray-100">
                     <tr>
+                        <th class="border border-gray-300 px-4 py-2">
+                            <input type="checkbox" id="selectAllCheckbox" class="form-checkbox h-4 w-4 text-blue-600">
+                        </th>
                         <th class="border border-gray-300 px-4 py-2">#</th>
                         <th class="border border-gray-300 px-4 py-2">Name</th>
                         <th class="border border-gray-300 px-4 py-2">Email</th>
                         <th class="border border-gray-300 px-4 py-2">Phone</th>
                         <th class="border border-gray-300 px-4 py-2">Status</th>
+                        <th class="border border-gray-300 px-4 py-2">RSVP Response</th>
                         <th class="border border-gray-300 px-4 py-2">Custom Data</th>
                         <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
                         <th class="border border-gray-300 px-4 py-2">Send Ticket</th>
@@ -292,6 +327,11 @@
                 <tbody class="mb-10">
                     {% for participant in participants %}
                     <tr class="text-center" data-participant-id="{{ participant.id }}" data-event-id="{{ event.id }}">
+                        <td class="border border-gray-300 px-4 py-2">
+                            <input type="checkbox" class="participant-checkbox form-checkbox h-4 w-4 text-blue-600" 
+                                   data-participant-id="{{ participant.id }}" 
+                                   data-participant-status="{{ participant.approval_status }}">
+                        </td>
                         <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ participant.name }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
@@ -309,6 +349,19 @@
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                                     🟡 Pending
                                 </span>
+                            {% endif %}
+                        </td>
+                        <td class="border border-gray-300 px-4 py-2">
+                            {% if participant.has_rsvp_response %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                    {% if participant.rsvp_response == 'attend' %}bg-green-100 text-green-800
+                                    {% elif participant.rsvp_response == 'cant_make_it' %}bg-red-100 text-red-800
+                                    {% elif participant.rsvp_response == 'maybe' %}bg-yellow-100 text-yellow-800
+                                    {% endif %}">
+                                    {{ participant.rsvp_response_display }}
+                                </span>
+                            {% else %}
+                                <span class="text-gray-500">No Response</span>
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
@@ -348,11 +401,18 @@
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="actions-cell-{{ participant.id }}">
                             <div class="flex gap-1 justify-center">
-                                <a href="{% url 'send_rsvp_email_participant' event.id participant.id %}" 
-                                   class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 text-xs rounded"
-                                   title="Send RSVP Email">
-                                    📩
-                                </a>
+                                {% if participant.has_rsvp_response %}
+                                    <span class="btn bg-gray-300 text-gray-500 px-2 py-1 text-xs rounded cursor-not-allowed"
+                                          title="Already responded to RSVP">
+                                        📩
+                                    </span>
+                                {% else %}
+                                    <a href="{% url 'send_rsvp_email_participant' event.id participant.id %}" 
+                                       class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 text-xs rounded"
+                                       title="Send RSVP Email">
+                                        📩
+                                    </a>
+                                {% endif %}
                                 {% if participant.approval_status == 'pending' %}
                                     <a href="{% url 'approve_participant' event.id participant.id %}" 
                                        class="btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 text-xs rounded" 
@@ -401,11 +461,76 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
+                        <td colspan="12" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Import Participants Modal -->
+<div id="importParticipantsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Import Participants from CSV</h3>
+                <button id="closeImportModal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 class="font-semibold text-blue-800 mb-2">📋 Instructions:</h4>
+                <ol class="text-sm text-blue-700 space-y-1">
+                    <li>1. <strong>Download the CSV template</strong> using the "Download CSV Template" button</li>
+                    <li>2. <strong>Fill in participant data</strong> in the template (delete instruction rows)</li>
+                    <li>3. <strong>Required fields</strong> are marked with *REQUIRED* and must be filled</li>
+                    <li>4. <strong>Custom fields</strong> specific to this event are included with validation rules</li>
+                    <li>5. <strong>Upload the completed CSV</strong> using the form below</li>
+                </ol>
+            </div>
+            
+            <form id="importForm" method="post" enctype="multipart/form-data" action="{% url 'import_participants_csv' event.id %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="csv_file" class="block text-sm font-medium text-gray-700 mb-2">
+                        Select CSV File *
+                    </label>
+                    <input type="file" 
+                           id="csv_file" 
+                           name="csv_file" 
+                           accept=".csv" 
+                           required
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-sm text-gray-500">Only CSV files are accepted</p>
+                </div>
+                
+                <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h4>
+                    <ul class="text-sm text-yellow-700 space-y-1">
+                        <li>• <strong>Duplicate emails</strong> will be skipped (one participant per email per event)</li>
+                        <li>• <strong>File uploads</strong> are not supported via CSV import</li>
+                        <li>• <strong>Data validation</strong> will be performed and errors will be reported</li>
+                        <li>• <strong>Backup recommended</strong> before importing large datasets</li>
+                    </ul>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="cancelImport" class="btn btn-outline-gray">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn bg-blue-500 hover:bg-blue-600 text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Import Participants
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -443,75 +568,13 @@
 <!-- Load the new modal and participant management functionality -->
 <script src="{% static 'js/event_detail_modals.js' %}"></script>
 
+<!-- Load bulk participant actions functionality -->
+<script src="{% static 'js/bulk_participant_actions.js' %}"></script>
+
+<!-- Load participant import/export functionality -->
+<script src="{% static 'js/participant_import_export.js' %}"></script>
+
 <!-- Check for missing email templates on page load -->
-<script>
-    $(document).ready(function() {
-        // Add tooltip functionality to Email Templates button if templates are missing
-        if (window.MISSING_EMAIL_TEMPLATES && window.MISSING_EMAIL_TEMPLATES.length > 0) {
-            const emailTemplatesBtn = document.getElementById('emailTemplatesBtn');
-            const missingTemplates = window.MISSING_EMAIL_TEMPLATES;
-            
-            // Create tooltip content
-            let tooltipContent = 'Missing Templates:<br>';
-            missingTemplates.forEach(template => {
-                let icon = '';
-                switch(template.reason) {
-                    case 'registration':
-                        icon = '📋';
-                        break;
-                    case 'approval':
-                        icon = '✅';
-                        break;
-                    case 'rejection':
-                        icon = '❌';
-                        break;
-                    case 'rsvp':
-                        icon = '📩';
-                        break;
-                    default:
-                        icon = '📧';
-                }
-                tooltipContent += `• ${icon} ${template.display_name}<br>`;
-            });
-            
-            // Add tooltip using basic HTML title attribute for now, but we'll enhance it
-            emailTemplatesBtn.setAttribute('data-tooltip', tooltipContent);
-            
-            // Create custom tooltip element
-            const tooltip = document.createElement('div');
-            tooltip.className = 'custom-tooltip';
-            tooltip.innerHTML = tooltipContent;
-            tooltip.style.cssText = `
-                position: absolute;
-                background: #1f2937;
-                color: white;
-                padding: 8px 12px;
-                border-radius: 6px;
-                font-size: 12px;
-                line-height: 1.4;
-                z-index: 1000;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.2s ease;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                max-width: 200px;
-            `;
-            document.body.appendChild(tooltip);
-            
-            // Show tooltip on hover
-            emailTemplatesBtn.addEventListener('mouseenter', (e) => {
-                const rect = emailTemplatesBtn.getBoundingClientRect();
-                tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-                tooltip.style.top = (rect.bottom + 8) + 'px';
-                tooltip.style.opacity = '1';
-            });
-            
-            // Hide tooltip on mouse leave
-            emailTemplatesBtn.addEventListener('mouseleave', () => {
-                tooltip.style.opacity = '0';
-            });
-        }
-    });
-</script>
+
 
 {% endblock %}
