@@ -163,6 +163,42 @@
                     </div>
 
                     <div>
+                        <label for="{{ form.certificate.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                            {{ form.certificate.label }}
+                            {% if form.certificate.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                            <div class="tooltip-container ml-2">
+                                <span class="tooltip-icon">?</span>
+                                <div class="tooltip-content">
+                                    <strong>Certificate Template</strong><br>
+                                    Upload a certificate template file for this event:
+                                    <ul class="mt-2 ml-4 list-disc">
+                                        <li>Supported formats: HTML, TXT, PDF, DOC, DOCX, PNG, JPG</li>
+                                        <li>Placeholder replacement: HTML, TXT, and PDF files</li>
+                                        <li>Use {{name}}, {{event_name}}, {{event_date}}, {{company_name}} placeholders</li>
+                                        <li>Will be stored in the event's media folder</li>
+                                    </ul>
+                                    <div class="mt-2 text-xs opacity-75">
+                                        🏆 Optional - HTML/TXT/PDF templates recommended for personalization
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.certificate|add_class:"form-field" }}
+                        </div>
+                        {% if event.certificate %}
+                            <div class="mt-2 text-sm text-gray-600">
+                                Current file: <a href="{{ event.certificate.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">{{ event.certificate.name|default:"certificate file" }}</a>
+                            </div>
+                        {% endif %}
+                        {% for error in form.certificate.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
                         <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.description.label }}
                             {% if form.description.field.required %}

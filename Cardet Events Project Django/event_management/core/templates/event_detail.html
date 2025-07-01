@@ -320,6 +320,7 @@
                         <th class="border border-gray-300 px-4 py-2">Custom Data</th>
                         <th class="border border-gray-300 px-4 py-2">PDF Ticket</th>
                         <th class="border border-gray-300 px-4 py-2">Send Ticket</th>
+                        <th class="border border-gray-300 px-4 py-2">Certificate</th>
                         <th class="border border-gray-300 px-4 py-2">Actions</th>
                         <th class="border border-gray-300 px-4 py-2">Signature</th>
                     </tr>
@@ -399,6 +400,28 @@
                                
                             {% endif %}
                         </td>
+                        <td class="border border-gray-300 px-4 py-2" id="certificate-cell-{{ participant.id }}">
+                            {% if event.certificate %}
+                                {% if participant.certificate %}
+                                    <div class="flex flex-col gap-1">
+                                        <a href="{{ participant.certificate.url }}" target="_blank" class="text-blue-500 underline text-xs">Download</a>
+                                        <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
+                                           class="btn bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 text-xs rounded"
+                                           title="Regenerate certificate">
+                                            🔄 Regenerate
+                                        </a>
+                                    </div>
+                                {% else %}
+                                    <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
+                                       class="btn bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 text-xs rounded"
+                                       title="Generate certificate">
+                                        🏆 Generate
+                                    </a>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-gray-500 text-xs">No Template</span>
+                            {% endif %}
+                        </td>
                         <td class="border border-gray-300 px-4 py-2" id="actions-cell-{{ participant.id }}">
                             <div class="flex gap-1 justify-center">
                                 {% if participant.has_rsvp_response %}
@@ -461,7 +484,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="12" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
+                        <td colspan="13" class="text-center border border-gray-300 px-4 py-2">No participants registered</td>
                     </tr>
                     {% endfor %}
                 </tbody>

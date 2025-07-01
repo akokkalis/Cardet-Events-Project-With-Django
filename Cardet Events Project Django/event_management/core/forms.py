@@ -88,6 +88,7 @@ class EventForm(forms.ModelForm):
             "location",
             "description",
             "image",
+            "certificate",
             "tickets",
             "signatures",
             "status",

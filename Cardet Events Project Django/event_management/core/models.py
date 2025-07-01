@@ -44,6 +44,18 @@ def event_image_path(instance, filename):
     return f"temp/{filename}"  # Temporary storage before ID is assigned
 
 
+def event_certificate_path(instance, filename):
+    """Returns the path to store event certificates inside the event folder."""
+
+    if instance.id:  # Ensure the instance has an ID before using it
+        return os.path.join(
+            f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
+            "event_image",
+            f"certificate_{filename}",
+        )
+    return f"temp/certificate_{filename}"  # Temporary storage before ID is assigned
+
+
 def pdf_ticket_path(instance, filename):
     sanitized_email = instance.email.replace("@", "_").replace(".", "_")
     print("SANITIZED EMAIL")
@@ -66,6 +78,18 @@ def custom_field_file_path(instance, filename):
         instance.field_label.replace(" ", "_").replace("/", "_").replace("\\", "_")
     )
     return f"Events/{instance.participant.event.id}_{instance.participant.event.event_name.replace(' ', '_')}/custom_field_files/{sanitized_field_name}_{sanitized_email}_{filename}"
+
+
+def participant_certificate_path(instance, filename):
+    """Returns the path to store participant certificates inside the event folder."""
+    sanitized_email = instance.email.replace("@", "_").replace(".", "_")
+    sanitized_name = (
+        instance.name.replace(" ", "_").replace("/", "_").replace("\\", "_")
+    )
+    # Ensure the filename ends with .pdf since we always generate PDF certificates
+    if not filename.lower().endswith(".pdf"):
+        filename = f"{os.path.splitext(filename)[0]}.pdf"
+    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/certificates/{sanitized_name}_{sanitized_email}_{filename}"
 
 
 class Company(models.Model):
@@ -157,6 +181,12 @@ class Event(models.Model):
         help_text="Enable this if you want registrations to be automatically approved. If disabled, registrations will require manual approval.",
     )
     image = models.ImageField(upload_to=event_image_path, blank=True, null=True)
+    certificate = models.FileField(
+        upload_to=event_certificate_path,
+        blank=True,
+        null=True,
+        help_text="Upload a certificate template file (PDF, DOC, DOCX, PNG, JPG) for this event.",
+    )
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
 
     def get_event_folder(self):
@@ -278,6 +308,9 @@ class Participant(models.Model):
     )
     pdf_ticket = models.FileField(upload_to=pdf_ticket_path, blank=True, null=True)
     qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
+    certificate = models.FileField(
+        upload_to=participant_certificate_path, blank=True, null=True
+    )
     registered_at = models.DateTimeField(auto_now_add=True)
     submitted_data = models.JSONField(blank=True, null=True)
 

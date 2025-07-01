@@ -49,6 +49,11 @@ from .signals import send_rsvp_email
 from django_ratelimit.decorators import ratelimit
 
 from django.utils.decorators import method_decorator
+import re
+from pdfjinja import PdfJinja
+import tempfile
+import logging
+import pypdf
 
 
 def login_view(request):
@@ -2198,5 +2203,1088 @@ def import_participants_csv(request, event_id):
 
         except Exception as e:
             messages.error(request, f"Error processing CSV file: {str(e)}")
+
+    return redirect("event_detail", event_id=event.id)
+
+
+def process_docx_certificate(event, participant, form_data):
+    """Process DOCX certificate template and convert to PDF."""
+    import tempfile
+    import os
+    from docx import Document
+
+    print("=== DOCX CERTIFICATE PROCESSING ===")
+
+    # Create temporary file for the DOCX template
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as temp_docx:
+        with event.certificate.open("rb") as f:
+            temp_docx.write(f.read())
+        temp_docx_path = temp_docx.name
+
+    try:
+        # Load the DOCX document
+        doc = Document(temp_docx_path)
+
+        # Define placeholder patterns and their replacements
+        replacements = {
+            "{{participant_name}}": form_data.get("participant_name", ""),
+            "{{ participant_name }}": form_data.get("participant_name", ""),
+            "{participant_name}": form_data.get("participant_name", ""),
+            "{ participant_name }": form_data.get("participant_name", ""),
+            "[participant_name]": form_data.get("participant_name", ""),
+            "[ participant_name ]": form_data.get("participant_name", ""),
+            "__PARTICIPANT_NAME__": form_data.get("participant_name", ""),
+            "_PARTICIPANT_NAME_": form_data.get("participant_name", ""),
+            "{{event_name}}": form_data.get("event_name", ""),
+            "{{ event_name }}": form_data.get("event_name", ""),
+            "{event_name}": form_data.get("event_name", ""),
+            "{ event_name }": form_data.get("event_name", ""),
+            "[event_name]": form_data.get("event_name", ""),
+            "[ event_name ]": form_data.get("event_name", ""),
+            "__EVENT_NAME__": form_data.get("event_name", ""),
+            "_EVENT_NAME_": form_data.get("event_name", ""),
+            "{{event_date}}": form_data.get("event_date", ""),
+            "{{ event_date }}": form_data.get("event_date", ""),
+            "{event_date}": form_data.get("event_date", ""),
+            "{ event_date }": form_data.get("event_date", ""),
+            "[event_date]": form_data.get("event_date", ""),
+            "[ event_date ]": form_data.get("event_date", ""),
+            "__EVENT_DATE__": form_data.get("event_date", ""),
+            "_EVENT_DATE_": form_data.get("event_date", ""),
+            "{{company_name}}": form_data.get("company_name", ""),
+            "{{ company_name }}": form_data.get("company_name", ""),
+            "{company_name}": form_data.get("company_name", ""),
+            "{ company_name }": form_data.get("company_name", ""),
+            "[company_name]": form_data.get("company_name", ""),
+            "[ company_name ]": form_data.get("company_name", ""),
+            "__COMPANY_NAME__": form_data.get("company_name", ""),
+            "_COMPANY_NAME_": form_data.get("company_name", ""),
+        }
+
+        replacements_made = 0
+
+        # Replace text in paragraphs
+        for paragraph_idx, paragraph in enumerate(doc.paragraphs):
+            for placeholder, replacement in replacements.items():
+                if placeholder in paragraph.text:
+                    original_text = paragraph.text
+                    paragraph.text = paragraph.text.replace(placeholder, replacement)
+                    replacements_made += 1
+                    print(
+                        f"📝 Paragraph {paragraph_idx + 1}: Replaced '{placeholder}' with '{replacement}'"
+                    )
+
+        # Replace text in tables
+        for table_idx, table in enumerate(doc.tables):
+            for row_idx, row in enumerate(table.rows):
+                for cell_idx, cell in enumerate(row.cells):
+                    for paragraph in cell.paragraphs:
+                        for placeholder, replacement in replacements.items():
+                            if placeholder in paragraph.text:
+                                paragraph.text = paragraph.text.replace(
+                                    placeholder, replacement
+                                )
+                                replacements_made += 1
+                                print(
+                                    f"📊 Table {table_idx + 1}, Row {row_idx + 1}, Cell {cell_idx + 1}: Replaced '{placeholder}' with '{replacement}'"
+                                )
+
+        # Replace text in headers and footers
+        for section_idx, section in enumerate(doc.sections):
+            # Headers
+            for header_para_idx, paragraph in enumerate(section.header.paragraphs):
+                for placeholder, replacement in replacements.items():
+                    if placeholder in paragraph.text:
+                        paragraph.text = paragraph.text.replace(
+                            placeholder, replacement
+                        )
+                        replacements_made += 1
+                        print(
+                            f"📄 Section {section_idx + 1} Header, Paragraph {header_para_idx + 1}: Replaced '{placeholder}' with '{replacement}'"
+                        )
+
+            # Footers
+            for footer_para_idx, paragraph in enumerate(section.footer.paragraphs):
+                for placeholder, replacement in replacements.items():
+                    if placeholder in paragraph.text:
+                        paragraph.text = paragraph.text.replace(
+                            placeholder, replacement
+                        )
+                        replacements_made += 1
+                        print(
+                            f"📄 Section {section_idx + 1} Footer, Paragraph {footer_para_idx + 1}: Replaced '{placeholder}' with '{replacement}'"
+                        )
+
+        print(
+            f"📊 DOCX Processing Summary: {replacements_made} total replacements made"
+        )
+        if replacements_made == 0:
+            print(
+                "⚠️  No placeholders found in DOCX. Make sure you're using supported formats:"
+            )
+            print(
+                "   - {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}}"
+            )
+            print(
+                "   - {participant_name}, [participant_name], __PARTICIPANT_NAME__, etc."
+            )
+
+        # Save the modified DOCX
+        with tempfile.NamedTemporaryFile(
+            delete=False, suffix=".docx"
+        ) as temp_filled_docx:
+            temp_filled_docx_path = temp_filled_docx.name
+
+        doc.save(temp_filled_docx_path)
+
+        # Convert DOCX to PDF
+        print("Converting DOCX to PDF...")
+        temp_pdf_path = convert_docx_to_pdf(temp_filled_docx_path)
+
+        # Verify the converted PDF
+        try:
+            verify_reader = pypdf.PdfReader(temp_pdf_path)
+            if len(verify_reader.pages) == 0:
+                raise Exception("DOCX to PDF conversion resulted in an empty PDF file.")
+            print(
+                f"DOCX conversion successful: PDF has {len(verify_reader.pages)} page(s)"
+            )
+        except Exception as verify_error:
+            raise Exception(f"DOCX to PDF conversion failed: {verify_error}")
+
+        # Clean up temporary DOCX files
+        try:
+            os.remove(temp_docx_path)
+            os.remove(temp_filled_docx_path)
+        except Exception as cleanup_error:
+            print(f"DOCX cleanup error: {cleanup_error}")
+
+        return temp_pdf_path
+
+    except Exception as e:
+        print(f"DOCX processing error: {e}")
+        # Clean up temporary files
+        try:
+            if os.path.exists(temp_docx_path):
+                os.remove(temp_docx_path)
+        except:
+            pass
+        raise e
+
+
+def convert_docx_to_pdf(docx_path):
+    """Convert DOCX file to PDF using various methods while preserving formatting."""
+    import tempfile
+    import os
+
+    print(f"Starting DOCX to PDF conversion for: {docx_path}")
+
+    # Verify input file exists and has content
+    if not os.path.exists(docx_path):
+        raise Exception(f"DOCX file not found: {docx_path}")
+
+    file_size = os.path.getsize(docx_path)
+    print(f"DOCX file size: {file_size} bytes")
+
+    if file_size == 0:
+        raise Exception("DOCX file is empty")
+
+    # Create temporary PDF file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+        temp_pdf_path = temp_pdf.name
+
+    try:
+        # Method 1: Try using mammoth + weasyprint (excellent formatting - no Microsoft Word needed)
+        try:
+            import mammoth
+            import weasyprint
+            from django.template import Template, Context
+
+            print(
+                "🥇 Attempting DOCX to PDF using mammoth + weasyprint (excellent formatting - no Word needed)..."
+            )
+
+            # Convert DOCX to HTML with mammoth (preserves most formatting)
+            with open(docx_path, "rb") as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html_content = result.html
+
+                if result.messages:
+                    print(f"Mammoth conversion messages: {result.messages}")
+
+            # Enhanced HTML template with better certificate styling
+            html_template = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    @page {
+                        size: A4;
+                        margin: 2cm;
+                    }
+                    body {
+                        font-family: 'Times New Roman', 'Liberation Serif', serif;
+                        font-size: 16px;
+                        line-height: 1.8;
+                        text-align: center;
+                        color: #2c3e50;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    h1 {
+                        font-size: 28px;
+                        color: #1a365d;
+                        margin: 30px 0;
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                    }
+                    h2 {
+                        font-size: 22px;
+                        color: #2c5aa0;
+                        margin: 25px 0;
+                        font-weight: bold;
+                    }
+                    h3 {
+                        font-size: 18px;
+                        color: #4a90a4;
+                        margin: 20px 0;
+                        font-weight: bold;
+                    }
+                    p {
+                        margin: 15px 0;
+                        font-size: 16px;
+                        line-height: 1.8;
+                    }
+                    strong, b {
+                        font-weight: bold;
+                        color: #1a365d;
+                    }
+                    em, i {
+                        font-style: italic;
+                        color: #2c5aa0;
+                    }
+                    .certificate-content {
+                        max-width: 100%;
+                        margin: 0 auto;
+                        padding: 40px 20px;
+                        min-height: 500px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                    }
+                    table {
+                        margin: 20px auto;
+                        border-collapse: collapse;
+                        width: 80%;
+                    }
+                    td, th {
+                        padding: 10px;
+                        text-align: center;
+                        border: none;
+                    }
+                    /* Certificate border effect */
+                    .certificate-content {
+                        border: 3px solid #2c5aa0;
+                        border-radius: 10px;
+                        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="certificate-content">
+                    {{ content|safe }}
+                </div>
+            </body>
+            </html>
+            """
+
+            template = Template(html_template)
+            final_html = template.render(Context({"content": html_content}))
+
+            # Convert HTML to PDF using weasyprint
+            weasyprint.HTML(string=final_html).write_pdf(temp_pdf_path)
+
+            # Verify the conversion
+            if os.path.exists(temp_pdf_path):
+                pdf_size = os.path.getsize(temp_pdf_path)
+                print(
+                    f"mammoth + weasyprint conversion completed. PDF size: {pdf_size} bytes"
+                )
+
+                if pdf_size > 0:
+                    try:
+                        import pypdf
+
+                        test_reader = pypdf.PdfReader(temp_pdf_path)
+                        if len(test_reader.pages) > 0:
+                            print(
+                                "✅ mammoth + weasyprint conversion successful - excellent formatting preservation without Word!"
+                            )
+                            return temp_pdf_path
+                        else:
+                            print("❌ mammoth + weasyprint created PDF with no pages")
+                    except Exception as validate_error:
+                        print(f"PDF validation failed: {validate_error}")
+                else:
+                    print("❌ mammoth + weasyprint created empty PDF file")
+            else:
+                print("❌ mammoth + weasyprint failed to create output file")
+
+        except ImportError:
+            print(
+                "🚫 mammoth or weasyprint not available - install with: pip install mammoth weasyprint"
+            )
+        except Exception as e:
+            print(f"mammoth + weasyprint conversion failed: {e}")
+
+        # Method 2: Try using docx2pdf (fallback - requires Microsoft Word or LibreOffice)
+        try:
+            from docx2pdf import convert
+
+            print(
+                "🥈 Attempting DOCX to PDF conversion using docx2pdf (requires Word/LibreOffice)..."
+            )
+            convert(docx_path, temp_pdf_path)
+
+            # Verify the conversion was successful
+            if os.path.exists(temp_pdf_path):
+                pdf_size = os.path.getsize(temp_pdf_path)
+                print(f"docx2pdf conversion completed. PDF size: {pdf_size} bytes")
+
+                if pdf_size > 0:
+                    # Quick validation with pypdf
+                    try:
+                        import pypdf
+
+                        test_reader = pypdf.PdfReader(temp_pdf_path)
+                        if len(test_reader.pages) > 0:
+                            print(
+                                "✅ docx2pdf conversion successful - perfect formatting preservation"
+                            )
+                            return temp_pdf_path
+                        else:
+                            print("❌ docx2pdf created PDF with no pages")
+                    except Exception as validate_error:
+                        print(f"PDF validation failed: {validate_error}")
+                else:
+                    print("❌ docx2pdf created empty PDF file")
+            else:
+                print("❌ docx2pdf failed to create output file")
+
+        except ImportError:
+            print("docx2pdf not available - need Microsoft Word or LibreOffice")
+        except Exception as e:
+            print(f"docx2pdf conversion failed: {e}")
+
+        # Method 3: Fallback to basic reportlab (loses formatting but works everywhere)
+        try:
+            from docx import Document
+            from reportlab.lib.pagesizes import letter, A4
+            from reportlab.platypus import (
+                SimpleDocTemplate,
+                Paragraph,
+                Spacer,
+                Table,
+                TableStyle,
+            )
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            from reportlab.lib import colors
+
+            print(
+                "🥉 Converting DOCX to PDF using reportlab fallback (basic formatting only)..."
+            )
+
+            # Load the DOCX document
+            doc = Document(docx_path)
+
+            # Check if document has content
+            total_paragraphs = len(doc.paragraphs)
+            text_content = []
+
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text_content.append(paragraph.text.strip())
+
+            print(
+                f"DOCX has {total_paragraphs} paragraphs, {len(text_content)} with text content"
+            )
+
+            if len(text_content) == 0:
+                raise Exception(
+                    "DOCX document appears to be empty or has no text content"
+                )
+
+            # Create PDF document with better styling
+            pdf_doc = SimpleDocTemplate(
+                temp_pdf_path,
+                pagesize=A4,
+                topMargin=1 * inch,
+                bottomMargin=1 * inch,
+                leftMargin=1 * inch,
+                rightMargin=1 * inch,
+            )
+            story = []
+            styles = getSampleStyleSheet()
+
+            # Create better custom styles
+            title_style = ParagraphStyle(
+                "CertificateTitle",
+                parent=styles["Heading1"],
+                fontSize=24,
+                spaceAfter=30,
+                spaceBefore=20,
+                alignment=1,  # Center alignment
+                textColor=colors.darkblue,
+                fontName="Times-Bold",
+            )
+
+            subtitle_style = ParagraphStyle(
+                "CertificateSubtitle",
+                parent=styles["Heading2"],
+                fontSize=18,
+                spaceAfter=20,
+                spaceBefore=10,
+                alignment=1,
+                textColor=colors.darkgreen,
+                fontName="Times-Italic",
+            )
+
+            normal_style = ParagraphStyle(
+                "CertificateNormal",
+                parent=styles["Normal"],
+                fontSize=14,
+                spaceAfter=15,
+                spaceBefore=5,
+                alignment=1,  # Center alignment
+                fontName="Times-Roman",
+                leading=20,
+            )
+
+            # Add some top spacing
+            story.append(Spacer(1, 0.5 * inch))
+
+            # Extract text from DOCX and add to PDF with better styling
+            paragraphs_added = 0
+            for paragraph in doc.paragraphs:
+                if paragraph.text.strip():
+                    text = paragraph.text.strip()
+
+                    # Determine style based on content, length, and formatting
+                    if len(text) < 50 and any(
+                        keyword in text.lower()
+                        for keyword in [
+                            "certificate",
+                            "completion",
+                            "achievement",
+                            "award",
+                        ]
+                    ):
+                        story.append(Paragraph(text, title_style))
+                    elif len(text) < 100 and any(
+                        keyword in text.lower()
+                        for keyword in [
+                            "certifies",
+                            "presented",
+                            "awarded",
+                            "recognition",
+                        ]
+                    ):
+                        story.append(Paragraph(text, subtitle_style))
+                    elif any(
+                        run.bold for run in paragraph.runs if run.bold is not None
+                    ):
+                        # Bold text gets subtitle treatment
+                        story.append(Paragraph(f"<b>{text}</b>", subtitle_style))
+                    else:
+                        story.append(Paragraph(text, normal_style))
+
+                    # Add appropriate spacing
+                    if paragraphs_added == 0:  # After title
+                        story.append(Spacer(1, 0.3 * inch))
+                    else:
+                        story.append(Spacer(1, 0.1 * inch))
+
+                    paragraphs_added += 1
+
+            print(f"Added {paragraphs_added} paragraphs to PDF with enhanced styling")
+
+            if paragraphs_added == 0:
+                # Add a fallback message if no content was added
+                story.append(
+                    Paragraph(
+                        "Certificate content could not be processed", normal_style
+                    )
+                )
+
+            # Add some bottom spacing
+            story.append(Spacer(1, 0.5 * inch))
+
+            # Build PDF
+            pdf_doc.build(story)
+
+            # Verify the PDF was created successfully
+            if os.path.exists(temp_pdf_path):
+                pdf_size = os.path.getsize(temp_pdf_path)
+                print(f"Reportlab conversion completed. PDF size: {pdf_size} bytes")
+
+                if pdf_size > 0:
+                    print(
+                        "⚠️  Reportlab conversion successful (basic formatting - consider installing mammoth + weasyprint for better results)"
+                    )
+                    return temp_pdf_path
+                else:
+                    raise Exception("Reportlab created empty PDF file")
+            else:
+                raise Exception("Reportlab failed to create PDF file")
+
+        except Exception as e:
+            print(f"Reportlab conversion failed: {e}")
+
+        # If all conversion methods fail, raise an error
+        raise Exception(
+            "Unable to convert DOCX to PDF. Please install mammoth + weasyprint for best results: pip install mammoth weasyprint"
+        )
+
+    except Exception as e:
+        # Clean up temporary PDF file if conversion failed
+        try:
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+        except:
+            pass
+        print(f"DOCX to PDF conversion completely failed: {e}")
+        raise e
+
+
+@login_required
+def generate_participant_certificate(request, event_id, participant_id):
+    logger = logging.getLogger(__name__)
+    print("=== CERTIFICATE GENERATION ===")
+
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    if not event.certificate:
+        messages.error(request, "No certificate template found for this event.")
+        return redirect("event_detail", event_id=event.id)
+
+    file_extension = os.path.splitext(event.certificate.name)[1].lower()
+    if file_extension not in [".pdf", ".docx"]:
+        messages.error(request, "Certificate template must be a PDF or DOCX file.")
+        return redirect("event_detail", event_id=event.id)
+
+    # Prepare form data to fill
+    form_data = {
+        "participant_name": participant.name,
+        "event_name": event.event_name,
+        "event_date": event.event_date.strftime("%d %B %Y") if event.event_date else "",
+        "company_name": event.company.name if event.company else "",
+    }
+
+    try:
+        # Handle DOCX templates
+        if file_extension == ".docx":
+            print("Processing DOCX certificate template")
+            temp_input_path = process_docx_certificate(event, participant, form_data)
+        else:
+            # Save the template PDF to a temporary file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_input:
+                with event.certificate.open("rb") as f:
+                    temp_input.write(f.read())
+                temp_input_path = temp_input.name
+
+        # Read the PDF template
+        reader = pypdf.PdfReader(temp_input_path)
+
+        # Check if PDF has pages
+        if len(reader.pages) == 0:
+            raise Exception(
+                "The PDF file has no pages. This might be due to a failed DOCX to PDF conversion or a corrupted file."
+            )
+
+        print(f"PDF has {len(reader.pages)} page(s)")
+        writer = pypdf.PdfWriter()
+        writer.add_page(reader.pages[0])
+
+        # Check if the PDF has form fields (AcroForm)
+        has_form_fields = False
+        try:
+            form_fields = reader.get_fields()
+            if form_fields:
+                has_form_fields = True
+                print("PDF has form fields (via get_fields):", form_fields.keys())
+        except:
+            pass
+
+        if not has_form_fields:
+            # Check for AcroForm in a different way
+            try:
+                if "/AcroForm" in reader.trailer["/Root"]:
+                    has_form_fields = True
+                    print("PDF has AcroForm - using form field filling")
+            except:
+                pass
+
+        if has_form_fields:
+            # Try to fill form fields
+            try:
+                writer.update_page_form_field_values(writer.pages[0], form_data)
+                print("Successfully filled form fields")
+            except Exception as form_error:
+                print(f"Form field filling failed: {form_error}")
+                has_form_fields = False
+
+        if not has_form_fields:
+            print("PDF does not have fillable form fields")
+            # Try text-based replacement using PyMuPDF if available
+            try:
+                import fitz  # PyMuPDF
+
+                # Use PyMuPDF for text replacement
+                doc = fitz.open(temp_input_path)
+                replacements_made = 0
+
+                # Define placeholder patterns to search for
+                placeholder_patterns = {
+                    "participant_name": [
+                        "{{participant_name}}",
+                        "{{ participant_name }}",
+                        "{participant_name}",
+                        "{ participant_name }",
+                        "[participant_name]",
+                        "[ participant_name ]",
+                        "__PARTICIPANT_NAME__",
+                        "_PARTICIPANT_NAME_",
+                    ],
+                    "event_name": [
+                        "{{event_name}}",
+                        "{{ event_name }}",
+                        "{event_name}",
+                        "{ event_name }",
+                        "[event_name]",
+                        "[ event_name ]",
+                        "__EVENT_NAME__",
+                        "_EVENT_NAME_",
+                    ],
+                    "event_date": [
+                        "{{event_date}}",
+                        "{{ event_date }}",
+                        "{event_date}",
+                        "{ event_date }",
+                        "[event_date]",
+                        "[ event_date ]",
+                        "__EVENT_DATE__",
+                        "_EVENT_DATE_",
+                    ],
+                    "company_name": [
+                        "{{company_name}}",
+                        "{{ company_name }}",
+                        "{company_name}",
+                        "{ company_name }",
+                        "[company_name]",
+                        "[ company_name ]",
+                        "__COMPANY_NAME__",
+                        "_COMPANY_NAME_",
+                    ],
+                }
+
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+
+                    # Store replacement info for styled insertion after redaction
+                    styled_replacements = []
+
+                    # Replace placeholders
+                    for field_name, patterns in placeholder_patterns.items():
+                        if field_name in form_data and form_data[field_name]:
+                            for pattern in patterns:
+                                # Search and replace text
+                                text_instances = page.search_for(pattern)
+                                for inst in text_instances:
+                                    # Get the original text properties to preserve styling
+                                    try:
+                                        # Get text details from the location
+                                        blocks = page.get_text("dict", clip=inst)
+
+                                        # Try to extract font information from the original text
+                                        font_name = "helv"  # Default font
+                                        font_size = 12  # Default size
+                                        font_flags = 0  # Default flags
+                                        color = (0, 0, 0)  # Default black
+
+                                        if blocks and "blocks" in blocks:
+                                            for block in blocks["blocks"]:
+                                                if "lines" in block:
+                                                    for line in block["lines"]:
+                                                        if "spans" in line:
+                                                            for span in line["spans"]:
+                                                                span_text = span.get(
+                                                                    "text", ""
+                                                                ).lower()
+                                                                if (
+                                                                    pattern.lower()
+                                                                    in span_text
+                                                                ):
+                                                                    font_name = (
+                                                                        span.get(
+                                                                            "font",
+                                                                            "helv",
+                                                                        )
+                                                                    )
+                                                                    font_size = (
+                                                                        span.get(
+                                                                            "size", 12
+                                                                        )
+                                                                    )
+                                                                    font_flags = (
+                                                                        span.get(
+                                                                            "flags", 0
+                                                                        )
+                                                                    )
+                                                                    color = span.get(
+                                                                        "color", 0
+                                                                    )
+
+                                                                    # Handle color conversion
+                                                                    if isinstance(
+                                                                        color, int
+                                                                    ):
+                                                                        # Convert integer color to RGB tuple
+                                                                        if (
+                                                                            color != 0
+                                                                        ):  # Only convert if not default
+                                                                            color = (
+                                                                                (
+                                                                                    color
+                                                                                    >> 16
+                                                                                )
+                                                                                & 255,
+                                                                                (
+                                                                                    color
+                                                                                    >> 8
+                                                                                )
+                                                                                & 255,
+                                                                                color
+                                                                                & 255,
+                                                                            )
+                                                                            color = tuple(
+                                                                                c
+                                                                                / 255.0
+                                                                                for c in color
+                                                                            )
+                                                                        else:
+                                                                            color = (
+                                                                                0,
+                                                                                0,
+                                                                                0,
+                                                                            )  # Default black
+                                                                    elif (
+                                                                        isinstance(
+                                                                            color,
+                                                                            (
+                                                                                list,
+                                                                                tuple,
+                                                                            ),
+                                                                        )
+                                                                        and len(color)
+                                                                        >= 3
+                                                                    ):
+                                                                        color = tuple(
+                                                                            color[:3]
+                                                                        )
+                                                                    else:
+                                                                        color = (
+                                                                            0,
+                                                                            0,
+                                                                            0,
+                                                                        )  # Default to black
+                                                                    break
+
+                                        print(
+                                            f"  📝 Original text styling: font={font_name}, size={font_size}, color={color}"
+                                        )
+
+                                        # Store the styling info for later application
+                                        # Calculate text width to center the replacement text
+                                        replacement_text = form_data[field_name]
+                                        original_width = inst.x1 - inst.x0
+
+                                        # Estimate text width (rough approximation)
+                                        # Assuming average character width is about 60% of font size
+                                        estimated_char_width = font_size * 0.6
+                                        estimated_text_width = (
+                                            len(replacement_text) * estimated_char_width
+                                        )
+
+                                        # Center the new text within the original bounds
+                                        if estimated_text_width < original_width:
+                                            # Center horizontally within the original bounds
+                                            text_x = (
+                                                inst.x0
+                                                + (
+                                                    original_width
+                                                    - estimated_text_width
+                                                )
+                                                / 2
+                                            )
+                                        else:
+                                            # If text is longer, start from left edge
+                                            text_x = inst.x0
+
+                                        text_y = (inst.y0 + inst.y1) / 2
+
+                                        styled_replacements.append(
+                                            {
+                                                "position": fitz.Point(text_x, text_y),
+                                                "text": form_data[field_name],
+                                                "font": font_name,
+                                                "size": font_size,
+                                                "color": color,
+                                                "flags": font_flags,
+                                            }
+                                        )
+
+                                    except Exception as extract_error:
+                                        print(
+                                            f"  ⚠️ Could not extract styling: {extract_error}"
+                                        )
+                                        # Store basic replacement info
+                                        replacement_text = form_data[field_name]
+                                        original_width = inst.x1 - inst.x0
+
+                                        # Estimate text width with default font size
+                                        estimated_char_width = (
+                                            12 * 0.6
+                                        )  # Default font size 12
+                                        estimated_text_width = (
+                                            len(replacement_text) * estimated_char_width
+                                        )
+
+                                        # Center the new text within the original bounds
+                                        if estimated_text_width < original_width:
+                                            text_x = (
+                                                inst.x0
+                                                + (
+                                                    original_width
+                                                    - estimated_text_width
+                                                )
+                                                / 2
+                                            )
+                                        else:
+                                            text_x = inst.x0
+
+                                        text_y = (inst.y0 + inst.y1) / 2
+
+                                        styled_replacements.append(
+                                            {
+                                                "position": fitz.Point(text_x, text_y),
+                                                "text": form_data[field_name],
+                                                "font": "helv",
+                                                "size": 12,
+                                                "color": (0, 0, 0),
+                                                "flags": 0,
+                                            }
+                                        )
+
+                                    # Add redaction annotation to remove original text
+                                    page.add_redact_annot(
+                                        inst, ""
+                                    )  # Empty string to just remove
+
+                                    replacements_made += 1
+                                    print(
+                                        f"  🔄 Prepared replacement of '{pattern}' with '{form_data[field_name]}' on page {page_num + 1}"
+                                    )
+
+                    # Apply all redactions first (removes original text)
+                    page.apply_redactions()
+
+                    # Now add all the styled text replacements
+                    for replacement in styled_replacements:
+                        try:
+                            # Use PyMuPDF's built-in fonts for better compatibility
+                            font_name = replacement["font"]
+                            flags = replacement["flags"]
+
+                            # Map to PyMuPDF standard fonts (lowercase names work better)
+                            pymupdf_font = None
+
+                            # Determine base font family
+                            if any(
+                                name in font_name.lower() for name in ["times", "serif"]
+                            ):
+                                if flags & 16 and flags & 2:  # Bold + Italic
+                                    pymupdf_font = "times-bi"
+                                elif flags & 16:  # Bold
+                                    pymupdf_font = "times-bold"
+                                elif flags & 2:  # Italic
+                                    pymupdf_font = "times-italic"
+                                else:
+                                    pymupdf_font = "times-roman"
+                            elif any(
+                                name in font_name.lower()
+                                for name in ["helv", "arial", "sans"]
+                            ):
+                                if flags & 16 and flags & 2:  # Bold + Italic
+                                    pymupdf_font = "helv-bi"
+                                elif flags & 16:  # Bold
+                                    pymupdf_font = "helv-bold"
+                                elif flags & 2:  # Italic
+                                    pymupdf_font = "helv-oblique"
+                                else:
+                                    pymupdf_font = "helv"
+                            else:
+                                # Default to helvetica for unknown fonts
+                                if flags & 16 and flags & 2:  # Bold + Italic
+                                    pymupdf_font = "helv-bi"
+                                elif flags & 16:  # Bold
+                                    pymupdf_font = "helv-bold"
+                                elif flags & 2:  # Italic
+                                    pymupdf_font = "helv-oblique"
+                                else:
+                                    pymupdf_font = "helv"
+
+                            page.insert_text(
+                                replacement["position"],
+                                replacement["text"],
+                                fontsize=replacement["size"],
+                                color=replacement["color"],
+                            )
+                            print(
+                                f"  ✅ Added styled text: '{replacement['text']}' (default font, size: {replacement['size']}, color: {replacement['color']})"
+                            )
+                        except Exception as insert_error:
+                            print(f"  ⚠️ Styled text insertion failed: {insert_error}")
+                            # Fallback to basic text insertion with default font
+                            try:
+                                page.insert_text(
+                                    replacement["position"],
+                                    replacement["text"],
+                                    fontsize=replacement["size"],
+                                    color=replacement["color"],
+                                )
+                                print(
+                                    f"  📝 Added basic styled text: '{replacement['text']}' (default font)"
+                                )
+                            except Exception as basic_error:
+                                # Final fallback - just the text with no styling
+                                try:
+                                    page.insert_text(
+                                        replacement["position"], replacement["text"]
+                                    )
+                                    print(
+                                        f"  📝 Added plain text: '{replacement['text']}'"
+                                    )
+                                except Exception as final_error:
+                                    print(
+                                        f"  ❌ All text insertion failed: {final_error}"
+                                    )
+
+                # Save the modified document and recreate the reader
+                if replacements_made > 0:
+                    print(
+                        f"Made {replacements_made} styled text replacements using PyMuPDF"
+                    )
+                    # Save to a new temporary file (not the original)
+                    with tempfile.NamedTemporaryFile(
+                        delete=False, suffix=".pdf"
+                    ) as temp_modified:
+                        temp_modified_path = temp_modified.name
+
+                    # Save and close the PyMuPDF document
+                    doc.save(temp_modified_path, garbage=4, deflate=True)
+                    doc.close()
+
+                    # Replace the original temp file with the modified one
+                    try:
+                        os.remove(temp_input_path)
+                        os.rename(temp_modified_path, temp_input_path)
+                    except Exception as file_error:
+                        print(f"File replacement error: {file_error}")
+                        # If replacement fails, use the modified file directly
+                        temp_input_path = temp_modified_path
+
+                    # Re-read the modified PDF with pypdf
+                    reader = pypdf.PdfReader(temp_input_path)
+
+                    # Check if the modified PDF has pages
+                    if len(reader.pages) == 0:
+                        raise Exception(
+                            "The modified PDF file has no pages after PyMuPDF processing."
+                        )
+
+                    writer = pypdf.PdfWriter()
+                    writer.add_page(reader.pages[0])
+                else:
+                    print("No text placeholders found for replacement")
+                    doc.close()
+
+            except ImportError:
+                print("PyMuPDF not available - skipping text replacement")
+                messages.warning(
+                    request,
+                    f"Certificate template for {participant.name} was created, but no fillable fields or text placeholders were found. "
+                    "Consider using a PDF with form fields or adding placeholders like {{participant_name}}, {{event_name}}, etc.",
+                )
+            except Exception as text_error:
+                print(f"Text replacement failed: {text_error}")
+
+        # Add metadata
+        if hasattr(reader, "metadata") and reader.metadata:
+            writer.add_metadata(reader.metadata)
+
+        # Save to temporary output file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_output:
+            writer.write(temp_output)
+            temp_output_path = temp_output.name
+
+        # Save to model
+        with open(temp_output_path, "rb") as output_file:
+            filled_pdf = output_file.read()
+
+        filename = f"certificate_{participant.name.replace(' ', '_')}.pdf"
+        participant.certificate.save(filename, ContentFile(filled_pdf), save=True)
+
+        # Clean up temporary files
+        try:
+            if os.path.exists(temp_input_path):
+                os.remove(temp_input_path)
+        except Exception as cleanup_error:
+            print(f"Cleanup error for temp_input_path: {cleanup_error}")
+
+        try:
+            if os.path.exists(temp_output_path):
+                os.remove(temp_output_path)
+        except Exception as cleanup_error:
+            print(f"Cleanup error for temp_output_path: {cleanup_error}")
+
+        messages.success(request, f"Certificate generated for {participant.name}!")
+
+    except Exception as e:
+        logger.exception("Failed to generate certificate")
+        messages.error(
+            request, f"An error occurred while generating the certificate: {str(e)}"
+        )
+        # Clean up temporary files in case of error
+        try:
+            if "temp_input_path" in locals() and os.path.exists(temp_input_path):
+                os.remove(temp_input_path)
+        except Exception as cleanup_error:
+            print(f"Cleanup error for temp_input_path: {cleanup_error}")
+
+        try:
+            if "temp_output_path" in locals() and os.path.exists(temp_output_path):
+                os.remove(temp_output_path)
+        except Exception as cleanup_error:
+            print(f"Cleanup error for temp_output_path: {cleanup_error}")
+
+        try:
+            if "temp_modified_path" in locals() and os.path.exists(temp_modified_path):
+                os.remove(temp_modified_path)
+        except Exception as cleanup_error:
+            print(f"Cleanup error for temp_modified_path: {cleanup_error}")
 
     return redirect("event_detail", event_id=event.id)
