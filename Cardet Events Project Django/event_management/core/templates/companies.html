@@ -56,18 +56,14 @@
             <!-- Company Details -->
             <div class="text-left" style="width: 361px;">
                 <h2 class="text-xl font-semibold mb-1">{{ company.name }}</h2>
-                <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">{{ company.email }}</p>
-                {% if company.phone %}
-                    <p class="text-gray-600 text-sm mt-1">
-					  {{ company.phone }}</p>
-				{% else %}
-					<p class="text-gray-600 text-sm mt-1">No phone number found</p>
-                {% endif %}
-                {% if company.address %}
-                    <p class="text-gray-600 text-sm mt-1">📍 {{ company.address|truncatechars:50 }}</p>
-				{% else %}
-					<p class="text-gray-600 text-sm mt-1">No address found</p>
-                {% endif %}
+                <div class="flex flex-wrap gap-2 text-left" style="width: 361px;">
+                    <span class="text-brand-blue text-sm flex items-center gap-1 px-3 py-1 rounded-full">{% heroicon_outline "envelope" class="h-4 w-4" %}{{ company.email }}</span>
+                    <span class="text-brand-blue text-sm flex items-center gap-1 px-3 py-1 rounded-full">{% heroicon_outline "phone" class="h-4 w-4" %}{{ company.phone }}</span>
+                    <span class="text-brand-blue text-sm flex items-center gap-1 px-3 py-1 rounded-full">{% heroicon_outline "map-pin" class="h-4 w-4" %}{{ company.address|truncatechars:50 }}</span>
+                </div>
+
+
+                
             </div>
 
             <!-- Action Buttons -->

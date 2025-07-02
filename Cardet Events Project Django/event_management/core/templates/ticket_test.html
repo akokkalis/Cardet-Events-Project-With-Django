@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Invitation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Light gray background */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 20px; /* Add some padding around the whole card */
+            box-sizing: border-box; /* Include padding in element's total width and height */
+        }
+        .container {
+            max-width: 800px; /* Max width for the email content */
+            width: 100%;
+            background-color: #ffffff; /* White background for the card */
+            border-radius: 12px; /* Rounded corners for the main container */
+            overflow: hidden; /* Ensures image corners are rounded with the container */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+        }
+        .event-image {
+            width: 100%;
+            height: 250px; /* Fixed height for the image */
+            object-fit: cover; /* Cover the area, cropping if necessary */
+            border-radius: 12px; /* Apply border-radius directly to image */
+        }
+        /* Styles for the outer table */
+        .outer-table {
+            width: 100%;
+            border-collapse: collapse; /* Remove space between table cells */
+        }
+        .outer-table td {
+            vertical-align: top; /* Align content to the top of the cell */
+            padding: 0; /* Remove default cell padding */
+        }
+        .image-cell {
+            width: 50%; /* Image takes roughly half the width */
+            padding: 20px; /* Padding for the image cell */
+        }
+        .details-cell {
+            width: 50%; /* Details take roughly half the width */
+            padding: 20px; /* Padding for the details cell */
+        }
+
+        /* Styles for the inner details table */
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .details-table tr {
+            margin-bottom: 16px; /* Space between detail rows */
+            display: block; /* Make rows block to apply margin-bottom */
+        }
+        .details-table td {
+            padding: 0; /* Remove default cell padding for inner table */
+            vertical-align: middle; /* Align icon and text vertically */
+        }
+        .detail-icon-cell {
+            width: 32px; /* Fixed width for the icon column */
+            padding-right: 12px; /* Space between icon and text */
+            flex-shrink: 0;
+        }
+        .detail-text-cell {
+            padding-bottom: 16px; /* Padding at the bottom of each detail row */
+        }
+
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            color: #4b5563; /* Gray icon color */
+        }
+        .qr-code-section {
+            background-color: #e5e7eb; /* Light gray background for QR section */
+            padding: 24px; /* Slightly increased padding */
+            text-align: center;
+        }
+        .qr-code-image {
+            width: 120px; /* Size of the QR code */
+            height: 120px;
+            margin: 20px auto 10px; /* Center the QR code, adjusted vertical margin */
+            border-radius: 8px; /* Slightly rounded QR code */
+        }
+        .thank-you-message {
+            padding: 24px; /* Consistent padding with other sections */
+            text-align: center;
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 500; /* font-medium */
+            color: #374151; /* Darker gray text */
+            background-color: #ffffff; /* Ensure it's on white background, not grey */
+            border-bottom-left-radius: 12px; /* Match container radius */
+            border-bottom-right-radius: 12px; /* Match container radius */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Event Titles Section (outside the main table as per PDF layout) -->
+        <div class="py-8 px-6 md:px-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">CARDET</h1>
+            <h2 class="text-xl md:text-2xl font-semibold text-gray-700 mb-8">Beach Party near the mountains</h2>
+        </div>
+
+        <!-- Main Two-Column Layout Table -->
+        <table class="outer-table">
+            <tr>
+                <!-- Column 1: Event Image -->
+                <td class="image-cell">
+                    <img src="https://placehold.co/350x250/A78BFA/ffffff?text=Beach+Party" alt="Beach Party" class="event-image rounded-lg">
+                </td>
+
+                <!-- Column 2: Participant Details Table -->
+                <td class="details-cell">
+                    <table class="details-table">
+                        <!-- Participant -->
+                        <tr>
+                            <td class="detail-icon-cell">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon">
+                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </td>
+                            <td class="detail-text-cell">
+                                <span class="text-gray-700 text-base md:text-lg">Participant: <span class="font-medium text-gray-800">Andreas</span></span>
+                            </td>
+                        </tr>
+
+                        <!-- Email -->
+                        <tr>
+                            <td class="detail-icon-cell">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon">
+                                    <rect width="20" height="16" x="2" y="4" rx="2"></rect><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+                                </svg>
+                            </td>
+                            <td class="detail-text-cell">
+                                <span class="text-gray-700 text-base md:text-lg">Email: <span class="font-medium text-gray-800">andreas.kokkalis@innovade.eu</span></span>
+                            </td>
+                        </tr>
+
+                        <!-- Date -->
+                        <tr>
+                            <td class="detail-icon-cell">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon">
+                                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"></rect><line x1="16" x2="16" y1="2" y2="6"></line><line x1="8" x2="8" y1="2" y2="6"></line><line x1="3" x2="21" y1="10" y2="10"></line>
+                                </svg>
+                            </td>
+                            <td class="detail-text-cell">
+                                <span class="text-gray-700 text-base md:text-lg">Date: <span class="font-medium text-gray-800">July 16, 2025</span></span>
+                            </td>
+                        </tr>
+
+                        <!-- Time -->
+                        <tr>
+                            <td class="detail-icon-cell">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon">
+                                    <circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </td>
+                            <td class="detail-text-cell">
+                                <span class="text-gray-700 text-base md:text-lg">Time: <span class="font-medium text-gray-800">8 a.m. - 8 p.m.</span></span>
+                            </td>
+                        </tr>
+
+                        <!-- Venue -->
+                        <tr>
+                            <td class="detail-icon-cell">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="detail-icon">
+                                    <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle>
+                                </svg>
+                            </td>
+                            <td class="detail-text-cell">
+                                <span class="text-gray-700 text-base md:text-lg">Venue: <a href="#" class="text-blue-600 hover:underline font-medium">View on Google Maps</a></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Event Name (as per PDF) -->
+        <div class="py-8 px-6 md:px-10">
+            <p class="text-lg md:text-xl font-semibold text-gray-800 mb-8">Name of event</p>
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="qr-code-section">
+            <p class="text-gray-700 text-base md:text-lg font-medium mb-2">Scan this QR code for entry</p>
+            <img src="https://placehold.co/120x120/4B5563/ffffff?text=QR+Code" alt="QR Code" class="qr-code-image">
+        </div>
+
+        <!-- Thank You Message -->
+        <div class="thank-you-message">
+            <p>Thank you for attending our event!</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -20,78 +20,127 @@ import base64
 import shutil
 from datetime import datetime
 from django.urls import reverse
+from weasyprint import HTML
 
 
 def generate_pdf_ticket(participant, qr_code_path):
-    """Generate a PDF ticket using an HTML template."""
+    """Generate a PDF ticket using an HTML template (WeasyPrint)."""
 
-    site_url = f"{settings.SITE_URL}"
-
-    # ✅ Ensure the event's PDF tickets folder exists
+    # ✔ Create folders
     pdf_folder = os.path.join(
         settings.MEDIA_ROOT,
         f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets",
     )
     os.makedirs(pdf_folder, exist_ok=True)
 
-    # ✅ Sanitize filename (replace spaces with underscores)
-    sanitized_name = re.sub(
-        r"\s+", "_", participant.name.strip()
-    )  # Replace spaces with underscores
+    # ✔ Sanitize file name
+    sanitized_name = re.sub(r"\s+", "_", participant.name.strip())
     sanitized_email = participant.email.replace("@", "_").replace(".", "_")
     pdf_filename = f"{sanitized_name}_{sanitized_email}_ticket.pdf"
-
     pdf_path = os.path.join(pdf_folder, pdf_filename)
 
-    # ✅ Fix QR Code Path
-    qr_image_path = participant.qr_code.url
-    qr_image_url = f"{settings.MEDIA_URL}{qr_image_path}".replace("\\", "/")
-
+    # ✔ Paths for assets (absolute file paths required)
+    qr_image_path = participant.qr_code.path
+    logo_path = (
+        participant.event.company.logo.path if participant.event.company.logo else None
+    )
+    event_img_path = participant.event.image.path if participant.event.image else None
     font_path = os.path.join(settings.BASE_DIR, "core", "fonts", "DejaVuSans.ttf")
-    print("MY FONT URL:", font_path)
-    company_logo_url = (
-        f"{participant.event.company.logo.url}"
-        if participant.event.company.logo
-        else None
-    )
-    print(company_logo_url)
 
-    event_image_url = (
-        f"{participant.event.image.url}" if participant.event.image else None
-    )
-    print(event_image_url)
-    # ✅ Generate HTML from template
+    # ✔ Render HTML with asset paths
     html_content = render_to_string(
-        "pdf_template.html",
+        "ticket_test.html",
         {
             "participant": participant,
-            "qr_image_path": qr_image_path[1:],  # Convert to relative path
-            "company_logo_url": company_logo_url,
-            "event_image_url": event_image_url,
-            "font_path": font_path.replace("\\", "/"),
+            "qr_image_path": qr_image_path,
+            "company_logo_path": logo_path,
+            "event_image_path": event_img_path,
+            "font_path": font_path,
         },
     )
 
-    # ✅ Generate PDF from HTML and store in memory buffer
+    # ✔ Generate PDF
     pdf_buffer = BytesIO()
-    pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+    HTML(string=html_content, base_url=settings.BASE_DIR).write_pdf(target=pdf_buffer)
 
-    if pisa_status.err:
-        print("❌ Error creating PDF")
-        return None
-
-    # ✅ Convert buffer to Django ContentFile
+    # ✔ Save as Django File
     pdf_content = ContentFile(pdf_buffer.getvalue())
-
-    # ✅ Ensure the correct relative path for saving
     relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
-
-    # ✅ Save the PDF content directly to the model field
     participant.pdf_ticket.save(relative_pdf_path, pdf_content, save=False)
 
-    return (
-        relative_pdf_path  # Return relative path to store in `participant.pdf_ticket`
-    )
+    return relative_pdf_path
+
+
+# def generate_pdf_ticket(participant, qr_code_path):
+#     """Generate a PDF ticket using an HTML template."""
+
+#     site_url = f"{settings.SITE_URL}"
+
+#     # ✅ Ensure the event's PDF tickets folder exists
+#     pdf_folder = os.path.join(
+#         settings.MEDIA_ROOT,
+#         f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets",
+#     )
+#     os.makedirs(pdf_folder, exist_ok=True)
+
+#     # ✅ Sanitize filename (replace spaces with underscores)
+#     sanitized_name = re.sub(
+#         r"\s+", "_", participant.name.strip()
+#     )  # Replace spaces with underscores
+#     sanitized_email = participant.email.replace("@", "_").replace(".", "_")
+#     pdf_filename = f"{sanitized_name}_{sanitized_email}_ticket.pdf"
+
+#     pdf_path = os.path.join(pdf_folder, pdf_filename)
+
+#     # ✅ Fix QR Code Path
+#     qr_image_path = participant.qr_code.url
+#     qr_image_url = f"{settings.MEDIA_URL}{qr_image_path}".replace("\\", "/")
+
+#     font_path = os.path.join(settings.BASE_DIR, "core", "fonts", "DejaVuSans.ttf")
+#     print("MY FONT URL:", font_path)
+#     company_logo_url = (
+#         f"{participant.event.company.logo.url}"
+#         if participant.event.company.logo
+#         else None
+#     )
+#     print(company_logo_url)
+
+#     event_image_url = (
+#         f"{participant.event.image.url}" if participant.event.image else None
+#     )
+#     print(event_image_url)
+#     # ✅ Generate HTML from template
+#     html_content = render_to_string(
+#         "ticket_test.html",
+#         {
+#             "participant": participant,
+#             "qr_image_path": qr_image_path[1:],  # Convert to relative path
+#             "company_logo_url": company_logo_url,
+#             "event_image_url": event_image_url,
+#             "font_path": font_path.replace("\\", "/"),
+#         },
+#     )
+
+#     # ✅ Generate PDF from HTML and store in memory buffer
+#     pdf_buffer = BytesIO()
+#     pisa_status = pisa.CreatePDF(html_content, dest=pdf_buffer)
+
+#     if pisa_status.err:
+#         print("❌ Error creating PDF")
+#         return None
+
+#     # ✅ Convert buffer to Django ContentFile
+#     pdf_content = ContentFile(pdf_buffer.getvalue())
+
+#     # ✅ Ensure the correct relative path for saving
+#     relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
+
+#     # ✅ Save the PDF content directly to the model field
+#     participant.pdf_ticket.save(relative_pdf_path, pdf_content, save=False)
+
+#     return (
+#         relative_pdf_path  # Return relative path to store in `participant.pdf_ticket`
+#     )
 
 
 def email_body(participant_name, event_info):

@@ -566,6 +566,14 @@ def export_zip(request, event_id):
                     file_path = os.path.join(root, file)
                     zipf.write(file_path, os.path.relpath(file_path, "media"))
 
+        # Add Certificates if available
+        certificates_folder = os.path.join(event_folder, "certificates")
+        if os.path.exists(certificates_folder):
+            for root, _, files in os.walk(certificates_folder):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    zipf.write(file_path, os.path.relpath(file_path, "media"))
+
     # Serve the ZIP file for download
     zip_file = open(zip_path, "rb")
     response = FileResponse(zip_file, as_attachment=True, filename=zip_filename)
@@ -1936,7 +1944,6 @@ def export_participant_template(request, event_id):
         "name *REQUIRED*",
         "email *REQUIRED*",
         "phone",
-        "approval_status (approved/rejected/pending)",
     ]
 
     # Add custom fields to headers with required indicators
@@ -1962,7 +1969,7 @@ def export_participant_template(request, event_id):
     writer.writerow(headers)
 
     # Add example row with sample data
-    example_row = ["John Doe", "john.doe@example.com", "+1234567890", "pending"]
+    example_row = ["John Doe", "john.doe@example.com", "+1234567890"]
 
     # Add example values for custom fields
     for field in custom_fields:
@@ -2011,7 +2018,9 @@ def export_participant_template(request, event_id):
     writer.writerow(["2. Fields marked with *REQUIRED* must be filled"])
     writer.writerow(["3. Delete this instruction section before importing"])
     writer.writerow(
-        ["4. approval_status options: approved, rejected, pending (default: pending)"]
+        [
+            "4. All imported participants will have 'pending' status and require manual approval"
+        ]
     )
     writer.writerow(["5. For multi-select fields, separate values with commas"])
     writer.writerow(["6. For checkbox fields, use: true or false"])
@@ -2206,22 +2215,11 @@ def import_participants_csv(request, event_id):
                             continue
 
                         try:
-                            # Create participant with auto-approval check
-                            approval_status = row_data.get(
-                                "approval_status", "pending"
-                            ).lower()
-                            if approval_status not in [
-                                "approved",
-                                "rejected",
-                                "pending",
-                            ]:
-                                approval_status = "pending"
-
-                            if event.auto_approval_enabled:
-                                approval_status = "approved"
-                                print(
-                                    f"🎯 Auto-approval enabled - setting {row_data['name']} to approved status"
-                                )
+                            # Create participant - CSV imports always start as pending
+                            approval_status = "pending"
+                            print(
+                                f"📋 CSV Import - setting {row_data['name']} to pending status (requires manual approval)"
+                            )
 
                             # Process custom fields
                             submitted_data = {}
@@ -2270,8 +2268,18 @@ def import_participants_csv(request, event_id):
                             import_log.successful_imports += 1
                             imported_count += 1
                             print(
-                                f"✅ Successfully created participant {imported_count}: {participant.name}"
+                                f"✅ Successfully created participant {imported_count}: {participant.name} (Status: pending - awaiting manual approval)"
                             )
+
+                            # All CSV imports are pending - tickets will be generated upon manual approval
+                            if event.tickets:
+                                print(
+                                    f"🎫 Tickets will be generated upon manual approval: {participant.name}"
+                                )
+                            else:
+                                print(
+                                    f"ℹ️ No tickets for this event: {participant.name}"
+                                )
 
                         except Exception as e:
                             error_msg = (
