@@ -278,6 +278,19 @@
                    <span>Send RSVP Notification</span>
                </button>
            {% endif %}
+           
+           <!-- Bulk Certificate Generation Button -->
+           {% if event.certificate %}
+               <button id="bulkGenerateCertificatesBtn" class="btn btn-outline-blue" data-event-id="{{ event.id }}">
+                   {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                   <span>Generate All Certificates</span>
+               </button>
+           {% else %}
+               <button class="btn btn-outline-blue opacity-50 cursor-not-allowed" disabled title="No certificate template uploaded">
+                   {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                   <span>Generate All Certificates</span>
+               </button>
+           {% endif %}
         </div>
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-semibold">Registered Participants</h2>
@@ -401,26 +414,46 @@
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="certificate-cell-{{ participant.id }}">
-                            {% if event.certificate %}
+                            <div class="flex gap-2 items-center">
+                                <!-- Download Button -->
                                 {% if participant.certificate %}
-                                    <div class="flex flex-col gap-1">
-                                        <a href="{{ participant.certificate.url }}" target="_blank" class="text-blue-500 underline text-xs">Download</a>
-                                        <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
-                                           class="btn bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 text-xs rounded"
-                                           title="Regenerate certificate">
-                                            🔄 Regenerate
-                                        </a>
-                                    </div>
-                                {% else %}
-                                    <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
-                                       class="btn bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 text-xs rounded"
-                                       title="Generate certificate">
-                                        🏆 Generate
+                                    <a href="{{ participant.certificate.url }}" target="_blank" 
+                                       class="btn  btn-outline-blue
+                                       px-2 py-1 text-xs rounded"
+                                       title="Download certificate">
+                                       {% heroicon_outline "arrow-down-tray"  %}
                                     </a>
+                                {% else %}
+                                    <button class="btn btn-outline-blue px-2 py-1 text-xs rounded cursor-not-allowed opacity-50" 
+                                            disabled
+                                            title="No certificate generated yet">
+                                        📥 Download
+                                    </button>
                                 {% endif %}
-                            {% else %}
-                                <span class="text-gray-500 text-xs">No Template</span>
-                            {% endif %}
+                                
+                                <!-- Generate/Regenerate Button -->
+                                {% if event.certificate %}
+                                    {% if participant.certificate %}
+                                        <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
+                                           class="btn btn-outline-blue px-2 py-1 text-xs rounded"
+                                           title="Regenerate certificate">
+                                           {% heroicon_outline "arrow-path-rounded-square"  %} Regenerate
+                                        </a>
+                                    {% else %}
+                                        <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
+                                           class="btn btn-outline-blue px-2 py-1 text-xs rounded"
+                                           title="Generate certificate">
+                                            🏆 Generate
+                                        </a>
+                                    {% endif %}
+                                {% else %}
+                                    <button class="btn btn-outline-blue px-2 py-1 text-xs rounded cursor-not-allowed opacity-50" 
+                                            disabled
+                                            title="No certificate template uploaded">
+                                        🏆 Generate
+                                    </button>
+                                {% endif %}
+                            </div>
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="actions-cell-{{ participant.id }}">
                             <div class="flex gap-1 justify-center">
@@ -517,7 +550,7 @@
                 </ol>
             </div>
             
-            <form id="importForm" method="post" enctype="multipart/form-data" action="{% url 'import_participants_csv' event.id %}">
+            <form id="csv-import-form" method="post" enctype="multipart/form-data" action="{% url 'import_participants_csv' event.id %}">
                 {% csrf_token %}
                 <div class="mb-4">
                     <label for="csv_file" class="block text-sm font-medium text-gray-700 mb-2">
@@ -596,6 +629,113 @@
 
 <!-- Load participant import/export functionality -->
 <script src="{% static 'js/participant_import_export.js' %}"></script>
+
+<!-- Load CSV import progress tracking functionality -->
+<script src="{% static 'js/csv_import_progress.js' %}"></script>
+
+<!-- Bulk Certificate Generation JavaScript -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const bulkGenerateBtn = document.getElementById('bulkGenerateCertificatesBtn');
+    
+    if (bulkGenerateBtn) {
+        bulkGenerateBtn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            
+            // Show confirmation dialog
+            Swal.fire({
+                title: 'Generate All Certificates?',
+                text: 'This will generate certificates for all participants in this event. This process may take several minutes.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Generate All',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Disable the button and show loading state
+                    bulkGenerateBtn.disabled = true;
+                    bulkGenerateBtn.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Generating...</span>
+                        </div>
+                    `;
+                    
+                    // Make the AJAX request
+                    fetch(`/events/${eventId}/bulk-generate-certificates/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.csrfToken,
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'started') {
+                            Swal.fire({
+                                title: 'Generation Started!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Show a different message on the button
+                                bulkGenerateBtn.innerHTML = `
+                                    {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                                    <span>Processing in Background...</span>
+                                `;
+                                bulkGenerateBtn.classList.add('opacity-75');
+                                
+                                // Re-enable after 30 seconds
+                                setTimeout(() => {
+                                    bulkGenerateBtn.disabled = false;
+                                    bulkGenerateBtn.innerHTML = `
+                                        {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                                        <span>Generate All Certificates</span>
+                                    `;
+                                    bulkGenerateBtn.classList.remove('opacity-75');
+                                }, 30000);
+                            });
+                        } else {
+                            // Handle error
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'An error occurred while starting certificate generation.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                            
+                            // Re-enable the button
+                            bulkGenerateBtn.disabled = false;
+                            bulkGenerateBtn.innerHTML = `
+                                {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                                <span>Generate All Certificates</span>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'A network error occurred. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        
+                        // Re-enable the button
+                        bulkGenerateBtn.disabled = false;
+                        bulkGenerateBtn.innerHTML = `
+                            {% heroicon_outline "academic-cap" class="h-5 w-5" %}
+                            <span>Generate All Certificates</span>
+                        `;
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
 
 <!-- Check for missing email templates on page load -->
 

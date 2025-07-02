@@ -1,18 +1,14 @@
 from django.db import models
-
-# Create your models here.
-from django.db import models
 from django.contrib.auth.models import User
-
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+from django.core.exceptions import ValidationError
 import os
 from ckeditor.fields import RichTextField
 from django.core.files.base import ContentFile
 import qrcode
 from io import BytesIO
-from django.core.files.base import ContentFile
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
 
@@ -20,6 +16,37 @@ COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
     settings.MEDIA_ROOT, "Events"
 )  # Master "Events" directory
+
+
+def validate_pdf_file(value):
+    """Validate that the uploaded file is a PDF."""
+    if value:
+        # Check file extension
+        if not value.name.lower().endswith(".pdf"):
+            raise ValidationError(
+                "Only PDF files are allowed for certificate templates."
+            )
+
+        # Check MIME type if available
+        if hasattr(value, "content_type") and value.content_type:
+            if not value.content_type.startswith("application/pdf"):
+                raise ValidationError(
+                    "Invalid file type. Only PDF files are allowed for certificate templates."
+                )
+
+        # Check file signature (magic bytes) for PDF
+        try:
+            value.seek(0)
+            file_signature = value.read(4)
+            value.seek(0)  # Reset file pointer
+
+            if file_signature != b"%PDF":
+                raise ValidationError(
+                    "Invalid PDF file. The file does not appear to be a valid PDF."
+                )
+        except Exception:
+            # If we can't read the file, let Django's default validation handle it
+            pass
 
 
 def company_logo_path(instance, filename):
@@ -128,7 +155,7 @@ class Staff(models.Model):
     company = models.ForeignKey(Company, on_delete=models.CASCADE)
     user = models.OneToOneField(
         User, on_delete=models.CASCADE
-    )  # Django’s built-in user model
+    )  # Django's built-in user model
     role = models.CharField(
         max_length=10, choices=[("admin", "Admin"), ("staff", "Staff")], default="staff"
     )
@@ -185,7 +212,8 @@ class Event(models.Model):
         upload_to=event_certificate_path,
         blank=True,
         null=True,
-        help_text="Upload a certificate template file (PDF, DOC, DOCX, PNG, JPG) for this event.",
+        validators=[validate_pdf_file],
+        help_text="Upload a PDF certificate template file for this event. Use placeholders like {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}} for personalization.",
     )
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -324,9 +352,9 @@ class Participant(models.Model):
         return self.name
 
     def generate_qr_code(self):
-        """Generate a QR Code linking to the participant’s check-in URL."""
+        """Generate a QR Code linking to the participant's check-in URL."""
 
-        """Generate a QR Code linking to the participant’s check-in URL only if tickets are enabled."""
+        """Generate a QR Code linking to the participant's check-in URL only if tickets are enabled."""
         if not self.event.tickets:
             print(
                 f"🚫 No QR code generated: Tickets are disabled for {self.event.event_name}"
@@ -477,9 +505,50 @@ class RSVPEmailLog(models.Model):
         ordering = ["-started_at"]
 
     def __str__(self):
-        return (
-            f"RSVP Email Log for {self.event.event_name} - {self.get_status_display()}"
-        )
+        return f"RSVP Email Log for {self.event.event_name} - {self.status}"
+
+    @property
+    def progress_percentage(self):
+        if self.total_recipients == 0:
+            return 0
+        return round((self.emails_sent / self.total_recipients) * 100, 1)
+
+
+class CSVImportLog(models.Model):
+    """Track CSV import progress and status"""
+
+    STATUS_CHOICES = [
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="csv_import_logs"
+    )
+    user = models.ForeignKey(User, on_delete=models.CASCADE)  # Who initiated the import
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="in_progress"
+    )
+    total_rows = models.PositiveIntegerField(default=0)
+    processed_rows = models.PositiveIntegerField(default=0)
+    successful_imports = models.PositiveIntegerField(default=0)
+    failed_imports = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    error_messages = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"CSV Import for {self.event.event_name} - {self.status}"
+
+    @property
+    def progress_percentage(self):
+        if self.total_rows == 0:
+            return 0
+        return round((self.processed_rows / self.total_rows) * 100, 1)
 
 
 ###  - Signal Section - ###

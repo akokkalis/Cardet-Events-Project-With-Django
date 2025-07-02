@@ -48,7 +48,9 @@ from .views import (
     bulk_approve_participants,
     export_participant_template,
     import_participants_csv,
+    check_import_progress,
     generate_participant_certificate,
+    bulk_generate_certificates,
 )
 
 urlpatterns = [
@@ -228,11 +230,21 @@ urlpatterns = [
         import_participants_csv,
         name="import_participants_csv",
     ),
+    path(
+        "import-progress/<int:import_id>/",
+        check_import_progress,
+        name="check_import_progress",
+    ),
     # Certificate generation
     path(
         "events/<int:event_id>/participants/<int:participant_id>/generate-certificate/",
         generate_participant_certificate,
         name="generate_participant_certificate",
+    ),
+    path(
+        "events/<int:event_id>/bulk-generate-certificates/",
+        bulk_generate_certificates,
+        name="bulk_generate_certificates",
     ),
 ]
 

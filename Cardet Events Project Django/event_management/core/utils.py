@@ -522,3 +522,432 @@ def generate_rsvp_urls(participant, request_or_site_url=None):
     }
 
     return rsvp_urls
+
+
+def generate_certificate_for_participant(event, participant):
+    """
+    Generate certificate for a single participant using the proven working logic.
+    Extracted from generate_participant_certificate view to be reusable.
+    Returns (success: bool, message: str)
+    """
+    import tempfile
+    import os
+    import pypdf
+    from django.core.files.base import ContentFile
+    import logging
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        print(f"=== CERTIFICATE GENERATION FOR {participant.name} ===")
+
+        if not event.certificate:
+            return False, "No certificate template found for this event."
+
+        file_extension = os.path.splitext(event.certificate.name)[1].lower()
+        if file_extension != ".pdf":
+            return False, "Certificate template must be a PDF file."
+
+        # Prepare form data to fill
+        form_data = {
+            "participant_name": participant.name,
+            "event_name": event.event_name,
+            "event_date": (
+                event.event_date.strftime("%d %B %Y") if event.event_date else ""
+            ),
+            "company_name": event.company.name if event.company else "",
+        }
+
+        # Save the template PDF to a temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_input:
+            with event.certificate.open("rb") as f:
+                temp_input.write(f.read())
+            temp_input_path = temp_input.name
+
+        # Read the PDF template (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        reader = pypdf.PdfReader(temp_input_path)
+
+        # Check if PDF has pages (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        if len(reader.pages) == 0:
+            raise Exception(
+                "The PDF file has no pages. This might be due to a failed DOCX to PDF conversion or a corrupted file."
+            )
+
+        print(f"PDF has {len(reader.pages)} page(s)")
+        writer = pypdf.PdfWriter()
+        writer.add_page(reader.pages[0])
+
+        # Check if the PDF has form fields (AcroForm) (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        has_form_fields = False
+        try:
+            form_fields = reader.get_fields()
+            if form_fields:
+                has_form_fields = True
+                print("PDF has form fields (via get_fields):", form_fields.keys())
+        except:
+            pass
+
+        if not has_form_fields:
+            # Check for AcroForm in a different way (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+            try:
+                if "/AcroForm" in reader.trailer["/Root"]:
+                    has_form_fields = True
+                    print("PDF has AcroForm - using form field filling")
+            except:
+                pass
+
+        if has_form_fields:
+            # Try to fill form fields (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+            try:
+                writer.update_page_form_field_values(writer.pages[0], form_data)
+                print("Successfully filled form fields")
+            except Exception as form_error:
+                print(f"Form field filling failed: {form_error}")
+                has_form_fields = False
+
+        if not has_form_fields:
+            print("PDF does not have fillable form fields")
+            # Try text-based replacement using PyMuPDF if available (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+            try:
+                import fitz  # PyMuPDF
+
+                # Use PyMuPDF for text replacement
+                doc = fitz.open(temp_input_path)
+                replacements_made = 0
+
+                # Define placeholder patterns to search for (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+                placeholder_patterns = {
+                    "participant_name": [
+                        "{{participant_name}}",
+                        "{{ participant_name }}",
+                        "{participant_name}",
+                        "{ participant_name }",
+                        "[participant_name]",
+                        "[ participant_name ]",
+                        "__PARTICIPANT_NAME__",
+                        "_PARTICIPANT_NAME_",
+                    ],
+                    "event_name": [
+                        "{{event_name}}",
+                        "{{ event_name }}",
+                        "{event_name}",
+                        "{ event_name }",
+                        "[event_name]",
+                        "[ event_name ]",
+                        "__EVENT_NAME__",
+                        "_EVENT_NAME_",
+                    ],
+                    "event_date": [
+                        "{{event_date}}",
+                        "{{ event_date }}",
+                        "{event_date}",
+                        "{ event_date }",
+                        "[event_date]",
+                        "[ event_date ]",
+                        "__EVENT_DATE__",
+                        "_EVENT_DATE_",
+                    ],
+                    "company_name": [
+                        "{{company_name}}",
+                        "{{ company_name }}",
+                        "{company_name}",
+                        "{ company_name }",
+                        "[company_name]",
+                        "[ company_name ]",
+                        "__COMPANY_NAME__",
+                        "_COMPANY_NAME_",
+                    ],
+                }
+
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+
+                    # Store replacement info for styled insertion after redaction
+                    styled_replacements = []
+
+                    # Replace placeholders (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+                    for field_name, patterns in placeholder_patterns.items():
+                        if field_name in form_data and form_data[field_name]:
+                            for pattern in patterns:
+                                # Search and replace text
+                                text_instances = page.search_for(pattern)
+                                for inst in text_instances:
+                                    # Get the original text properties to preserve styling
+                                    try:
+                                        # Get text details from the location
+                                        blocks = page.get_text("dict", clip=inst)
+
+                                        # Try to extract font information from the original text
+                                        font_name = "helv"  # Default font
+                                        font_size = 12  # Default size
+                                        font_flags = 0  # Default flags
+                                        color = (0, 0, 0)  # Default black
+
+                                        if blocks and "blocks" in blocks:
+                                            for block in blocks["blocks"]:
+                                                if "lines" in block:
+                                                    for line in block["lines"]:
+                                                        if "spans" in line:
+                                                            for span in line["spans"]:
+                                                                span_text = span.get(
+                                                                    "text", ""
+                                                                ).lower()
+                                                                if (
+                                                                    pattern.lower()
+                                                                    in span_text
+                                                                ):
+                                                                    font_name = (
+                                                                        span.get(
+                                                                            "font",
+                                                                            "helv",
+                                                                        )
+                                                                    )
+                                                                    font_size = (
+                                                                        span.get(
+                                                                            "size", 12
+                                                                        )
+                                                                    )
+                                                                    font_flags = (
+                                                                        span.get(
+                                                                            "flags", 0
+                                                                        )
+                                                                    )
+                                                                    color = span.get(
+                                                                        "color", 0
+                                                                    )
+
+                                                                    # Handle color conversion
+                                                                    if isinstance(
+                                                                        color, int
+                                                                    ):
+                                                                        # Convert integer color to RGB tuple
+                                                                        if (
+                                                                            color != 0
+                                                                        ):  # Only convert if not default
+                                                                            color = (
+                                                                                (
+                                                                                    color
+                                                                                    >> 16
+                                                                                )
+                                                                                & 255,
+                                                                                (
+                                                                                    color
+                                                                                    >> 8
+                                                                                )
+                                                                                & 255,
+                                                                                color
+                                                                                & 255,
+                                                                            )
+                                                                            color = tuple(
+                                                                                c
+                                                                                / 255.0
+                                                                                for c in color
+                                                                            )
+                                                                        else:
+                                                                            color = (
+                                                                                0,
+                                                                                0,
+                                                                                0,
+                                                                            )  # Default black
+                                                                    elif isinstance(
+                                                                        color,
+                                                                        (list, tuple),
+                                                                    ):
+                                                                        # Already a tuple/list, normalize to 0-1 range
+                                                                        color = tuple(
+                                                                            (
+                                                                                c
+                                                                                / 255.0
+                                                                                if c > 1
+                                                                                else c
+                                                                            )
+                                                                            for c in color
+                                                                        )
+                                                                    break
+
+                                        # Calculate text position for replacement
+                                        replacement_text = form_data[field_name]
+
+                                        # Calculate center position
+                                        center_x = (inst.x0 + inst.x1) / 2
+                                        center_y = (inst.y0 + inst.y1) / 2
+
+                                        # Calculate starting position for left alignment
+                                        original_width = inst.x1 - inst.x0
+                                        estimated_char_width = font_size * 0.6
+                                        estimated_text_width = (
+                                            len(replacement_text) * estimated_char_width
+                                        )
+
+                                        if estimated_text_width < original_width:
+                                            text_x = (
+                                                inst.x0
+                                                + (
+                                                    original_width
+                                                    - estimated_text_width
+                                                )
+                                                / 2
+                                            )
+                                        else:
+                                            text_x = inst.x0
+
+                                        text_y = center_y
+
+                                        styled_replacements.append(
+                                            {
+                                                "position": fitz.Point(text_x, text_y),
+                                                "text": replacement_text,
+                                                "font": font_name,
+                                                "size": font_size,
+                                                "color": color,
+                                            }
+                                        )
+
+                                        # Add redaction annotation to remove original text
+                                        page.add_redact_annot(inst, "")
+                                        replacements_made += 1
+
+                                    except Exception as e:
+                                        print(f"Error processing text replacement: {e}")
+                                        # Fallback with basic replacement
+                                        replacement_text = form_data[field_name]
+                                        center_x = (inst.x0 + inst.x1) / 2
+                                        center_y = (inst.y0 + inst.y1) / 2
+
+                                        # Calculate starting position for left alignment
+                                        original_width = inst.x1 - inst.x0
+                                        estimated_char_width = (
+                                            12 * 0.6
+                                        )  # Default font size
+                                        estimated_text_width = (
+                                            len(replacement_text) * estimated_char_width
+                                        )
+
+                                        if estimated_text_width < original_width:
+                                            text_x = (
+                                                inst.x0
+                                                + (
+                                                    original_width
+                                                    - estimated_text_width
+                                                )
+                                                / 2
+                                            )
+                                        else:
+                                            text_x = inst.x0
+
+                                        text_y = center_y
+
+                                        styled_replacements.append(
+                                            {
+                                                "position": fitz.Point(text_x, text_y),
+                                                "text": replacement_text,
+                                                "font": "helv",
+                                                "size": 12,
+                                                "color": (0, 0, 0),
+                                            }
+                                        )
+
+                                        page.add_redact_annot(inst, "")
+                                        replacements_made += 1
+
+                # Apply all redactions first (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    page.apply_redactions()
+
+                # Then insert all the styled text replacements (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+                for page_num in range(len(doc)):
+                    page = doc[page_num]
+                    for replacement in styled_replacements:
+                        try:
+                            page.insert_text(
+                                replacement["position"],
+                                replacement["text"],
+                                fontsize=replacement["size"],
+                                color=replacement["color"],
+                            )
+                        except Exception as insert_error:
+                            print(f"Error inserting styled text: {insert_error}")
+                            # Try basic insertion
+                            try:
+                                page.insert_text(
+                                    replacement["position"], replacement["text"]
+                                )
+                            except Exception as basic_error:
+                                print(
+                                    f"Basic text insertion also failed: {basic_error}"
+                                )
+
+                # Save the modified document if we made replacements (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+                if replacements_made > 0:
+                    print(f"Made {replacements_made} text replacements")
+                    # Save to a new temporary file
+                    with tempfile.NamedTemporaryFile(
+                        delete=False, suffix=".pdf"
+                    ) as temp_modified:
+                        temp_modified_path = temp_modified.name
+
+                    # Save the modified document
+                    doc.save(temp_modified_path, garbage=4, deflate=True)
+                    doc.close()
+
+                    # Replace the original temp file with the modified one
+                    try:
+                        os.remove(temp_input_path)
+                        os.rename(temp_modified_path, temp_input_path)
+                    except Exception as file_error:
+                        print(f"Error replacing temp file: {file_error}")
+                        # If rename fails, use the new file
+                        temp_input_path = temp_modified_path
+
+                    # Re-read the PDF with pypdf
+                    reader = pypdf.PdfReader(temp_input_path)
+                    writer = pypdf.PdfWriter()
+                    writer.add_page(reader.pages[0])
+                else:
+                    print("No text placeholders found for replacement")
+                    doc.close()
+
+            except ImportError:
+                print("PyMuPDF not available - using basic PDF processing")
+            except Exception as text_error:
+                print(f"Text replacement failed: {text_error}")
+
+        # Add metadata if available (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        if hasattr(reader, "metadata") and reader.metadata:
+            writer.add_metadata(reader.metadata)
+
+        # Save the final PDF (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_output:
+            writer.write(temp_output)
+            temp_output_path = temp_output.name
+
+        # Read the final PDF content (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        with open(temp_output_path, "rb") as output_file:
+            filled_pdf = output_file.read()
+
+        # Save the certificate to the participant model (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        filename = f"certificate_{participant.name.replace(' ', '_')}.pdf"
+        participant.certificate.save(filename, ContentFile(filled_pdf), save=True)
+
+        # Clean up temporary files (EXACT SAME AS WORKING INDIVIDUAL FUNCTION)
+        try:
+            if os.path.exists(temp_input_path):
+                os.remove(temp_input_path)
+        except Exception as cleanup_error:
+            print(f"Error cleaning up temp_input_path: {cleanup_error}")
+
+        try:
+            if os.path.exists(temp_output_path):
+                os.remove(temp_output_path)
+        except Exception as cleanup_error:
+            print(f"Error cleaning up temp_output_path: {cleanup_error}")
+
+        print(f"Certificate generated successfully for {participant.name}")
+        return True, f"Certificate generated successfully for {participant.name}"
+
+    except Exception as e:
+        logger.exception("Failed to generate certificate")
+        error_msg = f"Failed to generate certificate for {participant.name}: {str(e)}"
+        print(error_msg)
+        return False, error_msg

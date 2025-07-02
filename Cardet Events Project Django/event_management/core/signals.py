@@ -107,7 +107,10 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
                 send_registration_email(instance)
 
                 # ✅ Handle auto approval
-                if instance.event.auto_approval_enabled:
+                if (
+                    instance.event.auto_approval_enabled
+                    and instance.approval_status == "pending"
+                ):
                     instance.approval_status = "approved"
                     instance.save(update_fields=["approval_status"])
 

@@ -4,7 +4,7 @@ $(document).ready(function() {
     const importBtn = $('#importParticipantsBtn');
     const closeModalBtn = $('#closeImportModal');
     const cancelBtn = $('#cancelImport');
-    const importForm = $('#importForm');
+    const importForm = $('#csv-import-form');
     
     // Show modal when import button is clicked
     importBtn.on('click', function() {
@@ -15,7 +15,9 @@ $(document).ready(function() {
     function hideModal() {
         importModal.addClass('hidden');
         // Reset form
-        importForm[0].reset();
+        if (importForm.length) {
+            importForm[0].reset();
+        }
     }
     
     // Close modal events
@@ -29,37 +31,7 @@ $(document).ready(function() {
         }
     });
     
-    // Handle form submission with loading state
-    importForm.on('submit', function(e) {
-        const fileInput = $('#csv_file')[0];
-        
-        if (!fileInput.files.length) {
-            e.preventDefault();
-            Swal.fire('Error', 'Please select a CSV file to upload.', 'error');
-            return;
-        }
-        
-        const file = fileInput.files[0];
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-            e.preventDefault();
-            Swal.fire('Error', 'Please select a valid CSV file.', 'error');
-            return;
-        }
-        
-        // Show loading state
-        Swal.fire({
-            title: 'Importing Participants...',
-            text: 'Please wait while we process your CSV file.',
-            allowOutsideClick: false,
-            allowEscapeKey: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-        
-        // Form will submit normally, loading will be closed by page reload or redirect
-    });
+    // Note: Form submission is now handled by csv_import_progress.js
     
     // File input validation
     $('#csv_file').on('change', function() {
