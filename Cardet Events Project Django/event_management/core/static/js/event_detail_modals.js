@@ -215,7 +215,7 @@ $(document).ready(function() {
         if (matches) {
             const eventId = matches[1];
             const participantId = matches[2];
-            const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+            const participantName = $(this).closest('tr').data('participant-name');
             
             // Check if event requires tickets
             const requiresTickets = window.EVENT_REQUIRES_TICKETS;
@@ -259,7 +259,7 @@ $(document).ready(function() {
         e.preventDefault();
         
         const href = $(this).attr('href');
-        const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+        const participantName = $(this).closest('tr').data('participant-name');
         
         showProcessingAlert(
             'Rejecting Participant',
@@ -289,7 +289,7 @@ $(document).ready(function() {
         e.preventDefault();
         
         const href = $(this).attr('href');
-        const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+        const participantName = $(this).closest('tr').data('participant-name');
         
         showProcessingAlert(
             'Setting Participant to Pending',
@@ -318,7 +318,7 @@ $(document).ready(function() {
     function bindSendTicketEvent() {
         $('.send-ticket-btn').off('click').on('click', function() {
             const participantId = $(this).data('participant-id');
-            const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+            const participantName = $(this).closest('tr').data('participant-name');
 
             showProcessingAlert(
                 'Sending Ticket',

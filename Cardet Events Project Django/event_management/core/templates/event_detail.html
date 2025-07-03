@@ -340,7 +340,7 @@
                 </thead>
                 <tbody class="mb-10">
                     {% for participant in participants %}
-                    <tr class="text-center" data-participant-id="{{ participant.id }}" data-event-id="{{ event.id }}">
+                    <tr class="text-center" data-participant-id="{{ participant.id }}" data-event-id="{{ event.id }}" data-participant-name="{{ participant.name }}">
                         <td class="border border-gray-300 px-4 py-2">
                             <input type="checkbox" class="participant-checkbox form-checkbox h-4 w-4 text-blue-600" 
                                    data-participant-id="{{ participant.id }}" 
