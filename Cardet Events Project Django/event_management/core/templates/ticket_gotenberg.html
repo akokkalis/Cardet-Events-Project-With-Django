@@ -4,25 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Event Ticket</title>
-  <link rel="stylesheet" href="css/ticket_style.css">
-  
-
-
+  <link rel="stylesheet" href="ticket_style.css">
 </head>
 <body>
   <div class="container">
+    {% if logo_exists %}
     <div class="logo">
-      <img src="cardet_logo.png" alt="Logo">
+      <img src="company_logo.png" alt="Company Logo">
     </div>
+    {% endif %}
 
-    <div class="title">Beach Party near the mountains</div>
+    <div class="title">{{ participant.event.event_name }}</div>
 
     <div class="event-layout">
+      {% if event_image_exists %}
       <div class="event-image">
         <div style="border-radius: 20px; overflow: hidden; width: 300px;">
-          <img src="a1.png"  alt="Event Image">
+          <img src="event_image.png" alt="Event Image">
         </div> 
       </div>
+      {% endif %}
+      
       <div class="info">
         <div class="info-row">
           <svg class="hero-icon" xmlns="http://www.w3.org/2000/svg" fill="none"
@@ -30,63 +32,52 @@
             <path stroke-linecap="round" stroke-linejoin="round"
                   d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
           </svg>
-          <span class="info-label">Participant:</span> Andreas
+          <span class="info-label">Participant:</span> {{ participant.name }}
         </div>
+        
         <div class="info-row">
           <svg class="hero-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
           </svg>
-
-          <span class="info-label">Email:</span> andreas.kokkalis@innovade.eu
+          <span class="info-label">Email:</span> {{ participant.email }}
         </div>
-
 
         <div class="info-row">
           <svg class="hero-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
           </svg>
-
-
-          <span class="info-label">Date:</span> July 16, 2025
+          <span class="info-label">Date:</span> {{ event_date }}
         </div>
 
         <div class="info-row">
           <svg class="hero-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
-
-
-
-          <span class="info-label">Time:</span> 8 a.m. - 8 p.m.
+          <span class="info-label">Time:</span> {{ event_time }}
         </div>
 
+        {% if participant.event.location %}
         <div class="info-row">
           <svg class="hero-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
           </svg>
-
-
-
-
-          <span class="info-label">Venue:</span> <a href="#">View on Google Maps
+          <span class="info-label">Venue:</span> {{ participant.event.location }}
         </div>
-        
-        
-        
-
-   
-        
+        {% endif %}
       </div>
     </div>
 
     <div class="qr-card">
+      {% if qr_image_exists %}
       <div class="qr-code">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=EventEntry" alt="QR Code">
+        <img src="qr_code.png" alt="QR Code">
       </div>
+      {% endif %}
+      
       <div class="qr-text">
-        <h2>Name of event</h2>
-        <p>Scan this QR code for entry</p>
+        <h2>{{ participant.event.event_name }}</h2>
+        <p>{% if qr_image_exists %}Scan this QR code for entry{% else %}Event entry ticket{% endif %}</p>
       </div>
     </div>
 
@@ -95,4 +86,4 @@
     </div>
   </div>
 </body>
-</html>
+</html> 

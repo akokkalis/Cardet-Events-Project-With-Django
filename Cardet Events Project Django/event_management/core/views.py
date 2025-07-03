@@ -50,7 +50,8 @@ from django_ratelimit.decorators import ratelimit
 
 from django.utils.decorators import method_decorator
 import re
-from pdfjinja import PdfJinja
+
+# from pdfjinja import PdfJinja
 import tempfile
 import logging
 import pypdf
