@@ -134,8 +134,6 @@ $(document).ready(function () {
     }
 
     // ✅ Bulk RSVP Email Sending Functionality
-    let currentLogId = null;
-    let statusCheckInterval = null;
 
     $("#sendRsvpBtn").click(function () {
         const eventId = $(this).data("event-id");
@@ -159,8 +157,8 @@ $(document).ready(function () {
     function sendBulkRsvpEmails(eventId) {
         // Show loading state
         Swal.fire({
-            title: 'Sending RSVP Emails...',
-            text: 'Please wait while we send the emails.',
+            title: 'Queuing RSVP Emails...',
+            text: 'Please wait while we queue the emails for processing.',
             icon: 'info',
             allowOutsideClick: false,
             showConfirmButton: false,
@@ -177,30 +175,26 @@ $(document).ready(function () {
             },
             success: function (response) {
                 if (response.success) {
-                    currentLogId = response.log_id;
-                    
-                    // Show initial success message
+                    // Show success message - emails queued for processing
                     Swal.fire({
-                        title: 'RSVP Emails Started!',
-                        text: `Started sending emails to ${response.total_recipients} participants. We'll track the progress for you.`,
+                        title: 'RSVP Emails Queued Successfully!',
+                        text: `Queued ${response.total_recipients} emails for processing. The emails will be sent in the background.`,
                         icon: 'success',
-                        confirmButtonText: 'Track Progress',
-                        allowOutsideClick: false
-                    }).then(() => {
-                        // Start tracking progress
-                        trackEmailProgress();
+                        confirmButtonText: 'OK',
+                        timer: 3000,
+                        timerProgressBar: true
                     });
                 } else {
                     Swal.fire({
                         title: 'Error',
-                        text: response.error || 'Failed to start sending emails.',
+                        text: response.error || 'Failed to queue emails for processing.',
                         icon: 'error',
                         confirmButtonText: 'Close'
                     });
                 }
             },
             error: function (xhr) {
-                let errorMessage = 'Failed to send RSVP emails.';
+                let errorMessage = 'Failed to queue RSVP emails.';
                 if (xhr.responseJSON && xhr.responseJSON.error) {
                     errorMessage = xhr.responseJSON.error;
                 }
@@ -211,116 +205,6 @@ $(document).ready(function () {
                     icon: 'error',
                     confirmButtonText: 'Close'
                 });
-            }
-        });
-    }
-
-    function trackEmailProgress() {
-        if (!currentLogId) return;
-
-        // Show progress tracking modal
-        Swal.fire({
-            title: 'Email Sending Progress',
-            html: `
-                <div class="text-center">
-                    <div class="mb-4">
-                        <div class="text-lg font-semibold mb-2">Sending RSVP emails...</div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5">
-                            <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
-                        </div>
-                    </div>
-                    <div id="progressStats" class="text-sm text-gray-600">
-                        Checking status...
-                    </div>
-                </div>
-            `,
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Close',
-            cancelButtonText: 'Run in Background',
-            allowOutsideClick: false,
-            didOpen: () => {
-                // Start checking status every 2 seconds
-                statusCheckInterval = setInterval(checkEmailStatus, 2000);
-                // Check immediately
-                checkEmailStatus();
-            }
-        }).then((result) => {
-            // Clear interval when modal is closed
-            if (statusCheckInterval) {
-                clearInterval(statusCheckInterval);
-                statusCheckInterval = null;
-            }
-            
-            if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-                // User chose to run in background
-                Swal.fire({
-                    title: 'Running in Background',
-                    text: 'Email sending will continue in the background. You can check the admin panel for final results.',
-                    icon: 'info',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            }
-        });
-    }
-
-    function checkEmailStatus() {
-        if (!currentLogId) return;
-
-        $.ajax({
-            url: `/rsvp-email-status/${currentLogId}/`,
-            method: 'GET',
-            success: function (response) {
-                const progressPercent = response.total_recipients > 0 
-                    ? Math.round((response.emails_sent + response.emails_failed) / response.total_recipients * 100)
-                    : 0;
-
-                // Update progress bar
-                $('#progressBar').css('width', progressPercent + '%');
-
-                // Update stats
-                let statusText = '';
-                if (response.status === 'completed') {
-                    statusText = `✅ Completed! ${response.emails_sent} sent, ${response.emails_failed} failed`;
-                    $('#progressBar').removeClass('bg-blue-600').addClass('bg-green-600');
-                } else if (response.status === 'failed') {
-                    statusText = `❌ Failed: ${response.error_message || 'Unknown error'}`;
-                    $('#progressBar').removeClass('bg-blue-600').addClass('bg-red-600');
-                } else {
-                    statusText = `⏳ In progress: ${response.emails_sent}/${response.total_recipients} sent`;
-                }
-
-                $('#progressStats').html(statusText);
-
-                // If completed or failed, stop checking and show final result
-                if (response.status === 'completed' || response.status === 'failed') {
-                    if (statusCheckInterval) {
-                        clearInterval(statusCheckInterval);
-                        statusCheckInterval = null;
-                    }
-
-                    // Show final result after a short delay
-                    setTimeout(() => {
-                        Swal.fire({
-                            title: response.status === 'completed' ? 'RSVP Emails Sent!' : 'Email Sending Failed',
-                            text: response.status === 'completed' 
-                                ? `Successfully sent ${response.emails_sent} emails. ${response.emails_failed > 0 ? response.emails_failed + ' failed.' : ''}`
-                                : `Email sending failed: ${response.error_message || 'Unknown error'}`,
-                            icon: response.status === 'completed' ? 'success' : 'error',
-                            confirmButtonText: 'Close'
-                        });
-                    }, 1000);
-                }
-            },
-            error: function () {
-                // Stop checking on error
-                if (statusCheckInterval) {
-                    clearInterval(statusCheckInterval);
-                    statusCheckInterval = null;
-                }
-                
-                $('#progressStats').html('❌ Error checking status');
             }
         });
     }

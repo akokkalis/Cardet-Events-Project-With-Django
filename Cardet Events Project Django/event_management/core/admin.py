@@ -20,6 +20,7 @@ from .models import (
     EventEmail,
     RSVPResponse,
     RSVPEmailLog,
+    CertificateGenerationLog,
 )
 
 
@@ -325,6 +326,100 @@ class RSVPEmailLogAdmin(admin.ModelAdmin):
 
 
 admin.site.register(RSVPEmailLog, RSVPEmailLogAdmin)
+
+
+class CertificateGenerationLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "event",
+        "user",
+        "status_display",
+        "certificate_stats",
+        "progress_display",
+        "started_at",
+        "completed_at",
+    )
+    list_filter = ("status", "event", "started_at")
+    search_fields = ("event__event_name", "user__username")
+    readonly_fields = ("started_at", "completed_at", "progress_percentage")
+    ordering = ("-started_at",)
+
+    def status_display(self, obj):
+        """Display status with color coding"""
+        if obj.status == "completed":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Completed</span>'
+            )
+        elif obj.status == "failed":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Failed</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ In Progress</span>'
+            )
+
+    status_display.short_description = "Status"
+
+    def certificate_stats(self, obj):
+        """Display certificate generation statistics"""
+        return format_html(
+            "✅ Generated: <strong>{}</strong> | ❌ Failed: <strong>{}</strong> | 📊 Total: <strong>{}</strong>",
+            obj.successful_generations,
+            obj.failed_generations,
+            obj.total_participants,
+        )
+
+    certificate_stats.short_description = "Certificate Statistics"
+
+    def progress_display(self, obj):
+        """Display progress with percentage"""
+        if obj.status == "completed":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">100% Complete</span>'
+            )
+        elif obj.status == "failed":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">Failed</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: blue; font-weight: bold;">{}%</span>',
+                obj.progress_percentage,
+            )
+
+    progress_display.short_description = "Progress"
+
+    fieldsets = (
+        (None, {"fields": ("event", "user", "status")}),
+        (
+            "Progress Information",
+            {
+                "fields": (
+                    "total_participants",
+                    "processed_participants",
+                    "successful_generations",
+                    "failed_generations",
+                    "progress_percentage",
+                )
+            },
+        ),
+        (
+            "Timing",
+            {
+                "fields": ("started_at", "completed_at"),
+            },
+        ),
+        (
+            "Error Messages",
+            {
+                "fields": ("error_messages",),
+                "description": "List of errors encountered during certificate generation",
+            },
+        ),
+    )
+
+
+admin.site.register(CertificateGenerationLog, CertificateGenerationLogAdmin)
 
 
 @admin.register(Status)

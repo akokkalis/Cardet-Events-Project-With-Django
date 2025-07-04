@@ -551,6 +551,48 @@ class CSVImportLog(models.Model):
         return round((self.processed_rows / self.total_rows) * 100, 1)
 
 
+class CertificateGenerationLog(models.Model):
+    """Track bulk certificate generation progress and status"""
+
+    STATUS_CHOICES = [
+        ("in_progress", "In Progress"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="certificate_generation_logs"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE
+    )  # Who initiated the generation
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="in_progress"
+    )
+    total_participants = models.PositiveIntegerField(default=0)
+    processed_participants = models.PositiveIntegerField(default=0)
+    successful_generations = models.PositiveIntegerField(default=0)
+    failed_generations = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    error_messages = models.JSONField(default=list, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"Certificate Generation for {self.event.event_name} - {self.status}"
+
+    @property
+    def progress_percentage(self):
+        """Calculate progress percentage for certificate generation"""
+        if self.total_participants == 0:
+            return 0
+        return min(
+            100, int((self.processed_participants / self.total_participants) * 100)
+        )
+
+
 ###  - Signal Section - ###
 
 

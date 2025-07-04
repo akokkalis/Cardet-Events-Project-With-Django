@@ -36,11 +36,8 @@ import zipfile
 from datetime import date
 from django.views.decorators.csrf import csrf_exempt
 import json
-from django.core.mail import EmailMessage, get_connection
-from django.utils.html import strip_tags
-import threading
+
 from .utils import (
-    email_body,
     export_participants_pdf,
     export_participants_csv,
     generate_ics_file,
@@ -55,8 +52,13 @@ import re
 import tempfile
 import logging
 import pypdf
-import concurrent.futures
-from core.tasks import test_hello
+from core.tasks import (
+    test_hello,
+    send_ticket_email_task,
+    send_bulk_rsvp_emails_task,
+    bulk_generate_certificates_task,
+)
+import threading
 
 
 def login_view(request):
@@ -648,7 +650,9 @@ def register_participant_api(request):
 
 
 def send_ticket_email_view(request):
-    """Handles sending ticket email manually via AJAX request using the same logic from signals.py"""
+    """Handles sending ticket email manually via AJAX request using Celery task"""
+
+    print("send_ticket_email_view")
 
     if request.method == "POST":
         participant_id = request.POST.get("participant_id")
@@ -675,71 +679,15 @@ def send_ticket_email_view(request):
                 status=400,
             )
 
-        # ✅ Email subject & event information
-        subject = f"Your Ticket for {participant.event.event_name}"
-        event_info = {
-            "title": participant.event.event_name,
-            "location": participant.event.location,
-            "date": participant.event.event_date.strftime("%d-%m-%y"),
-            "starttime": (
-                participant.event.start_time.strftime("%H:%M")
-                if participant.event.start_time
-                else "TBA"
-            ),
-            "endtime": (
-                participant.event.end_time.strftime("%H:%M")
-                if participant.event.end_time
-                else "TBA"
-            ),
-        }
-
-        # ✅ Generate email body with correct parameters
-        html_message = email_body(participant.name, event_info)
-        plain_message = strip_tags(
-            html_message
-        )  # Remove HTML tags for plaintext fallback
-
-        # ✅ Get PDF Ticket Path
-        pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
-
-        # ✅ Create SMTP connection (same as signals.py)
-        connection = get_connection(
-            host=email_config.smtp_server,
-            port=email_config.smtp_port,
-            username=email_config.email_address,
-            password=email_config.email_password,
-            use_tls=email_config.use_tls,
-            use_ssl=email_config.use_ssl,
+        # ✅ Send email using Celery task (non-blocking)
+        task = send_ticket_email_task.delay(participant_id)
+        print(
+            f"✅ Celery task {task.id} queued for sending ticket email to {participant.email}"
         )
 
-        # ✅ Define email sending function
-        def send_email():
-            try:
-                email = EmailMessage(
-                    subject,
-                    html_message,
-                    from_email=email_config.email_address,
-                    to=[participant.email],
-                    connection=connection,  # Use the configured connection
-                )
-                email.content_subtype = "html"  # Ensure HTML email formatting
-
-                # ✅ Attach the ticket if available
-                if pdf_path and os.path.exists(pdf_path):
-                    email.attach_file(pdf_path)
-
-                email.send()
-                print(f"✅ Ticket email sent to {participant.email}")
-
-            except Exception as e:
-                print(f"❌ Error sending email to {participant.email}: {e}")
-
-        # ✅ Run email function in a separate thread (non-blocking)
-        email_thread = threading.Thread(target=send_email)
-        email_thread.start()
-
         return JsonResponse(
-            {"status": "success", "message": "Ticket sent successfully!"}, status=200
+            {"status": "success", "message": "Ticket email queued for sending!"},
+            status=200,
         )
 
     return JsonResponse(
@@ -1781,42 +1729,12 @@ def send_bulk_rsvp_emails(request, event_id):
         status="in_progress",
     )
 
-    # Start background email sending
-    import threading
-    from .signals import send_rsvp_email
-    from django.utils import timezone
-
-    def send_emails_in_background():
-        emails_sent = 0
-        emails_failed = 0
-
-        try:
-            for participant in eligible_participants:
-                try:
-                    send_rsvp_email(participant)
-                    emails_sent += 1
-                except Exception as e:
-                    emails_failed += 1
-                    print(f"Failed to send RSVP email to {participant.email}: {e}")
-
-            # Update log as completed
-            email_log.emails_sent = emails_sent
-            email_log.emails_failed = emails_failed
-            email_log.status = "completed"
-            email_log.completed_at = timezone.now()
-            email_log.save()
-
-        except Exception as e:
-            # Update log as failed
-            email_log.status = "failed"
-            email_log.error_message = str(e)
-            email_log.completed_at = timezone.now()
-            email_log.save()
-
-    # Start the background thread
-    email_thread = threading.Thread(target=send_emails_in_background)
-    email_thread.daemon = True
-    email_thread.start()
+    # Start background email sending using Celery task
+    participant_ids = list(eligible_participants.values_list("id", flat=True))
+    task = send_bulk_rsvp_emails_task.delay(event_id, participant_ids, request.user.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending bulk RSVP emails to {len(participant_ids)} participants"
+    )
 
     return JsonResponse(
         {
@@ -2135,7 +2053,7 @@ def import_participants_csv(request, event_id):
             )
 
             # Start background import process
-            import threading
+
             from django.utils import timezone
 
             def background_import():
@@ -2311,10 +2229,11 @@ def import_participants_csv(request, event_id):
                     import_log.save()
                     print(f"❌ Background import failed: {e}")
 
-            # Start the background thread
-            thread = threading.Thread(target=background_import)
-            thread.daemon = True
-            thread.start()
+            # Start the background import using threading
+            import_thread = threading.Thread(target=background_import)
+            import_thread.daemon = True
+            import_thread.start()
+            print(f"✅ Thread started for CSV import with {total_rows} rows")
 
             # Return JSON response for AJAX handling
             return JsonResponse(
@@ -2390,27 +2309,14 @@ def generate_participant_certificate(request, event_id, participant_id):
 
 
 def bulk_generate_certificates(request, event_id):
-    """Generate certificates for all participants - with detailed debugging"""
+    """Generate certificates for all participants using Celery background task"""
     from django.http import JsonResponse
-    from django.contrib import messages
-    import tempfile
-    import os
-    import pypdf
-    from django.core.files.base import ContentFile
-    import logging
-    import traceback
-
-    # Set up logging
-    logger = logging.getLogger(__name__)
+    from .models import CertificateGenerationLog
 
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "POST method required"})
 
     event = get_object_or_404(Event, id=event_id)
-    print(f"🔍 DEBUG: Event loaded: {event.event_name}")
-    print(
-        f"🔍 DEBUG: Certificate file: {event.certificate.name if event.certificate else 'None'}"
-    )
 
     # Check if certificate template exists
     if not event.certificate:
@@ -2423,53 +2329,67 @@ def bulk_generate_certificates(request, event_id):
 
     # Get all participants
     participants = Participant.objects.filter(event=event)
-    print(f"🔍 DEBUG: Found {participants.count()} participants")
 
     if not participants.exists():
         return JsonResponse(
             {"status": "error", "message": "No participants found for this event."}
         )
 
-    # Run bulk generation synchronously (no threading)
-    successful = 0
-    failed = 0
-
-    print(
-        f"Starting bulk certificate generation for {participants.count()} participants..."
+    # Create certificate generation log entry
+    cert_log = CertificateGenerationLog.objects.create(
+        event=event,
+        user=request.user,
+        total_participants=participants.count(),
+        status="in_progress",
     )
 
-    # Simple for loop - use the shared utility function with proven working logic
-    for participant in participants:
-        try:
-            print(f"Generating certificate for: {participant.name}")
-
-            # Use the EXACT same utility function as individual generation
-            from .utils import generate_certificate_for_participant
-
-            success, message = generate_certificate_for_participant(event, participant)
-
-            if success:
-                successful += 1
-                print(f"✅ {message}")
-            else:
-                failed += 1
-                print(f"❌ {message}")
-
-        except Exception as e:
-            failed += 1
-            print(f"❌ Exception generating certificate for {participant.name}: {e}")
-
+    # Start background certificate generation using Celery task
+    task = bulk_generate_certificates_task.delay(event.id, request.user.id)
     print(
-        f"Bulk certificate generation completed: {successful} successful, {failed} failed"
+        f"✅ Celery task {task.id} queued for bulk certificate generation for {participants.count()} participants"
     )
 
-    # Return results immediately
     return JsonResponse(
         {
-            "status": "completed",
-            "message": f"Bulk certificate generation completed: {successful} successful, {failed} failed",
-            "successful": successful,
-            "failed": failed,
-            "total": participants.count(),
+            "status": "started",
+            "log_id": cert_log.id,
+            "total_participants": participants.count(),
+            "message": f"Certificate generation started for {participants.count()} participants",
         }
     )
+
+
+@login_required
+def check_certificate_generation_progress(request, log_id):
+    """Check the progress of certificate generation"""
+    from .models import CertificateGenerationLog
+    from django.http import JsonResponse
+
+    try:
+        cert_log = get_object_or_404(
+            CertificateGenerationLog, id=log_id, user=request.user
+        )
+
+        response_data = {
+            "status": cert_log.status,
+            "progress_percentage": cert_log.progress_percentage,
+            "processed_participants": cert_log.processed_participants,
+            "total_participants": cert_log.total_participants,
+            "successful_generations": cert_log.successful_generations,
+            "failed_generations": cert_log.failed_generations,
+            "error_messages": (
+                cert_log.error_messages[-5:] if cert_log.error_messages else []
+            ),  # Last 5 errors
+        }
+
+        # Add completion data if finished
+        if cert_log.status in ["completed", "failed"]:
+            response_data["completed_at"] = (
+                cert_log.completed_at.isoformat() if cert_log.completed_at else None
+            )
+            response_data["redirect_url"] = f"/events/{cert_log.event.id}/"
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)}, status=400)

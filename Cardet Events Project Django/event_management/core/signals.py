@@ -11,10 +11,19 @@ from .utils import (
     email_body,
     generate_ics_file,
 )
-import threading
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 from django.template import Template, Context
+from .tasks import (
+    send_ticket_email_task,
+    send_approval_email_task,
+    send_rejection_email_task,
+    send_registration_email_task,
+    send_rsvp_email_task,
+    process_registration_task,
+    process_approval_task,
+    process_rejection_task,
+)
 
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
@@ -100,63 +109,11 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
     """Handles participant registration logic based on auto_approval and tickets settings."""
     if created:
 
-        # ✅ Define background processing function
-        def process_registration():
-            try:
-                # ✅ ALWAYS send registration email when someone registers
-                send_registration_email(instance)
-
-                # ✅ Handle auto approval
-                if (
-                    instance.event.auto_approval_enabled
-                    and instance.approval_status == "pending"
-                ):
-                    instance.approval_status = "approved"
-                    instance.save(update_fields=["approval_status"])
-
-                    # ✅ If auto approval AND tickets are enabled: generate tickets and send ticket email
-                    if instance.event.tickets:
-                        qr_path = instance.generate_qr_code()  # Generate QR code
-                        pdf_path = generate_pdf_ticket(
-                            instance, qr_path
-                        )  # Generate PDF
-
-                        if pdf_path:  # Only save if the PDF was generated successfully
-                            instance.pdf_ticket = pdf_path
-                            instance.save(update_fields=["pdf_ticket"])
-                            # ✅ Send ticket email with PDF attachment
-                            send_ticket_email(instance)
-                            print(
-                                f"✅ Auto-approved with tickets: {instance.name} for {instance.event.event_name}"
-                            )
-                        else:
-                            print(
-                                f"❌ Failed to generate PDF ticket for {instance.name}"
-                            )
-                    else:
-                        print(
-                            f"✅ Auto-approved without tickets: {instance.name} for {instance.event.event_name}"
-                        )
-                else:
-                    # ✅ Auto approval disabled: participant remains in "pending" status
-                    print(
-                        f"📋 Registration pending approval: {instance.name} for {instance.event.event_name}"
-                    )
-                    if instance.event.tickets:
-                        print(
-                            f"🎫 Tickets will be generated upon manual approval: {instance.name}"
-                        )
-                    else:
-                        print(
-                            f"📋 No tickets needed: {instance.name} for {instance.event.event_name}"
-                        )
-
-            except Exception as e:
-                print(f"❌ Error processing registration for {instance.name}: {e}")
-
-        # ✅ Run registration processing in background thread
-        registration_thread = threading.Thread(target=process_registration)
-        registration_thread.start()
+        # ✅ Run registration processing using Celery task
+        task = process_registration_task.delay(instance.id)
+        print(
+            f"✅ Celery task {task.id} queued for registration processing: {instance.name}"
+        )
 
         print(f"🚀 Registration processing started in background for: {instance.name}")
 
@@ -212,36 +169,11 @@ def send_ticket_email(participant):
         use_ssl=email_config.use_ssl,
     )
 
-    # ✅ Define email sending function
-    def send_email():
-        try:
-            email = EmailMessage(
-                subject,
-                html_message,
-                from_email=email_config.email_address,
-                to=[participant.email],
-                connection=connection,  # Use the configured connection
-            )
-            email.content_subtype = "html"  # Ensure HTML email formatting
-
-            if pdf_path and os.path.exists(pdf_path):
-                email.attach_file(pdf_path)
-            if ics_file_path and os.path.exists(ics_file_path):
-                email.attach(
-                    f"{participant.event.event_name}.ics",
-                    open(ics_file_path, "rb").read(),
-                    "text/calendar",
-                )
-
-            email.send()
-            print(f"✅ Ticket email sent to {participant.email}")
-
-        except Exception as e:
-            print(f"❌ Error sending email to {participant.email}: {e}")
-
-    # ✅ Run the email function in a separate thread (non-blocking)
-    email_thread = threading.Thread(target=send_email)
-    email_thread.start()
+    # ✅ Send email using Celery task (non-blocking)
+    task = send_ticket_email_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending ticket email to {participant.email}"
+    )
 
 
 def send_approval_email(participant):
@@ -302,28 +234,11 @@ def send_approval_email(participant):
         use_ssl=email_config.use_ssl,
     )
 
-    # ✅ Define email sending function
-    def send_email():
-        try:
-            email = EmailMessage(
-                rendered_subject,
-                rendered_body,
-                from_email=email_config.email_address,
-                to=[participant.email],
-                connection=connection,
-            )
-            email.content_subtype = "html"  # Support HTML in email templates
-            email.send()
-            print(
-                f"✅ Approval email sent to {participant.email} for {participant.event.event_name}"
-            )
-
-        except Exception as e:
-            print(f"❌ Error sending approval email to {participant.email}: {e}")
-
-    # ✅ Run the email function in a separate thread (non-blocking)
-    email_thread = threading.Thread(target=send_email)
-    email_thread.start()
+    # ✅ Send email using Celery task (non-blocking)
+    task = send_approval_email_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending approval email to {participant.email}"
+    )
 
 
 def send_rejection_email(participant):
@@ -388,71 +303,21 @@ def send_rejection_email(participant):
         use_ssl=email_config.use_ssl,
     )
 
-    # ✅ Define email sending function
-    def send_email():
-        try:
-            email = EmailMessage(
-                rendered_subject,
-                rendered_body,
-                from_email=email_config.email_address,
-                to=[participant.email],
-                connection=connection,
-            )
-            email.content_subtype = "html"  # Support HTML in email templates
-            email.send()
-            print(
-                f"✅ Rejection email sent to {participant.email} for {participant.event.event_name}"
-            )
-
-        except Exception as e:
-            print(f"❌ Error sending rejection email to {participant.email}: {e}")
-
-    # ✅ Run the email function in a separate thread (non-blocking)
-    email_thread = threading.Thread(target=send_email)
-    email_thread.start()
+    # ✅ Send email using Celery task (non-blocking)
+    task = send_rejection_email_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending rejection email to {participant.email}"
+    )
 
 
 def handle_participant_approval(participant):
     """Handle the approval process for a participant."""
 
-    # ✅ Define background processing function
-    def process_approval():
-        try:
-            # ✅ Send approval email
-            send_approval_email(participant)
-
-            # ✅ If tickets are enabled, generate tickets and send ticket email
-            if participant.event.tickets:
-                print(f"🎫 Tickets are enabled for {participant.event.event_name}")
-                # Generate tickets if they don't exist yet (for manual approval cases)
-                if not participant.pdf_ticket:
-                    qr_path = participant.generate_qr_code()  # Generate QR code
-                    pdf_path = generate_pdf_ticket(participant, qr_path)  # Generate PDF
-
-                    if pdf_path:
-                        participant.pdf_ticket = pdf_path
-                        participant.save(update_fields=["pdf_ticket"])
-                        print(
-                            f"🎫 Tickets generated for manual approval: {participant.name}"
-                        )
-                    else:
-                        print(
-                            f"❌ Failed to generate PDF ticket for {participant.name}"
-                        )
-                        return
-
-                # Send ticket email
-                send_ticket_email(participant)
-                print(f"🎫 Ticket email sent after manual approval: {participant.name}")
-            else:
-                print(f"✅ Participant approved without tickets: {participant.name}")
-
-        except Exception as e:
-            print(f"❌ Error processing approval for {participant.name}: {e}")
-
-    # ✅ Run approval processing in background thread
-    approval_thread = threading.Thread(target=process_approval)
-    approval_thread.start()
+    # ✅ Run approval processing using Celery task
+    task = process_approval_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for approval processing: {participant.name}"
+    )
 
     print(f"🚀 Approval processing started in background for: {participant.name}")
 
@@ -460,19 +325,11 @@ def handle_participant_approval(participant):
 def handle_participant_rejection(participant):
     """Handle the rejection process for a participant."""
 
-    # ✅ Define background processing function
-    def process_rejection():
-        try:
-            # ✅ Send rejection email
-            send_rejection_email(participant)
-            print(f"❌ Participant rejected: {participant.name}")
-
-        except Exception as e:
-            print(f"❌ Error processing rejection for {participant.name}: {e}")
-
-    # ✅ Run rejection processing in background thread
-    rejection_thread = threading.Thread(target=process_rejection)
-    rejection_thread.start()
+    # ✅ Run rejection processing using Celery task
+    task = process_rejection_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for rejection processing: {participant.name}"
+    )
 
     print(f"🚀 Rejection processing started in background for: {participant.name}")
 
@@ -543,28 +400,11 @@ def send_registration_email(participant):
         use_ssl=email_config.use_ssl,
     )
 
-    # ✅ Define email sending function
-    def send_email():
-        try:
-            email = EmailMessage(
-                rendered_subject,
-                rendered_body,
-                from_email=email_config.email_address,
-                to=[participant.email],
-                connection=connection,
-            )
-            email.content_subtype = "html"  # Support HTML in email templates
-            email.send()
-            print(
-                f"✅ Registration email sent to {participant.email} for {participant.event.event_name}"
-            )
-
-        except Exception as e:
-            print(f"❌ Error sending registration email to {participant.email}: {e}")
-
-    # ✅ Run the email function in a separate thread (non-blocking)
-    email_thread = threading.Thread(target=send_email)
-    email_thread.start()
+    # ✅ Send email using Celery task (non-blocking)
+    task = send_registration_email_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending registration email to {participant.email}"
+    )
 
 
 def send_rsvp_email(participant):
@@ -627,25 +467,8 @@ def send_rsvp_email(participant):
         use_ssl=email_config.use_ssl,
     )
 
-    # ✅ Define email sending function
-    def send_email():
-        try:
-            email = EmailMessage(
-                rendered_subject,
-                rendered_body,
-                from_email=email_config.email_address,
-                to=[participant.email],
-                connection=connection,
-            )
-            email.content_subtype = "html"  # Support HTML in email templates
-            email.send()
-            print(
-                f"✅ RSVP email sent to {participant.email} for {participant.event.event_name}"
-            )
-
-        except Exception as e:
-            print(f"❌ Error sending RSVP email to {participant.email}: {e}")
-
-    # ✅ Run the email function in a separate thread (non-blocking)
-    email_thread = threading.Thread(target=send_email)
-    email_thread.start()
+    # ✅ Send email using Celery task (non-blocking)
+    task = send_rsvp_email_task.delay(participant.id)
+    print(
+        f"✅ Celery task {task.id} queued for sending RSVP email to {participant.email}"
+    )

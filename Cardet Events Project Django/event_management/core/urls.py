@@ -51,6 +51,7 @@ from .views import (
     check_import_progress,
     generate_participant_certificate,
     bulk_generate_certificates,
+    check_certificate_generation_progress,
 )
 
 urlpatterns = [
@@ -245,6 +246,11 @@ urlpatterns = [
         "events/<int:event_id>/bulk-generate-certificates/",
         bulk_generate_certificates,
         name="bulk_generate_certificates",
+    ),
+    path(
+        "certificate-generation-status/<int:log_id>/",
+        check_certificate_generation_progress,
+        name="check_certificate_generation_progress",
     ),
 ]
 

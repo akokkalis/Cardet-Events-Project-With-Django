@@ -4,7 +4,7 @@ services:
   django:
     build: .
     container_name: event_management
-    command: gunicorn event_management.wsgi:application --bind 0.0.0.0:8000
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
       - .:/app
     ports:
