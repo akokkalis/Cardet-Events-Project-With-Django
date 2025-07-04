@@ -127,7 +127,7 @@ def generate_pdf_ticket(participant, qr_code_path):
 
         # ✔ Generate PDF with Gotenberg
         try:
-            with GotenbergClient("http://localhost:3000") as client:
+            with GotenbergClient("http://gotenberg:3000") as client:
                 print("Gotenberg client initialized")
                 with client.chromium.html_to_pdf() as route:
                     response = (

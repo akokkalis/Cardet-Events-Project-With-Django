@@ -1,0 +1,77 @@
+/* Help Page Toggle Styles */
+/* Smooth animations and visual effects for accordion sections */
+
+.toggle-content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+}
+
+.toggle-icon {
+    transition: transform 0.2s ease-in-out;
+}
+
+.toggle-header:hover .toggle-icon {
+    color: #374151;
+}
+
+.toggle-header:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
+
+/* Enhanced hover effects */
+.toggle-header:hover {
+    background-color: #f9fafb;
+}
+
+/* Smooth transitions for all interactive elements */
+.toggle-header {
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Accessibility improvements */
+.toggle-header[aria-expanded="true"] .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.toggle-header[aria-expanded="false"] .toggle-icon {
+    transform: rotate(0deg);
+}
+
+/* Focus styles for better keyboard navigation */
+.toggle-header:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: -2px;
+    background-color: #eff6ff;
+}
+
+/* Animation for content reveal */
+.toggle-content.opening {
+    animation: slideDown 0.3s ease-out;
+}
+
+.toggle-content.closing {
+    animation: slideUp 0.3s ease-in;
+}
+
+@keyframes slideDown {
+    from {
+        max-height: 0;
+        opacity: 0;
+    }
+    to {
+        max-height: 1000px;
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        max-height: 1000px;
+        opacity: 1;
+    }
+    to {
+        max-height: 0;
+        opacity: 0;
+    }
+} 

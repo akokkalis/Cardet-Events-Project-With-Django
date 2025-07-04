@@ -56,6 +56,7 @@ import tempfile
 import logging
 import pypdf
 import concurrent.futures
+from core.tasks import test_hello
 
 
 def login_view(request):
@@ -92,6 +93,7 @@ def logout_view(request):
 @login_required
 def event_list(request):
     """Displays a list of events sorted by priority, date, and status."""
+
     today = date.today()
     statuses = Status.objects.all()
     companies = Company.objects.all()

@@ -128,7 +128,7 @@ $(document).ready(function() {
     // Function to monitor PDF generation with modal feedback
     function monitorPDFGeneration(participantId, eventId, participantName) {
         let checkCount = 0;
-        const maxChecks = 30; // 60 seconds total
+        const maxChecks = 45; // 90 seconds total (increased for Gotenberg)
         let hasPDF = false;
 
         const checkInterval = setInterval(function() {
@@ -140,38 +140,64 @@ $(document).ready(function() {
                         hasPDF = true;
                         clearInterval(checkInterval);
                         
-                        // Show success alert
+                        // Show success alert with Gotenberg confirmation
                         showSuccessAlert(
-                            'Success!',
-                            `<strong>${participantName}</strong> has been approved and PDF ticket generated successfully!<br><br>Page will reload in 3 seconds...`
+                            'PDF Ticket Generated Successfully!',
+                            `<strong>${participantName}</strong> has been approved and PDF ticket generated with Gotenberg!<br><br>The ticket is ready for download and has been sent via email.<br><br>Page will reload in 3 seconds...`
                         );
                     } else {
                         checkCount++;
                         
-                        // Update progress message with dots animation
+                        // Enhanced progress messages with more descriptive steps
+                        let progressMessage = '';
+                        if (checkCount <= 5) {
+                            progressMessage = `Initializing PDF generation for <strong>${participantName}</strong>`;
+                        } else if (checkCount <= 15) {
+                            progressMessage = `Processing ticket layout and data for <strong>${participantName}</strong>`;
+                        } else if (checkCount <= 25) {
+                            progressMessage = `Generating PDF with Gotenberg for <strong>${participantName}</strong>`;
+                        } else if (checkCount <= 35) {
+                            progressMessage = `Finalizing PDF ticket for <strong>${participantName}</strong>`;
+                        } else {
+                            progressMessage = `Almost ready - completing PDF for <strong>${participantName}</strong>`;
+                        }
+                        
+                        // Add animated dots
                         const dots = '.'.repeat((checkCount % 3) + 1);
+                        progressMessage += dots;
+                        
                         if (currentProcessingAlert) {
                             Swal.update({
-                                html: `Generating PDF ticket for <strong>${participantName}</strong>${dots}`
+                                html: progressMessage
                             });
                         }
                         
                         if (checkCount >= maxChecks) {
                             clearInterval(checkInterval);
                             showErrorAlert(
-                                'Generation Taking Longer Than Expected',
-                                `PDF generation is taking longer than usual. The participant <strong>${participantName}</strong> has been approved, but the PDF ticket may still be generating.<br><br>Please refresh the page in a few moments.`
+                                'PDF Generation Taking Longer Than Expected',
+                                `PDF generation is taking longer than usual. This might be due to:<br><br>
+                                • Gotenberg service processing time<br>
+                                • High-quality PDF rendering<br>
+                                • Server load<br><br>
+                                The participant <strong>${participantName}</strong> has been approved. Please refresh the page in a few moments to check if the PDF is ready.`
                             );
                         }
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
                     checkCount++;
+                    console.error('PDF generation check error:', error);
+                    
                     if (checkCount >= maxChecks) {
                         clearInterval(checkInterval);
                         showErrorAlert(
-                            'Generation Error',
-                            'Unable to check PDF generation status. Please refresh the page to see the current status.'
+                            'PDF Generation Status Check Failed',
+                            `Unable to check PDF generation status. This could be due to:<br><br>
+                            • Network connectivity issues<br>
+                            • Gotenberg service availability<br>
+                            • Server response problems<br><br>
+                            Please refresh the page to see the current status.`
                         );
                     }
                 }
@@ -189,21 +215,34 @@ $(document).ready(function() {
         if (matches) {
             const eventId = matches[1];
             const participantId = matches[2];
-            const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+            const participantName = $(this).closest('tr').data('participant-name');
             
-            // Show processing alert
-            showProcessingAlert(
-                'Approving Participant', 
-                `Approving <strong>${participantName}</strong> and generating PDF ticket...`
-            );
+            // Check if event requires tickets
+            const requiresTickets = window.EVENT_REQUIRES_TICKETS;
+            
+            // Only show processing alert if tickets are required
+            if (requiresTickets) {
+                showProcessingAlert(
+                    'Approving Participant', 
+                    `Approving <strong>${participantName}</strong> and generating PDF ticket...`
+                );
+            }
 
             // Make the approval request
             $.ajax({
                 url: href,
                 method: 'GET',
                 success: function(response) {
-                    // Start monitoring PDF generation
-                    monitorPDFGeneration(participantId, eventId, participantName);
+                    if (requiresTickets) {
+                        // Start monitoring PDF generation only if tickets are required
+                        monitorPDFGeneration(participantId, eventId, participantName);
+                    } else {
+                        // Show immediate success for events without tickets (no processing message)
+                        showSuccessAlert(
+                            'Success!',
+                            `<strong>${participantName}</strong> has been approved successfully!<br><br>Page will reload in 3 seconds...`
+                        );
+                    }
                 },
                 error: function(xhr, status, error) {
                     showErrorAlert(
@@ -220,7 +259,7 @@ $(document).ready(function() {
         e.preventDefault();
         
         const href = $(this).attr('href');
-        const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+        const participantName = $(this).closest('tr').data('participant-name');
         
         showProcessingAlert(
             'Rejecting Participant',
@@ -250,7 +289,7 @@ $(document).ready(function() {
         e.preventDefault();
         
         const href = $(this).attr('href');
-        const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+        const participantName = $(this).closest('tr').data('participant-name');
         
         showProcessingAlert(
             'Setting Participant to Pending',
@@ -279,7 +318,7 @@ $(document).ready(function() {
     function bindSendTicketEvent() {
         $('.send-ticket-btn').off('click').on('click', function() {
             const participantId = $(this).data('participant-id');
-            const participantName = $(this).closest('tr').find('td:nth-child(2)').text();
+            const participantName = $(this).closest('tr').data('participant-name');
 
             showProcessingAlert(
                 'Sending Ticket',
@@ -362,3 +401,73 @@ $(document).ready(function() {
         }
     });
 }); 
+
+
+
+$(document).ready(function() {
+    // Add tooltip functionality to Email Templates button if templates are missing
+    if (window.MISSING_EMAIL_TEMPLATES && window.MISSING_EMAIL_TEMPLATES.length > 0) {
+        const emailTemplatesBtn = document.getElementById('emailTemplatesBtn');
+        const missingTemplates = window.MISSING_EMAIL_TEMPLATES;
+        
+        // Create tooltip content
+        let tooltipContent = 'Missing Templates:<br>';
+        missingTemplates.forEach(template => {
+            let icon = '';
+            switch(template.reason) {
+                case 'registration':
+                    icon = '📋';
+                    break;
+                case 'approval':
+                    icon = '✅';
+                    break;
+                case 'rejection':
+                    icon = '❌';
+                    break;
+                case 'rsvp':
+                    icon = '📩';
+                    break;
+                default:
+                    icon = '📧';
+            }
+            tooltipContent += `• ${icon} ${template.display_name}<br>`;
+        });
+        
+        // Add tooltip using basic HTML title attribute for now, but we'll enhance it
+        emailTemplatesBtn.setAttribute('data-tooltip', tooltipContent);
+        
+        // Create custom tooltip element
+        const tooltip = document.createElement('div');
+        tooltip.className = 'custom-tooltip';
+        tooltip.innerHTML = tooltipContent;
+        tooltip.style.cssText = `
+            position: absolute;
+            background: #1f2937;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            max-width: 200px;
+        `;
+        document.body.appendChild(tooltip);
+        
+        // Show tooltip on hover
+        emailTemplatesBtn.addEventListener('mouseenter', (e) => {
+            const rect = emailTemplatesBtn.getBoundingClientRect();
+            tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+            tooltip.style.top = (rect.bottom + 8) + 'px';
+            tooltip.style.opacity = '1';
+        });
+        
+        // Hide tooltip on mouse leave
+        emailTemplatesBtn.addEventListener('mouseleave', () => {
+            tooltip.style.opacity = '0';
+        });
+    }
+});

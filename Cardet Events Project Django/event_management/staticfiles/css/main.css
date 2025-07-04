@@ -42,6 +42,15 @@
     border-color: #a41937;
 }
 
+.btn-purple {
+    background-color: #7c3aed;
+    border-color: #7c3aed;
+}
+.btn-purple:hover {
+    background-color: #6d28d9;
+    border-color: #6d28d9;
+}
+
 /* --- Outline Button Styles --- */
 
 .btn-outline-blue {
@@ -72,6 +81,26 @@
 }
 .btn-outline-pink:hover {
     background-color: #ce1f45;
+    color: white;
+}
+
+.btn-outline-purple {
+    background-color: transparent;
+    border-color: #7c3aed;
+    color: #7c3aed;
+}
+.btn-outline-purple:hover {
+    background-color: #7c3aed;
+    color: white;
+}
+
+.btn-outline-gray {
+    background-color: transparent;
+    border-color: #6b7280;
+    color: #6b7280;
+}
+.btn-outline-gray:hover {
+    background-color: #6b7280;
     color: white;
 }
 
@@ -135,9 +164,9 @@
 /* Event Card Hover Effect */
 .event-card {
     transition: all 0.3s ease-in-out;
-    width: 473px;
-    height: 518px;
-    border-radius: 10rem;
+    width: 400px;
+    height: 445px;
+    border-radius: 1rem;
 }
 
 .event-card:hover {

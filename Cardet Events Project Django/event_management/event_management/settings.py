@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "ckeditor",
     "widget_tweaks",
     "heroicons",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -63,7 +64,12 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
+
+# Celery Beat Scheduler
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 ROOT_URLCONF = "event_management.urls"
 

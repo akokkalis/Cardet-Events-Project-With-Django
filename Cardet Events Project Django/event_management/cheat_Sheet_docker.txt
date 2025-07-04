@@ -1,0 +1,17 @@
+docker-compose build
+docker-compose up
+docker-compose restart
+
+docker-compose up celery
+
+docker-compose config --services
+
+
+
+
+
+docker-compose exec django python manage.py migrate
+docker-compose exec django python manage.py createsuperuser
+docker-compose exec django python manage.py shell
+
+docker-compose restart django
