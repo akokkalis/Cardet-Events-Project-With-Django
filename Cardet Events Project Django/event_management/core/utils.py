@@ -251,7 +251,7 @@ def email_body(participant_name, event_info):
         <p>✅ Please bring this ticket (printed or digital) for entry.</p>
         <p>✅ Ensure your QR code or barcode is visible for scanning at the entrance.</p>
         <p>✅ Doors open at: {event_info['starttime']} - Arrive early to secure your spot.</p>
-        <p>✅ For any inquiries, contact us at: events@cardet.org</p>
+        <p>✅ For any inquiries, contact us at: {event_info['company_email']}</p>
 
 
 

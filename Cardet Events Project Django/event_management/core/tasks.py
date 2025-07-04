@@ -66,6 +66,7 @@ def send_ticket_email_task(participant_id):
                 if participant.event.end_time
                 else "TBA"
             ),
+            "company_email": participant.event.company.email,
         }
 
         # Generate email body with correct parameters
