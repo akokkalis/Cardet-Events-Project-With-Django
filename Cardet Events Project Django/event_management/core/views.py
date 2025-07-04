@@ -369,8 +369,10 @@ def scan_qr(request, event_id):
         messages.error(request, "This event does not support QR code scanning.")
         return redirect("event_detail", event_id=event.id)
 
-    # Get all participants for the event
-    all_participants = Participant.objects.filter(event=event)
+    # Get all APPROVED participants for the event
+    all_participants = Participant.objects.filter(
+        event=event, approval_status="approved"
+    )
 
     # Get participants who have checked in
     present_participants = Attendance.objects.filter(
@@ -406,6 +408,18 @@ def mark_attendance(request):
                 {"status": "error", "message": "Invalid QR code."}, status=400
             )
 
+        # Check if participant is approved
+        if participant.approval_status != "approved":
+            return JsonResponse(
+                {
+                    "status": "error",
+                    "message": "Invalid ticket. Participant is not approved for this event.",
+                    "participant_name": participant.name,
+                    "participant_approval_status": participant.approval_status,
+                },
+                status=400,
+            )
+
         # Check if attendance already exists
         attendance, created = Attendance.objects.get_or_create(
             participant=participant, event=event
@@ -415,6 +429,8 @@ def mark_attendance(request):
                 {
                     "status": "warning",
                     "message": f"{participant.name} is already checked in!",
+                    "participant_name": participant.name,
+                    "participant_approval_status": participant.approval_status,
                 }
             )
 
@@ -430,8 +446,14 @@ def mark_attendance(request):
                     "redirect_url": f"/sign_signature/{event.id}/{participant.id}/",
                 }
             )
-        total_present = Attendance.objects.filter(event=event, present=True).count()
-        total_registered = Participant.objects.filter(event=event).count()
+
+        # Get counts for approved participants only
+        total_present = Attendance.objects.filter(
+            event=event, present=True, participant__approval_status="approved"
+        ).count()
+        total_registered = Participant.objects.filter(
+            event=event, approval_status="approved"
+        ).count()
         not_present = total_registered - total_present
 
         return JsonResponse(
@@ -439,6 +461,7 @@ def mark_attendance(request):
                 "status": "success",
                 "message": f"{participant.name} checked in successfully.",
                 "participant_name": participant.name,
+                "participant_approval_status": participant.approval_status,
                 "present_count": total_present,
                 "not_present_count": not_present,
             }

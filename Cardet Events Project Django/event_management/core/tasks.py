@@ -6,6 +6,7 @@ from django.utils.html import strip_tags
 from django.template import Template, Context
 from .models import Participant, EventEmail
 from .utils import email_body, generate_rsvp_urls
+from datetime import date, timedelta
 
 
 @shared_task
@@ -967,3 +968,45 @@ def bulk_generate_certificates_task(event_id, user_id):
     except Exception as e:
         print(f"❌ Error in bulk certificate generation task: {e}")
         return {"status": "error", "message": f"Task error: {str(e)}"}
+
+
+@shared_task
+def send_rsvp_reminders_for_upcoming_events():
+    """
+    Periodic task to send RSVP reminders for all 'on-going' events from tomorrow to 5 days ahead.
+    For each event, finds participants without RSVPResponse and sends them RSVP emails using the existing bulk task.
+    """
+    from .models import Event, Participant, RSVPResponse
+    from django.contrib.auth.models import User
+    from django.utils import timezone
+
+    tomorrow = date.today() + timedelta(days=1)
+    five_days = date.today() + timedelta(days=5)
+
+    # Find all 'on-going' events in the date range (from tomorrow to 5 days ahead)
+    events = Event.objects.filter(
+        event_date__gte=tomorrow,
+        event_date__lte=five_days,
+        status__name__iexact="on-going",
+    )
+
+    for event in events:
+        # Get all participants for the event
+        participants = Participant.objects.filter(event=event)
+        # Get IDs of participants who have RSVPResponse for this event
+        responded_ids = set(
+            RSVPResponse.objects.filter(event=event).values_list(
+                "participant_id", flat=True
+            )
+        )
+        # Filter participants who have NOT responded
+        no_rsvp_participants = [p for p in participants if p.id not in responded_ids]
+        if no_rsvp_participants:
+            user = (
+                User.objects.filter(is_superuser=True).first() or User.objects.first()
+            )
+            participant_ids = [p.id for p in no_rsvp_participants]
+            send_bulk_rsvp_emails_task.delay(event.id, participant_ids, user.id)
+            print(
+                f"[RSVP REMINDER] Queued reminders for event '{event.event_name}' to {len(participant_ids)} participants."
+            )
