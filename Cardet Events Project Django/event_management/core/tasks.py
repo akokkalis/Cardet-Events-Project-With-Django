@@ -868,7 +868,7 @@ def bulk_generate_certificates_task(event_id, user_id):
     Celery task to generate certificates for all participants in an event.
     """
     try:
-        from .models import Event, Participant
+        from .models import Event, Participant, Attendance
         from django.contrib.auth.models import User
         from django.utils import timezone
         from .utils import generate_certificate_for_participant
@@ -890,18 +890,23 @@ def bulk_generate_certificates_task(event_id, user_id):
             error_messages=[],
         )
 
-        # Get all participants
-        participants = Participant.objects.filter(event=event)
+        # Get participants who have attended the event
+        participants = Participant.objects.filter(
+            event=event, attendance__event=event, attendance__present=True
+        ).distinct()
         total_participants = participants.count()
+        print("Participants:", participants)
 
         if not participants.exists():
             cert_log.status = "failed"
-            cert_log.error_messages.append("No participants found for this event")
+            cert_log.error_messages.append(
+                "No participants with attendance records found for this event"
+            )
             cert_log.completed_at = timezone.now()
             cert_log.save()
             return {
                 "status": "error",
-                "message": "No participants found for this event",
+                "message": "No participants with attendance records found for this event",
             }
 
         # Update total participants
@@ -909,7 +914,7 @@ def bulk_generate_certificates_task(event_id, user_id):
         cert_log.save()
 
         print(
-            f"🔄 Starting bulk certificate generation for {total_participants} participants..."
+            f"🔄 Starting bulk certificate generation for {total_participants} participants with attendance..."
         )
 
         successful = 0

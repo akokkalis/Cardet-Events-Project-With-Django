@@ -116,7 +116,7 @@ class EventAdmin(admin.ModelAdmin):
 
 
 class AttendanceAdmin(admin.ModelAdmin):
-    list_display = ("event", "present", "signature_file", "timestamp")
+    list_display = ("event", "participant", "present", "signature_file", "timestamp")
     list_filter = ("event", "present", "signature_file", "timestamp")
     search_fields = ("event_name", "location")
 

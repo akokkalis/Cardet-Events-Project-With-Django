@@ -79,14 +79,20 @@ body {
 	overflow: hidden;
 	background-color: #e1eaf1;
 	margin-bottom: 30px;
+
 }
 
 .qr-code {
+	
 	background-color: #d3dfe8;
 	padding: 20px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	border-right: 2px dashed #999;
+	border-top: none;
+	border-left: none;
+	border-bottom: none;
 }
 
 .qr-code img {

@@ -2331,10 +2331,11 @@ def generate_participant_certificate(request, event_id, participant_id):
     return redirect("event_detail", event_id=event.id)
 
 
+@login_required
 def bulk_generate_certificates(request, event_id):
     """Generate certificates for all participants using Celery background task"""
     from django.http import JsonResponse
-    from .models import CertificateGenerationLog
+    from .models import CertificateGenerationLog, Attendance
 
     if request.method != "POST":
         return JsonResponse({"status": "error", "message": "POST method required"})
@@ -2350,34 +2351,39 @@ def bulk_generate_certificates(request, event_id):
             }
         )
 
-    # Get all participants
-    participants = Participant.objects.filter(event=event)
+    # Get participants who have attended the event
+    attended_participants = Participant.objects.filter(
+        event=event, attendance__event=event, attendance__present=True
+    ).distinct()
 
-    if not participants.exists():
+    if not attended_participants.exists():
         return JsonResponse(
-            {"status": "error", "message": "No participants found for this event."}
+            {
+                "status": "error",
+                "message": "No participants with attendance records found for this event.",
+            }
         )
 
     # Create certificate generation log entry
     cert_log = CertificateGenerationLog.objects.create(
         event=event,
         user=request.user,
-        total_participants=participants.count(),
+        total_participants=attended_participants.count(),
         status="in_progress",
     )
 
     # Start background certificate generation using Celery task
     task = bulk_generate_certificates_task.delay(event.id, request.user.id)
     print(
-        f"✅ Celery task {task.id} queued for bulk certificate generation for {participants.count()} participants"
+        f"✅ Celery task {task.id} queued for bulk certificate generation for {attended_participants.count()} participants"
     )
 
     return JsonResponse(
         {
             "status": "started",
             "log_id": cert_log.id,
-            "total_participants": participants.count(),
-            "message": f"Certificate generation started for {participants.count()} participants",
+            "total_participants": attended_participants.count(),
+            "message": f"Certificate generation started for {attended_participants.count()} participants",
         }
     )
 

@@ -18,3 +18,9 @@ docker-compose restart django
 
 python manage.py runserver 0.0.0.0:8000
 gunicorn event_management.wsgi:application --bind 0.0.0.0:8000 --reload
+
+
+pgadmin
+http://localhost:5050/browser/
+Email: admin@example.com
+Password: admin
