@@ -42,6 +42,8 @@
                     ❌ Rejection Email Template
                 {% elif form.reason.value == 'rsvp' %}
                     📩 RSVP Request Email Template
+                {% elif form.reason.value == 'certificates' %}
+                    🎓 Certificate Generation Email Template
                 {% endif %}
             </h3>
             <p class="text-blue-700 text-sm mb-2">
@@ -53,6 +55,8 @@
                     This email will be sent when a participant's registration is rejected by an admin.
                 {% elif form.reason.value == 'rsvp' %}
                     This email is used to request RSVP responses from participants.
+                {% elif form.reason.value == 'certificates' %}
+                    This email will be sent when certificates are generated for participants who attended the event.
                 {% endif %}
             </p>
             <div class="text-blue-600 text-xs">
@@ -60,8 +64,39 @@
                 {% if form.reason.value == 'rsvp' %}
                     , {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}
                 {% endif %}
+                {% if form.reason.value == 'certificates' %}
+                    <br><br>
+                    <strong>Certificate-specific placeholders:</strong><br>
+                    • <code>{{ certificate_url }}</code> - Direct link to download the certificate<br>
+                    • <code>{{ participant_name }}</code> - Full name of the participant<br>
+                    • <code>{{ event_name }}</code> - Name of the event<br>
+                    • <code>{{ event_date }}</code> - Date of the event<br>
+                    • <code>{{ event_location }}</code> - Location where the event was held<br>
+                    • <code>{{ company_name }}</code> - Name of the organizing company<br>
+                    • <code>{{ attendance_date }}</code> - Date when attendance was marked
+                {% endif %}
             </div>
             
+            {% if form.reason.value == 'certificates' %}
+            <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 class="text-gray-800 font-medium text-sm mb-3">📝 Example Certificate Email Template</h4>
+                <div class="bg-white border border-gray-300 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <pre class="whitespace-pre-wrap text-gray-800">Subject: Your Certificate for {{ event_name }}
+
+Dear {{ participant_name }},
+
+Thank you for attending {{ event_name }} on {{ event_date }} at {{ event_location }}. We are pleased to provide you with your certificate of attendance.
+
+You can download your certificate using the following link:
+{{ certificate_url }}
+
+If you have any questions or issues accessing your certificate, please don't hesitate to contact us.
+
+Best regards,
+{{ company_name }} Team</pre>
+                </div>
+            </div>
+            {% endif %}
             {% if form.reason.value == 'rsvp' %}
             <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
                 <h4 class="text-indigo-800 font-medium text-sm mb-2">🔗 RSVP URL Placeholders</h4>

@@ -141,6 +141,10 @@
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                                             📩 {{ all_reasons.rsvp }}
                                         </span>
+                                    {% elif template.reason == 'certificates' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            🎓 {{ all_reasons.certificates }}
+                                        </span>
                                     {% endif %}
                                 </div>
                                 <h3 class="font-medium text-gray-900 mb-1">{{ template.subject }}</h3>
@@ -205,6 +209,12 @@
                                         <span class="font-medium text-gray-900">{{ display_name }}</span>
                                     </div>
                                     <p class="text-sm text-gray-600">Sent to request RSVP responses from participants</p>
+                                {% elif reason == 'certificates' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-yellow-600">🎓</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent when certificates are generated for participants</p>
                                 {% endif %}
                             </div>
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

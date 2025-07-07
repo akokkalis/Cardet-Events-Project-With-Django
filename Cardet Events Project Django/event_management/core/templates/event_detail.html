@@ -288,12 +288,25 @@
                    {% heroicon_outline "academic-cap" class="h-5 w-5" %}
                    <span>Generate All Certificates</span>
                </button>
+               <button id="bulkSendCertificatesBtn" 
+                       class="btn btn-outline-blue" 
+                       data-event-id="{{ event.id }}"
+                       title="Send certificates via email to all participants who have certificates generated">
+                   {% heroicon_outline "envelope" class="h-5 w-5" %}
+                   <span>Send All Certificates</span>
+               </button>
            {% else %}
                <button class="btn btn-outline-blue opacity-50 cursor-not-allowed" 
                        disabled 
                        title="No certificate template uploaded">
                    {% heroicon_outline "academic-cap" class="h-5 w-5" %}
                    <span>Generate All Certificates</span>
+               </button>
+               <button class="btn btn-outline-blue opacity-50 cursor-not-allowed" 
+                       disabled 
+                       title="No certificate template uploaded">
+                   {% heroicon_outline "envelope" class="h-5 w-5" %}
+                   <span>Send All Certificates</span>
                </button>
            {% endif %}
         </div>
@@ -356,18 +369,24 @@
                         <td class="border border-gray-300 px-4 py-2">{{ participant.email }}</td>
                         <td class="border border-gray-300 px-4 py-2">{{ participant.phone|default:"-" }}</td>
                         <td class="border border-gray-300 px-4 py-2">
-                            {% if participant.approval_status == 'approved' %}
+                            {% if participant.attendance and participant.attendance.present %}
                                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    ✅ Approved
-                                </span>
-                            {% elif participant.approval_status == 'rejected' %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                    ❌ Rejected
+                                    ✅ Attended at {{ participant.attendance.timestamp|date:"H:i" }}
                                 </span>
                             {% else %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                    🟡 Pending
-                                </span>
+                                {% if participant.approval_status == 'approved' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        ✅ Approved
+                                    </span>
+                                {% elif participant.approval_status == 'rejected' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        ❌ Rejected
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        🟡 Pending
+                                    </span>
+                                {% endif %}
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
@@ -401,7 +420,7 @@
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="pdf-ticket-cell-{{ participant.id }}">
                             {% if participant.pdf_ticket %}
-                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="text-blue-500 underline">Download</a>
+                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class=" btn btn-outline-blue text-xs">Download</a>
                             {% else %}
                                 <span class="text-gray-500">No Ticket</span>
                                
@@ -409,7 +428,7 @@
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="send-ticket-cell-{{ participant.id }}">
                             {% if participant.pdf_ticket %}
-                                <button class="send-ticket-btn btn btn-outline-blue" data-participant-id="{{ participant.id }}">
+                                <button class="send-ticket-btn btn btn-outline-blue text-xs" data-participant-id="{{ participant.id }}">
                                     Send Ticket
                                 </button>
                             {% else %}
@@ -432,7 +451,7 @@
                                     <button class="btn btn-outline-blue px-2 py-1 text-xs rounded cursor-not-allowed opacity-50" 
                                             disabled
                                             title="No certificate generated yet">
-                                        📥 Download
+                                            {% heroicon_outline "arrow-down-tray"  %}
                                     </button>
                                 {% endif %}
                                 
@@ -440,13 +459,13 @@
                                 {% if event.certificate %}
                                     {% if participant.certificate %}
                                         <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
-                                           class="btn btn-outline-blue px-2 py-1 text-xs rounded"
+                                           class="btn btn-outline-blue text-xs rounded"
                                            title="Regenerate certificate">
-                                           {% heroicon_outline "arrow-path-rounded-square"  %} Regenerate
+                                            Regenerate
                                         </a>
                                     {% else %}
                                         <a href="{% url 'generate_participant_certificate' event.id participant.id %}" 
-                                           class="btn btn-outline-blue px-2 py-1 text-xs rounded"
+                                           class="btn btn-outline-blue text-xs rounded"
                                            title="Generate certificate">
                                              Generate
                                         </a>
@@ -463,51 +482,57 @@
                         <td class="border border-gray-300 px-4 py-2" id="actions-cell-{{ participant.id }}">
                             <div class="flex gap-1 justify-center">
                                 {% if participant.has_rsvp_response %}
-                                    <span class="btn bg-gray-300 text-gray-500 px-2 py-1 text-xs rounded cursor-not-allowed"
+                                    <span class="btn btn-outline-blue px-2 py-1 text-xscursor-not-allowed"
                                           title="Already responded to RSVP">
-                                        📩
+                                        {% heroicon_outline "envelope"  %}
                                     </span>
                                 {% else %}
                                     <a href="{% url 'send_rsvp_email_participant' event.id participant.id %}" 
-                                       class="btn bg-indigo-500 hover:bg-indigo-600 text-white px-2 py-1 text-xs rounded"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Send RSVP Email">
-                                        📩
+                                         {% heroicon_outline "envelope"  %}
                                     </a>
                                 {% endif %}
                                 {% if participant.approval_status == 'pending' %}
                                     <a href="{% url 'approve_participant' event.id participant.id %}" 
-                                       class="btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Approve participant">
-                                        ✅
+                                        {% heroicon_outline "check"  %}
                                     </a>
                                     <a href="{% url 'reject_participant' event.id participant.id %}" 
-                                       class="btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Reject participant">
-                                        ❌
+                                        {% heroicon_outline "x-mark"  %}
                                     </a>
                                 {% elif participant.approval_status == 'approved' %}
                                     <a href="{% url 'reject_participant' event.id participant.id %}" 
-                                       class="btn bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Reject participant">
-                                        ❌
+                                        {% heroicon_outline "x-mark"  %}
                                     </a>
                                     <a href="{% url 'set_participant_pending' event.id participant.id %}" 
-                                       class="btn bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Set to pending">
-                                        🔄
+                                       {% heroicon_outline "ellipsis-horizontal"  %}
                                     </a>
                                 {% elif participant.approval_status == 'rejected' %}
                                     <a href="{% url 'approve_participant' event.id participant.id %}" 
-                                       class="btn bg-green-500 hover:bg-green-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Approve participant">
-                                        ✅
+                                        {% heroicon_outline "check"  %}
                                     </a>
                                     <a href="{% url 'set_participant_pending' event.id participant.id %}" 
-                                       class="btn bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 text-xs rounded" 
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
                                        title="Set to pending">
-                                        🔄
+                                        {% heroicon_outline "ellipsis-horizontal"  %}
                                     </a>
                                 {% endif %}
+                                <!-- Add edit button -->
+                                <a href="{% url 'edit_participant' event.id participant.id %}" 
+                                   class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                   title="Edit participant">
+                                    {% heroicon_outline "pencil-square"  %}
+                                </a>
                             </div>
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
@@ -516,7 +541,7 @@
                                     <img src="{{ participant.attendance.signature_file.url }}" alt="Signature" class="h-10 w-auto border rounded mx-auto">
                                 </a>
                             {% else %}
-                               <span class="text-red-600 font-semibold">❌ Not Signed</span>
+                               <span class="text-red-600 font-semibold"> Not Signed</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -642,6 +667,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const bulkGenerateBtn = document.getElementById('bulkGenerateCertificatesBtn');
+    const bulkSendBtn = document.getElementById('bulkSendCertificatesBtn');
     
     if (bulkGenerateBtn) {
         bulkGenerateBtn.addEventListener('click', function() {
@@ -733,6 +759,103 @@ document.addEventListener('DOMContentLoaded', function() {
                         bulkGenerateBtn.innerHTML = `
                             {% heroicon_outline "academic-cap" class="h-5 w-5" %}
                             <span>Generate All Certificates</span>
+                        `;
+                    });
+                }
+            });
+        });
+    }
+
+    if (bulkSendBtn) {
+        bulkSendBtn.addEventListener('click', function() {
+            const eventId = this.getAttribute('data-event-id');
+            
+            // Show confirmation dialog
+            Swal.fire({
+                title: 'Send All Certificates?',
+                text: 'This will send email notifications to all participants who have certificates generated. This process may take several minutes.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, Send All',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Disable the button and show loading state
+                    bulkSendBtn.disabled = true;
+                    bulkSendBtn.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Sending...</span>
+                        </div>
+                    `;
+                    
+                    // Make the AJAX request
+                    fetch(`/events/${eventId}/bulk-send-certificates/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': window.csrfToken,
+                            'Content-Type': 'application/json',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'started') {
+                            Swal.fire({
+                                title: 'Sending Started!',
+                                text: data.message,
+                                icon: 'success',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                // Show a different message on the button
+                                bulkSendBtn.innerHTML = `
+                                    {% heroicon_outline "envelope" class="h-5 w-5" %}
+                                    <span>Processing in Background...</span>
+                                `;
+                                bulkSendBtn.classList.add('opacity-75');
+                                
+                                // Re-enable after 30 seconds
+                                setTimeout(() => {
+                                    bulkSendBtn.disabled = false;
+                                    bulkSendBtn.innerHTML = `
+                                        {% heroicon_outline "envelope" class="h-5 w-5" %}
+                                        <span>Send All Certificates</span>
+                                    `;
+                                    bulkSendBtn.classList.remove('opacity-75');
+                                }, 30000);
+                            });
+                        } else {
+                            // Handle error
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'An error occurred while starting certificate sending.',
+                                icon: 'error',
+                                confirmButtonText: 'OK'
+                            });
+                            
+                            // Re-enable the button
+                            bulkSendBtn.disabled = false;
+                            bulkSendBtn.innerHTML = `
+                                {% heroicon_outline "envelope" class="h-5 w-5" %}
+                                <span>Send All Certificates</span>
+                            `;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'A network error occurred. Please try again.',
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                        
+                        // Re-enable the button
+                        bulkSendBtn.disabled = false;
+                        bulkSendBtn.innerHTML = `
+                            {% heroicon_outline "envelope" class="h-5 w-5" %}
+                            <span>Send All Certificates</span>
                         `;
                     });
                 }

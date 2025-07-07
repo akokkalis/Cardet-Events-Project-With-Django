@@ -1016,3 +1016,131 @@ def send_rsvp_reminders_for_upcoming_events():
             print(
                 f"[RSVP REMINDER] Queued reminders for event '{event.event_name}' to {len(participant_ids)} participants."
             )
+
+
+@shared_task
+def bulk_send_certificates_task(event_id, user_id):
+    """
+    Celery task to send certificates to all participants who have certificates generated.
+    """
+    try:
+        from .models import Event, Participant, EventEmail, RSVPEmailLog
+        from django.contrib.auth.models import User
+        from django.utils import timezone
+        from django.core.mail import EmailMessage, get_connection
+        from django.template import Template, Context
+
+        event = Event.objects.get(id=event_id)
+        user = User.objects.get(id=user_id)
+
+        # Get company email configuration
+        email_config = getattr(event.company, "email_config", None)
+        if not email_config:
+            return {
+                "status": "error",
+                "message": f"No email configuration found for company {event.company.name}",
+            }
+
+        # Create SMTP connection
+        connection = get_connection(
+            host=email_config.smtp_server,
+            port=email_config.smtp_port,
+            username=email_config.email_address,
+            password=email_config.email_password,
+            use_tls=email_config.use_tls,
+            use_ssl=email_config.use_ssl,
+        )
+
+        # Get all participants who have certificates
+        participants = Participant.objects.filter(
+            event=event, certificate__isnull=False
+        )
+
+        # Create email log
+        email_log = RSVPEmailLog.objects.create(
+            event=event,
+            user=user,
+            status="in_progress",
+            total_recipients=participants.count(),
+            emails_sent=0,
+            emails_failed=0,
+        )
+
+        # Get the email template
+        email_template = EventEmail.objects.get(event=event, reason="certificates")
+
+        successful_count = 0
+        failed_count = 0
+        error_messages = []
+
+        for participant in participants:
+            try:
+                # Prepare email context
+                context = {
+                    "name": participant.name,
+                    "participant_name": participant.name,
+                    "event_name": event.event_name,
+                    "event_date": event.event_date,
+                    "event_location": event.location,
+                    "company_name": event.company.name if event.company else "",
+                    "certificate_url": participant.certificate.url,
+                }
+
+                # Render email subject and body
+                subject = Template(email_template.subject).render(Context(context))
+                body = Template(email_template.body).render(Context(context))
+
+                # Create and send email
+                email = EmailMessage(
+                    subject=subject,
+                    body=body,
+                    from_email=email_config.email_address,  # Use company email
+                    to=[participant.email],
+                    connection=connection,  # Use company SMTP connection
+                )
+
+                # Set HTML content type
+                email.content_subtype = "html"  # Support HTML in email templates
+
+                # Attach the certificate
+                if participant.certificate:
+                    email.attach_file(participant.certificate.path)
+
+                email.send()
+                successful_count += 1
+                email_log.emails_sent += 1
+                email_log.save()
+
+            except Exception as e:
+                failed_count += 1
+                email_log.emails_failed += 1
+                error_messages.append(f"Error sending to {participant.email}: {str(e)}")
+                email_log.save()
+
+        # Update log with final status
+        completion_message = f"Certificate sending completed. Successfully sent: {successful_count}, Failed: {failed_count}"
+        if error_messages:
+            completion_message = (
+                completion_message + "\n\nErrors:\n" + "\n".join(error_messages)
+            )
+
+        email_log.status = "completed"
+        email_log.error_message = completion_message if error_messages else None
+        email_log.completed_at = timezone.now()
+        email_log.save()
+
+        return {
+            "status": "success",
+            "message": completion_message,
+            "successful_count": successful_count,
+            "failed_count": failed_count,
+        }
+
+    except Exception as e:
+        if "email_log" in locals():
+            email_log.status = "failed"
+            email_log.error_message = str(e)
+            email_log.completed_at = timezone.now()
+            email_log.save()
+
+        return {"status": "error", "message": str(e)}

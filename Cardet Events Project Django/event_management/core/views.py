@@ -57,6 +57,7 @@ from core.tasks import (
     send_ticket_email_task,
     send_bulk_rsvp_emails_task,
     bulk_generate_certificates_task,
+    bulk_send_certificates_task,
 )
 import threading
 
@@ -743,7 +744,7 @@ def public_register(request, event_uuid):
         return render(request, "rate_limit_exceeded.html", {"event": event})
 
     # Only allow if event status is "on-going"
-    if not event.status or event.status.name.lower() != "on-going":
+    if not event.status or event.status.name.lower() != "ongoing":
         return render(request, "registration_closed.html", {"event": event})
 
     if request.method == "POST":
@@ -1192,6 +1193,7 @@ def event_email_templates(request, event_id):
         ("approval", "Approval Email"),
         ("rejection", "Rejection Email"),
         ("rsvp", "RSVP Request Email"),
+        ("certificates", "Certificate Generation Email"),
     ]
 
     # Find missing templates that can be created
@@ -1218,7 +1220,7 @@ def add_email_template(request, event_id):
     reason = request.GET.get("reason")
 
     # Validate that the reason is valid
-    valid_reasons = ["registration", "approval", "rejection", "rsvp"]
+    valid_reasons = ["registration", "approval", "rejection", "rsvp", "certificates"]
     if reason not in valid_reasons:
         messages.error(request, "Invalid email template type.")
         return redirect("event_email_templates", event_id=event.id)
@@ -2422,3 +2424,126 @@ def check_certificate_generation_progress(request, log_id):
 
     except Exception as e:
         return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+
+@login_required
+def bulk_send_certificates(request, event_id):
+    """Send certificates to all participants who have certificates generated using Celery background task"""
+    from django.http import JsonResponse
+    from .models import CertificateGenerationLog
+
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "POST method required"})
+
+    event = get_object_or_404(Event, id=event_id)
+
+    # Check if certificate template exists
+    if not event.certificate:
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "No certificate template found for this event.",
+            }
+        )
+
+    # Check if email template for certificates exists
+    if not EventEmail.objects.filter(event=event, reason="certificates").exists():
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "No email template found for sending certificates. Please create one first.",
+            }
+        )
+
+    # Start the Celery task
+    bulk_send_certificates_task.delay(event_id, request.user.id)
+
+    return JsonResponse(
+        {
+            "status": "started",
+            "message": "Certificate sending process has been started. You will be notified when it's complete.",
+        }
+    )
+
+
+@login_required
+def edit_participant_view(request, event_id, participant_id):
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    if request.method == "POST":
+        form = ParticipantForm(
+            request.POST, request.FILES, event=event, instance=participant
+        )
+        if form.is_valid():
+            try:
+                participant = form.save(commit=False)
+
+                # Handling custom fields
+                custom_data = {}
+                for key, value in form.cleaned_data.items():
+                    if key.startswith("custom_field_"):
+                        field_id = int(key.split("_")[-1])
+                        field_model = EventCustomField.objects.get(id=field_id)
+
+                        if field_model.field_type == "file" and value:
+                            # For file fields, store the filename in custom_data
+                            custom_data[field_model.label] = value.name
+                        else:
+                            custom_data[field_model.label] = value
+
+                participant.submitted_data = custom_data
+                participant.save()
+
+                # Save uploaded files for custom fields
+                for key, value in form.cleaned_data.items():
+                    if key.startswith("custom_field_") and value:
+                        field_id = int(key.split("_")[-1])
+                        field_model = EventCustomField.objects.get(id=field_id)
+
+                        if field_model.field_type == "file":
+                            from core.models import ParticipantCustomFieldFile
+
+                            # Delete old file if it exists
+                            ParticipantCustomFieldFile.objects.filter(
+                                participant=participant, field_label=field_model.label
+                            ).delete()
+
+                            # Create new file entry
+                            ParticipantCustomFieldFile.objects.create(
+                                participant=participant,
+                                field_label=field_model.label,
+                                file=value,
+                            )
+
+                messages.success(
+                    request, f"✅ Participant {participant.name} updated successfully."
+                )
+                return redirect("event_detail", event_id=event.id)
+
+            except IntegrityError:
+                # Handle duplicate email error
+                email = form.cleaned_data.get("email", "")
+                messages.error(
+                    request,
+                    f"❌ This email address ({email}) is already registered for this event. Please use a different email address.",
+                )
+    else:
+        # Initialize form with participant's data
+        initial_data = {}
+
+        # Add custom field data
+        if participant.submitted_data:
+            custom_fields = EventCustomField.objects.filter(event=event)
+            for field in custom_fields:
+                field_name = f"custom_field_{field.id}"
+                if field.label in participant.submitted_data:
+                    initial_data[field_name] = participant.submitted_data[field.label]
+
+        form = ParticipantForm(instance=participant, event=event, initial=initial_data)
+
+    return render(
+        request,
+        "edit_participant.html",
+        {"form": form, "event": event, "participant": participant},
+    )

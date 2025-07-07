@@ -24,6 +24,7 @@ from .views import (
     delete_custom_field,
     update_field_order,
     register_participant_view,
+    edit_participant_view,
     download_custom_field_file,
     company_list,
     company_create,
@@ -52,6 +53,7 @@ from .views import (
     generate_participant_certificate,
     bulk_generate_certificates,
     check_certificate_generation_progress,
+    bulk_send_certificates,
 )
 
 urlpatterns = [
@@ -154,6 +156,11 @@ urlpatterns = [
         name="register_participant",
     ),
     path(
+        "events/<int:event_id>/participants/<int:participant_id>/edit/",
+        edit_participant_view,
+        name="edit_participant",
+    ),
+    path(
         "download-custom-file/<int:file_id>/",
         download_custom_field_file,
         name="download_custom_field_file",
@@ -251,6 +258,11 @@ urlpatterns = [
         "certificate-generation-status/<int:log_id>/",
         check_certificate_generation_progress,
         name="check_certificate_generation_progress",
+    ),
+    path(
+        "events/<int:event_id>/bulk-send-certificates/",
+        bulk_send_certificates,
+        name="bulk_send_certificates",
     ),
 ]
 

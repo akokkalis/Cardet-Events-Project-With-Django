@@ -429,6 +429,7 @@ class EventEmail(models.Model):
         ("rejection", "Rejection"),
         ("registration", "On Registration"),
         ("rsvp", "RSVP Request"),
+        ("certificates", "Certificate Generation"),
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="emails")
