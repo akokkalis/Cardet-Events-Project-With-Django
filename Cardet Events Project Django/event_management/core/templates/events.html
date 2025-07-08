@@ -82,6 +82,13 @@
     {% for event in events %}
     <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col items-center relative">
         
+        <!-- Full Badge -->
+        {% if event.has_registration_limit and event.registration_limit and event.valid_participant_count >= event.registration_limit %}
+        <div class="absolute top-2 right-2 z-10">
+            <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Full</span>
+        </div>
+        {% endif %}
+        
         <!-- Event Image and Status Badge -->
         <div class="mb-3">
             <div class="relative inline-block my-2.5"> <!-- Positioning context with vertical margin -->
@@ -136,11 +143,11 @@
         <!-- ✅ Registration Count Badge with Tooltip -->
         <div class="absolute bottom-2 right-2 group">
             <div class="bg-brand-blue text-white text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg cursor-pointer">
-                {{ event.participant_set.count }}
+                {{ event.valid_participant_count }}
             </div>
             <!-- Tooltip -->
             <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Total Registrations
+                Total Registrations (excluding rejected)
             </div>
         </div>
     </div>

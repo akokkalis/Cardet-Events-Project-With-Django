@@ -116,6 +116,60 @@
                             <p class="mt-2 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.has_registration_limit|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.has_registration_limit.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.has_registration_limit.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Registration Limit</strong><br>
+                                        When enabled, you can set a maximum number of participants:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Prevents overbooking of events</li>
+                                            <li>Shows availability status in reports</li>
+                                            <li>Can be used with public registration</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            📊 Useful for capacity-limited venues or exclusive events
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.has_registration_limit.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div id="registration-limit-field" class="ml-8" style="display: none;">
+                            <label for="{{ form.registration_limit.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                                {{ form.registration_limit.label }}
+                                <div class="tooltip-container ml-2">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Maximum Participants</strong><br>
+                                        Set the maximum number of participants allowed:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Must be a positive number</li>
+                                            <li>Only applies when registration limit is enabled</li>
+                                            <li>Will show as "Full" when limit is reached</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            🎯 Recommended: Set based on venue capacity or event goals
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.registration_limit|add_class:"form-field w-32" }}
+                            </div>
+                            {% for error in form.registration_limit.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="space-y-6">
@@ -303,4 +357,25 @@
         </form>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hasLimitCheckbox = document.getElementById('{{ form.has_registration_limit.id_for_label }}');
+    const limitField = document.getElementById('registration-limit-field');
+    
+    function toggleLimitField() {
+        if (hasLimitCheckbox.checked) {
+            limitField.style.display = 'block';
+        } else {
+            limitField.style.display = 'none';
+        }
+    }
+    
+    // Initial state
+    toggleLimitField();
+    
+    // Listen for changes
+    hasLimitCheckbox.addEventListener('change', toggleLimitField);
+});
+</script>
 {% endblock %}

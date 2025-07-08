@@ -24,7 +24,7 @@ from .forms import (
     EmailConfigurationForm,
 )
 from django.core.paginator import Paginator
-from django.db.models import Q, Case, When, Value, IntegerField, F, Window
+from django.db.models import Q, Case, When, Value, IntegerField, F, Window, Count
 from django.db.models.functions import RowNumber
 from django.utils.timezone import now
 from django.http import JsonResponse, FileResponse, HttpResponse
@@ -118,7 +118,10 @@ def event_list(request):
                 ],
                 default=Value(99),  # Default lowest priority if status not found
                 output_field=IntegerField(),
-            )
+            ),
+            valid_participant_count=Count(
+                "participant", filter=~Q(participant__approval_status="rejected")
+            ),
         )
         .order_by("priority", "event_date")
     )
@@ -346,6 +349,7 @@ def event_detail(request, event_id):
         else:
             participant.custom_data_json = "{}"
 
+    valid_participant_count = participants.exclude(approval_status="rejected").count()
     context = {
         "event": event,
         "participants": participants,
@@ -354,6 +358,7 @@ def event_detail(request, event_id):
         "missing_email_templates": missing_email_templates,
         "missing_email_templates_json": missing_email_templates_json,
         "rsvp_template_missing": rsvp_template_missing,
+        "valid_participant_count": valid_participant_count,
     }
 
     return render(request, "event_detail.html", context)
@@ -746,6 +751,20 @@ def public_register(request, event_uuid):
     # Only allow if event status is "on-going"
     if not event.status or event.status.name.lower() != "ongoing":
         return render(request, "registration_closed.html", {"event": event})
+
+    # Check registration limit if enabled
+    if event.has_registration_limit and event.registration_limit:
+        current_participants = (
+            Participant.objects.filter(event=event)
+            .exclude(approval_status="rejected")
+            .count()
+        )
+        if current_participants >= event.registration_limit:
+            return render(
+                request,
+                "registration_closed.html",
+                {"event": event, "reason": "limit_reached"},
+            )
 
     if request.method == "POST":
         form = ParticipantForm(request.POST, request.FILES)

@@ -70,7 +70,16 @@
     <div class="event-details">
         <div style="display: flex; justify-content: space-between;">
             <div>
-                <p><strong>Total Participants:</strong> {{ participants|length }}</p>
+                <p><strong>Total Participants:</strong> {{ participants|length }}
+                {% if event.has_registration_limit %}
+                    / {{ event.registration_limit }} (Limit)
+                    {% if participants|length >= event.registration_limit %}
+                        <span style="color: #dc3545;">⚠️ Full</span>
+                    {% else %}
+                        <span style="color: #28a745;">✓ Available</span>
+                    {% endif %}
+                {% endif %}
+                </p>
                 <p><strong>Approval Status:</strong></p>
                 <ul style="list-style-type: none; padding-left: 0; margin: 5px 0;">
                     <li>✅ Approved: {{ participants|filter:"approval_status='approved'"|length }}</li>

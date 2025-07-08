@@ -15,7 +15,15 @@
     </div>
 
     <h2 class="text-3xl font-bold text-red-600">Registration Closed 🚫</h2>
-    <p class="mt-4 text-gray-700">Registration for <strong>{{ event.event_name }}</strong> is not currently open.</p>
+    
+    {% if reason == "limit_reached" %}
+        <p class="mt-4 text-gray-700">Registration for <strong>{{ event.event_name }}</strong> is closed because the event has reached its maximum capacity.</p>
+        {% if event.has_registration_limit and event.registration_limit %}
+            <p class="mt-2 text-sm text-gray-600">Maximum participants: {{ event.registration_limit }}</p>
+        {% endif %}
+    {% else %}
+        <p class="mt-4 text-gray-700">Registration for <strong>{{ event.event_name }}</strong> is not currently open.</p>
+    {% endif %}
 
 </div>
 {% endblock %}

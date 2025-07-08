@@ -87,24 +87,112 @@ class EventForm(forms.ModelForm):
             "end_time",
             "location",
             "description",
-            "image",
-            "certificate",
             "tickets",
+            "has_registration_limit",
+            "registration_limit",
             "signatures",
-            "status",
             "public_registration_enabled",
             "auto_approval_enabled",
+            "image",
+            "certificate",
+            "status",
         ]
         widgets = {
-            "company": forms.Select(attrs={"class": "form-select"}),
+            "company": forms.Select(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                }
+            ),
+            "event_name": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter event name",
+                }
+            ),
             "event_date": forms.DateInput(
-                attrs={"type": "date", "class": "form-input"}
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "type": "date",
+                }
             ),
             "start_time": forms.TimeInput(
-                attrs={"type": "time", "class": "form-input"}
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "type": "time",
+                }
             ),
-            "end_time": forms.TimeInput(attrs={"type": "time", "class": "form-input"}),
-            "description": forms.Textarea(attrs={"rows": 3, "class": "form-textarea"}),
+            "end_time": forms.TimeInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "type": "time",
+                }
+            ),
+            "location": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Enter event location",
+                }
+            ),
+            "description": CKEditorWidget(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                }
+            ),
+            "tickets": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if you want to have ticketing system for the event.",
+                }
+            ),
+            "has_registration_limit": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if you want to limit the number of registrations for this event.",
+                }
+            ),
+            "registration_limit": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "min": "1",
+                    "title": "Maximum number of participants allowed to register (only applies if registration limit is enabled).",
+                }
+            ),
+            "signatures": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if you want to collect signatures from participants at the event.",
+                }
+            ),
+            "public_registration_enabled": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if you want to allow public registration via link.",
+                }
+            ),
+            "auto_approval_enabled": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if you want registrations to be automatically approved. If disabled, registrations will require manual approval.",
+                }
+            ),
+            "image": forms.ClearableFileInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "accept": "image/*",
+                }
+            ),
+            "certificate": forms.ClearableFileInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "accept": ".pdf",
+                    "title": "Upload a PDF certificate template file for this event. Use placeholders like {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}} for personalization.",
+                }
+            ),
+            "status": forms.Select(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                }
+            ),
         }
 
     def __init__(self, *args, **kwargs):

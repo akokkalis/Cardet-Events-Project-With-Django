@@ -89,10 +89,70 @@ class EventAdmin(admin.ModelAdmin):
     formfield_overrides = {
         models.TextField: {"widget": CKEditorWidget()},
     }
-    list_display = ("event_name", "event_date", "status", "participant_count", "uuid")
-    list_filter = ("status", "event_date")
-    search_fields = ("event_name", "location")
+    list_display = [
+        "event_name",
+        "company",
+        "event_date",
+        "start_time",
+        "end_time",
+        "location",
+        "status",
+        "tickets",
+        "has_registration_limit",
+        "registration_limit",
+        "public_registration_enabled",
+        "auto_approval_enabled",
+    ]
+    list_filter = [
+        "company",
+        "event_date",
+        "status",
+        "tickets",
+        "has_registration_limit",
+        "public_registration_enabled",
+        "auto_approval_enabled",
+    ]
+    search_fields = ["event_name", "company__name", "location"]
+    date_hierarchy = "event_date"
     inlines = [ParticipantInline]
+    readonly_fields = ["uuid"]
+    fieldsets = (
+        (
+            "Event Information",
+            {
+                "fields": (
+                    "uuid",
+                    "company",
+                    "event_name",
+                    "event_date",
+                    "start_time",
+                    "end_time",
+                    "location",
+                    "description",
+                    "status",
+                )
+            },
+        ),
+        (
+            "Registration Settings",
+            {
+                "fields": (
+                    "tickets",
+                    "has_registration_limit",
+                    "registration_limit",
+                    "public_registration_enabled",
+                    "auto_approval_enabled",
+                    "signatures",
+                )
+            },
+        ),
+        (
+            "Media",
+            {
+                "fields": ("image", "certificate"),
+            },
+        ),
+    )
 
     def participant_count(self, obj):
         """Show participant count in the event list"""

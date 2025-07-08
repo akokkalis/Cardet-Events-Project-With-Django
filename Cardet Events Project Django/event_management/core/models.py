@@ -195,6 +195,15 @@ class Event(models.Model):
         default=False,
         help_text="Enable this if you want to have ticketing system for the event.",
     )
+    has_registration_limit = models.BooleanField(
+        default=False,
+        help_text="Enable this if you want to limit the number of registrations for this event.",
+    )
+    registration_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Maximum number of participants allowed to register (only applies if registration limit is enabled).",
+    )
     signatures = models.BooleanField(
         default=False,
         help_text="Enable this if you want to collect signatures from participants at the event.",
