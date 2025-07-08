@@ -234,10 +234,103 @@
                 {% heroicon_outline "table-cells" size=30 class="mr-1" %}
                 Export CSV
             </a>
-            <a href="{% url 'export_participants_pdf' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Export PDF
-            </a>
+            <!-- Export PDF Button -->
+            <button id="exportPdfBtn" onclick="handleExportPdf()" class="btn btn-outline-blue flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                <span class="normal-state">Export PDF</span>
+                <div class="loading-state hidden">
+                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="ml-2">Generating PDF...</span>
+                </div>
+            </button>
+
+            <!-- Add this script section near the end of the file, before the closing body tag -->
+            <script>
+                function handleExportPdf() {
+                    const btn = document.getElementById('exportPdfBtn');
+                    const normalState = btn.querySelector('.normal-state');
+                    const loadingState = btn.querySelector('.loading-state');
+                    
+                    // Disable button and show loading state
+                    btn.disabled = true;
+                    normalState.classList.add('hidden');
+                    loadingState.classList.remove('hidden');
+
+                    // Show loading message with SweetAlert2
+                    Swal.fire({
+                        title: 'Generating PDF',
+                        html: 'Please wait while we generate your PDF...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Make an AJAX request first to generate the PDF
+                    fetch("{% url 'export_participants_pdf' event.id %}", {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/pdf'
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        // Create a URL for the blob
+                        const url = window.URL.createObjectURL(blob);
+                        
+                        // Create a temporary link and click it to download
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = '{{ event.event_name }}_participants.pdf';
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        // Clean up
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+
+                        // Reset button state
+                        btn.disabled = false;
+                        normalState.classList.remove('hidden');
+                        loadingState.classList.add('hidden');
+                        
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: 'PDF has been generated and downloaded.',
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        
+                        // Reset button state
+                        btn.disabled = false;
+                        normalState.classList.remove('hidden');
+                        loadingState.classList.add('hidden');
+                        
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to generate PDF. Please try again.',
+                        });
+                    });
+                }
+            </script>
         </div>
     </div>
 

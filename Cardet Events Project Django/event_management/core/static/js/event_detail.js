@@ -5,7 +5,33 @@ $(document).ready(function () {
     const csrfToken = participantsTable.data('csrf-token');
 
     if (participantCount > 0 && !$.fn.DataTable.isDataTable('#participantsTable')) {
-        participantsTable.DataTable({
+        // Add filter dropdowns before the table
+        $('#participantsTable').before(`
+            <div class="flex gap-4 mb-4">
+                <div class="filter-group">
+                    <label for="statusFilter" class="mr-2 font-medium text-gray-700">Status:</label>
+                    <select id="statusFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <option value="">All</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="rsvpFilter" class="mr-2 font-medium text-gray-700">RSVP:</label>
+                    <select id="rsvpFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                        <option value="">All</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Maybe">Maybe</option>
+                        <option value="Not Responded">Not Responded</option>
+                    </select>
+                </div>
+            </div>
+        `);
+
+        // Initialize DataTable
+        const table = participantsTable.DataTable({
             "paging": true,
             "searching": true,
             "ordering": true,
@@ -13,20 +39,31 @@ $(document).ready(function () {
             "responsive": true,
             "lengthMenu": [[10, 25, 50, -1], [10, 25, 50, "All"]],
             "pageLength": 10,
-            "dom":  '<"flex justify-between items-center mb-4"<"flex items-center"lB>f>t<"mt-4"ip>',
-            "buttons": [
-                { 
-                    extend: 'csv', 
-                    text: 'Export CSV', 
-                    className: 'btn btn-outline-blue text-sm ml-4' 
-                },
-                { 
-                    extend: 'pdfHtml5', 
-                    text: 'Export PDF', 
-                    className: 'btn btn-outline-blue text-sm' 
-                }
-            ]
+            "dom": '<"flex justify-between items-center mb-4"<"flex items-center"l>f>t<"mt-4"ip>'
         });
+
+        // Add custom filtering functionality
+        $('#statusFilter, #rsvpFilter').on('change', function() {
+            table.draw();
+        });
+
+        // Custom filtering function
+        $.fn.dataTable.ext.search.push(
+            function(settings, data, dataIndex) {
+                const statusFilter = $('#statusFilter').val();
+                const rsvpFilter = $('#rsvpFilter').val();
+                
+                // Get values from the row
+                const status = $(table.row(dataIndex).node()).find('td:eq(5)').text().toLowerCase().trim();
+                const rsvp = $(table.row(dataIndex).node()).find('td:eq(6)').text().trim();
+
+                // Check if row matches both filters
+                const statusMatch = !statusFilter || status.includes(statusFilter.toLowerCase());
+                const rsvpMatch = !rsvpFilter || rsvp === rsvpFilter;
+
+                return statusMatch && rsvpMatch;
+            }
+        );
     }
 
     // Send ticket functionality moved to event_detail_modals.js

@@ -384,185 +384,113 @@ def export_participants_csv(event_id):
 
 
 def export_participants_pdf(event_id):
-    """Exports participants list as PDF with embedded signature images."""
-    event = Event.objects.get(id=event_id)  # ✅ Fetch event
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = (
-        f'attachment; filename="{event.event_name}_participants.pdf"'
-    )
+    """Export participants list as PDF using Gotenberg."""
+    from django.template.loader import render_to_string
+    from gotenberg_client import GotenbergClient
+    from gotenberg_client.options import PdfAFormat
+    from django.http import HttpResponse
+    from .models import Event
+    import tempfile
+    from pathlib import Path
+    from django.utils import timezone
+    import os
+    import shutil
+    from django.conf import settings
 
-    buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=landscape(letter))
+    try:
+        event = Event.objects.get(id=event_id)
+        participants = event.participant_set.all().order_by("name")
 
-    # ✅ Event Details
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawString(30, 550, f"Event: {event.event_name}")
-    pdf.drawString(30, 530, f"Date: {event.event_date}")
-    pdf.drawString(30, 510, f"Location: {event.location}")
-    pdf.drawString(30, 490, f"Description: {event.description}")
-    pdf.drawString(30, 470, f"Status: {event.status.name}")
+        # Get unique custom fields from all participants
+        custom_fields = set()
+        for participant in participants:
+            if participant.submitted_data:
+                custom_fields.update(participant.submitted_data.keys())
+        custom_fields = sorted(list(custom_fields))
 
-    # ✅ Get custom fields for headers
-    custom_fields = event.custom_fields.all().order_by("order")
+        # Create temporary directory for Gotenberg files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_path = Path(temp_dir)
+            assets_to_copy = []
 
-    # ✅ Table Headers (with dynamic positioning for custom fields)
-    y = 440
-    pdf.setFont("Helvetica-Bold", 10)
-    x_positions = [30, 100, 250, 400]  # Base positions for #, Name, Email, Phone
+            # Copy company logo if exists
+            if event.company and event.company.logo:
+                try:
+                    # Get the logo file from storage and fix path separators
+                    logo_storage_path = event.company.logo.name.replace("\\", "/")
 
-    pdf.drawString(x_positions[0], y, "#")
-    pdf.drawString(x_positions[1], y, "Name")
-    pdf.drawString(x_positions[2], y, "Email")
-    pdf.drawString(x_positions[3], y, "Phone")
+                    # Create destination path as a Path object
+                    logo_dest = temp_path / "company_logo.png"
 
-    # Add custom field headers (with limited space)
-    current_x = 500
-    custom_field_positions = []
-    for field in custom_fields:
-        if current_x < 750:  # Check if we have space on the page
-            pdf.drawString(
-                current_x,
-                y,
-                field.label[:10] + "..." if len(field.label) > 10 else field.label,
+                    print(f"Logo storage path: {logo_storage_path}")
+                    print(f"Logo destination: {logo_dest}")
+
+                    # Try to read the file using Django's storage API
+                    with default_storage.open(logo_storage_path, "rb") as src:
+                        with open(logo_dest, "wb") as dst:
+                            dst.write(src.read())
+
+                    print(f"Logo file copied successfully to {logo_dest}")
+                    assets_to_copy.append(logo_dest)
+
+                except Exception as e:
+                    print(f"Error handling company logo: {str(e)}")
+                    print(
+                        f"Logo path details - name: {event.company.logo.name}, path: {event.company.logo.path}"
+                    )
+                    # Continue without the logo if there's an error
+
+            # Render HTML template
+            html_content = render_to_string(
+                "participants_list_pdf.html",
+                {
+                    "event": event,
+                    "participants": participants,
+                    "custom_fields": custom_fields,
+                    "now": timezone.now(),
+                    "logo_exists": bool(
+                        assets_to_copy
+                    ),  # Only true if logo was successfully copied
+                },
             )
-            custom_field_positions.append(current_x)
-            current_x += 80
-        else:
-            # If we run out of space, we'll truncate remaining fields
-            break
 
-    # Signature column at the end
-    signature_x = current_x if current_x < 750 else 750
-    pdf.drawString(signature_x, y, "Signature")
+            # Save HTML to temporary file
+            html_temp_path = temp_path / "participants_list.html"
+            with open(html_temp_path, "w", encoding="utf-8") as f:
+                f.write(html_content)
 
-    # ✅ Fetch all participants
-    y -= 20
-    pdf.setFont("Helvetica", 10)
-    participants = event.participant_set.prefetch_related("attendance_set").all()
-
-    for i, participant in enumerate(participants, start=1):
-        # Check if we need a new page
-        if y < 50:
-            pdf.showPage()
-            y = 750
-
-        pdf.drawString(x_positions[0], y, str(i))
-        pdf.drawString(
-            x_positions[1],
-            y,
-            (
-                participant.name[:15] + "..."
-                if len(participant.name) > 15
-                else participant.name
-            ),
-        )
-        pdf.drawString(
-            x_positions[2],
-            y,
-            (
-                participant.email[:20] + "..."
-                if len(participant.email) > 20
-                else participant.email
-            ),
-        )
-        pdf.drawString(
-            x_positions[3],
-            y,
-            (
-                participant.phone[:12] + "..."
-                if participant.phone and len(participant.phone) > 12
-                else participant.phone or "-"
-            ),
-        )
-
-        # Add custom field data
-        for j, field in enumerate(custom_fields):
-            if j < len(custom_field_positions):  # Only show fields that fit on the page
-                if (
-                    participant.submitted_data
-                    and field.label in participant.submitted_data
-                ):
-                    value = participant.submitted_data[field.label]
-
-                    # Handle different field types for PDF export
-                    if isinstance(value, list):
-                        # Handle multiselect (array of values)
-                        formatted_value = (
-                            ", ".join(value[:2]) + "..."
-                            if len(value) > 2
-                            else ", ".join(value) if value else "-"
-                        )
-                    elif isinstance(value, bool):
-                        # Handle checkbox (boolean)
-                        formatted_value = "Yes" if value else "No"
-                    elif field.field_type in ["date", "time", "datetime"] and value:
-                        # Handle date/time fields with compact formatting for PDF
-                        try:
-                            if field.field_type == "date":
-                                # Format date compactly (MM/DD/YY)
-                                from datetime import datetime
-
-                                date_obj = datetime.strptime(value, "%Y-%m-%d")
-                                formatted_value = date_obj.strftime("%m/%d/%y")
-                            elif field.field_type == "time":
-                                # Format time compactly (HH:MM)
-                                formatted_value = (
-                                    value  # Keep as-is (HH:MM format is compact)
-                                )
-                            elif field.field_type == "datetime":
-                                # Format datetime compactly (MM/DD HH:MM)
-                                from datetime import datetime
-
-                                datetime_obj = datetime.fromisoformat(value)
-                                formatted_value = datetime_obj.strftime("%m/%d %H:%M")
-                            else:
-                                formatted_value = (
-                                    str(value)[:8] + "..."
-                                    if len(str(value)) > 8
-                                    else str(value)
-                                )
-                        except (ValueError, TypeError):
-                            # If parsing fails, use truncated raw value
-                            formatted_value = (
-                                str(value)[:8] + "..."
-                                if len(str(value)) > 8
-                                else str(value) if value is not None else "-"
+            # Generate PDF with Gotenberg
+            try:
+                with GotenbergClient("http://gotenberg:3000") as client:
+                    with client.chromium.html_to_pdf() as route:
+                        # Ensure all paths are Path objects
+                        response = (
+                            route.index(html_temp_path)
+                            .resources(
+                                [
+                                    Path(str(p)) if isinstance(p, str) else p
+                                    for p in assets_to_copy
+                                ]
                             )
-                    else:
-                        # Handle other types (text, number, email, range, etc.)
-                        formatted_value = (
-                            str(value)[:10] + "..."
-                            if len(str(value)) > 10
-                            else str(value) if value is not None else "-"
+                            .pdf_format(PdfAFormat.A2b)
+                            .run()
                         )
-                else:
-                    formatted_value = "-"
 
-                pdf.drawString(custom_field_positions[j], y, formatted_value)
+                        # Create HTTP response
+                        http_response = HttpResponse(
+                            response.content, content_type="application/pdf"
+                        )
+                        http_response["Content-Disposition"] = (
+                            f'attachment; filename="{event.event_name}_participants.pdf"'
+                        )
+                        return http_response
 
-        attendance = participant.attendance_set.first()
+            except Exception as e:
+                print(f"Error generating PDF with Gotenberg: {str(e)}")
+                raise
 
-        # ✅ Embed Signature Image
-        if attendance and attendance.signature_file:
-            signature_path = os.path.join(
-                settings.MEDIA_ROOT, attendance.signature_file.name
-            )
-            if os.path.exists(signature_path):
-                img = ImageReader(signature_path)
-                pdf.drawImage(
-                    img, signature_x, y - 10, width=50, height=20
-                )  # Adjust dimensions
-            else:
-                pdf.drawString(signature_x, y, "Missing")
-        else:
-            pdf.drawString(signature_x, y, "Not Signed")
-
-        y -= 25  # Move to next row (increased spacing for better readability)
-
-    pdf.save()
-    buffer.seek(0)
-    response.write(buffer.getvalue())
-    return response
+    except Event.DoesNotExist:
+        raise ValueError(f"Event with id {event_id} does not exist")
 
 
 def generate_ics_file(event):

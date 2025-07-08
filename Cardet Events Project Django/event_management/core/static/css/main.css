@@ -568,3 +568,40 @@ input[type="text"].filter-select {
 .dtr-details {
     background-color: #f9fafb !important;
 }
+
+/* Export PDF Button States */
+.loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+#exportPdfBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+#exportPdfBtn .loading-state svg {
+    margin-right: 0.5rem;
+}
+
+/* Ensure the button maintains its size during state changes */
+#exportPdfBtn {
+    min-width: 130px;
+    justify-content: center;
+}
+
+/* Animation for the loading spinner */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
