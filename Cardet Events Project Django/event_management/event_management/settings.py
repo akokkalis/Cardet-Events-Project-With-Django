@@ -102,31 +102,43 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 DEBUG = os.getenv("DJANGO_DEBUG")
 
 # ✅ Database Configuration
-if DEBUG == "True":
-    # 💻 DEVELOPMENT: Use SQLite
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+# if DEBUG == "True":
+# 💻 DEVELOPMENT: Use SQLite
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
-    print("🚀 Running in DEVELOPMENT mode with SQLite")
-else:
-    # 🌍 PRODUCTION: Use MySQL
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": os.getenv("MYSQL_DATABASE"),
-            "USER": os.getenv("MYSQL_USER"),
-            "PASSWORD": os.getenv("MYSQL_PASSWORD"),
-            "HOST": f"{os.getenv('MYSQL_HOST')}",
-            "PORT": os.getenv("MYSQL_PORT"),
-            "OPTIONS": {
-                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-            },
-        }
-    }
-    print("🌍 Running in PRODUCTION mode with MySQL")
+}
+print("🚀 Running in DEVELOPMENT mode with SQLite")
+# else:
+# # 🌍 PRODUCTION: Use MySQL
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": os.getenv("MYSQL_DATABASE"),
+#         "USER": os.getenv("MYSQL_USER"),
+#         "PASSWORD": os.getenv("MYSQL_PASSWORD"),
+#         "HOST": f"{os.getenv('MYSQL_HOST')}",
+#         "PORT": os.getenv("MYSQL_PORT"),
+#         "OPTIONS": {
+#             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+#         },
+#     }
+# }
+# print("🌍 Running in PRODUCTION mode with MySQL")
+# 🌍 PRODUCTION: Use PostgreSQL (Docker)
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": os.getenv("POSTGRES_DB"),
+#         "USER": os.getenv("POSTGRES_USER"),
+#         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+#         "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
+#         "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
+#     }
+# }
+# print("🌍 Running in PRODUCTION mode with PostgreSQL")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

@@ -15,6 +15,7 @@
     border: 1px solid transparent;
 }
 
+
 .btn-blue {
     background-color: #0174b9;
     border-color: #0174b9;
@@ -115,11 +116,11 @@
 }
 
 /* Filter Styles */
-.filter-select, .filter-date {
+.filter-select {
     background-color: #e6f0f6;
-    color: #0174b9;
-    border: 1px solid #00b8c4; /* gray-300 */
-    border-radius: 0.5rem; /* 8px */
+    color: black;
+    border: 1px solid #00b8c4;
+    border-radius: 0.5rem;
     padding: 0.5rem 1rem;
     -webkit-appearance: none;
     -moz-appearance: none;
@@ -129,12 +130,43 @@
     background-position: right 0.5rem center;
     background-size: 1.25em 1.25em;
     padding-right: 2.5rem;
-	color: black;
+    min-width: 180px;
 }
 
-.filter-select:focus, .filter-date:focus {
+/* Remove dropdown arrow for date input */
+input[type="text"].filter-select {
+    background-image: none;
+    padding-right: 1rem;
+    text-align: left;
+}
+
+/* Placeholder styling */
+.filter-select::placeholder {
+    color: black;
+    opacity: 1;
+}
+
+/* For Firefox */
+.filter-select::-moz-placeholder {
+    color: black;
+    opacity: 1;
+}
+
+/* For Chrome/Edge/Safari */
+.filter-select::-webkit-input-placeholder {
+    color: black;
+    opacity: 1;
+}
+
+/* For Internet Explorer */
+.filter-select:-ms-input-placeholder {
+    color: black;
+    opacity: 1;
+}
+
+.filter-select:focus {
     outline: none;
-    border-color:#0174b9;
+    border-color: #0174b9;
     box-shadow: 0 0 0 2px rgba(1, 116, 185, 0.2);
 }
 
@@ -146,7 +178,7 @@
 
 /* Style for the selected option in some browsers */
 .filter-select option:checked {
-    background-color: #0174b9 !important; /* Use important to override browser defaults */
+    background-color: #0174b9 !important;
     color: white !important;
 }
 
@@ -156,9 +188,24 @@
     color: black;
 }
 
-.filter-date {
-    padding-right: 1rem; /* No arrow, so less padding */
-    background-image: none;
+/* Flatpickr customization */
+.flatpickr-input {
+    background-color: #e6f0f6 !important;
+}
+
+.flatpickr-calendar {
+    border: 1px solid #00b8c4 !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.flatpickr-day.selected {
+    background: #0174b9 !important;
+    border-color: #0174b9 !important;
+}
+
+.flatpickr-day:hover {
+    background: #e6f0f6 !important;
+    border-color: #00b8c4 !important;
 }
 
 /* Event Card Hover Effect */
