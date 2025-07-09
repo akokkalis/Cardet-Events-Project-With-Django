@@ -54,10 +54,19 @@ from .views import (
     bulk_generate_certificates,
     check_certificate_generation_progress,
     bulk_send_certificates,
+    dashboard,
+    dashboard_pending_participants,
+    reports,
 )
 
 urlpatterns = [
     path("", event_list, name="event_list"),
+    path("dashboard/", dashboard, name="dashboard"),
+    path(
+        "dashboard/pending-participants/",
+        dashboard_pending_participants,
+        name="dashboard_pending_participants",
+    ),
     path("companies/", company_list, name="company_list"),
     path("companies/create/", company_create, name="company_create"),
     path("companies/<int:company_id>/", company_detail, name="company_detail"),
@@ -264,6 +273,7 @@ urlpatterns = [
         bulk_send_certificates,
         name="bulk_send_certificates",
     ),
+    path("reports/", reports, name="reports"),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

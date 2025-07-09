@@ -77,7 +77,7 @@
             <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
                 {% heroicon_outline "arrow-left" size=30 class="mr-4" %}
             </button>
-            <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+            <a href="{% if from_dashboard %}{% url 'dashboard' %}{% else %}{% url 'event_list' %}{% endif %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>

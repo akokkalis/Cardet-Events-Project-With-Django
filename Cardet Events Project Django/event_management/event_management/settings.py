@@ -110,7 +110,7 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
-print("🚀 Running in DEVELOPMENT mode with SQLite")
+# print("🚀 Running in DEVELOPMENT mode with SQLite")
 # else:
 # # 🌍 PRODUCTION: Use MySQL
 # DATABASES = {

@@ -350,6 +350,7 @@ def event_detail(request, event_id):
             participant.custom_data_json = "{}"
 
     valid_participant_count = participants.exclude(approval_status="rejected").count()
+    from_dashboard = request.GET.get("from_dashboard") == "1"
     context = {
         "event": event,
         "participants": participants,
@@ -359,6 +360,7 @@ def event_detail(request, event_id):
         "missing_email_templates_json": missing_email_templates_json,
         "rsvp_template_missing": rsvp_template_missing,
         "valid_participant_count": valid_participant_count,
+        "from_dashboard": from_dashboard,
     }
 
     return render(request, "event_detail.html", context)
@@ -2566,3 +2568,280 @@ def edit_participant_view(request, event_id, participant_id):
         "edit_participant.html",
         {"form": form, "event": event, "participant": participant},
     )
+
+
+@login_required
+def dashboard(request):
+    """Dashboard view: Event timeline/calendar and participant insights."""
+    from .models import Event, Participant, Status
+
+    # Get all statuses for filter UI
+    all_statuses = list(Status.objects.all())
+    filter_status = request.GET.get("timeline_status", "active")  # 'active' or 'all'
+    filter_year = request.GET.get("year", "")  # Year filter
+
+    # Base queryset
+    base_events = Event.objects.select_related("status").annotate(
+        participant_count=Count("participant")
+    )
+
+    # Apply status filter
+    if filter_status == "active":
+        filtered_statuses = ["Planned", "Ongoing"]
+        base_events = base_events.filter(status__name__in=filtered_statuses)
+
+    # Apply year filter
+    if filter_year:
+        base_events = base_events.filter(event_date__year=filter_year)
+
+    # Get filtered events
+    events = base_events.order_by("event_date", "start_time")
+
+    # Get available years for filter dropdown
+    available_years = Event.objects.dates("event_date", "year", order="DESC")
+
+    # Filter participants for insights based on filtered events
+    filtered_event_ids = list(events.values_list("id", flat=True))
+    participants_queryset = Participant.objects.filter(event_id__in=filtered_event_ids)
+
+    # Prepare calendar events with color
+    calendar_events = []
+    for event in events:
+        color = event.status.color if event.status and event.status.color else "#2563eb"
+        calendar_events.append(
+            {
+                "title": event.event_name,
+                "start": str(event.event_date),
+                "color": color,
+                "url": f"/events/{event.id}/?from_dashboard=1",
+            }
+        )
+
+    # Participant insights based on filtered events
+    total_participants = participants_queryset.count()
+    approved_participants = participants_queryset.filter(
+        approval_status="approved"
+    ).count()
+    pending_participants = participants_queryset.filter(
+        approval_status="pending"
+    ).count()
+    rejected_participants = participants_queryset.filter(
+        approval_status="rejected"
+    ).count()
+    participants_per_event = participants_queryset.values("event__event_name").annotate(
+        count=Count("id"),
+        pending_count=Count("id", filter=Q(approval_status="pending")),
+    )
+
+    # Add capacity information for each event
+    for item in participants_per_event:
+        event = Event.objects.get(event_name=item["event__event_name"])
+        approved_count = Participant.objects.filter(
+            event=event, approval_status="approved"
+        ).count()
+
+        item["has_limit"] = event.has_registration_limit
+        item["capacity_limit"] = (
+            event.registration_limit if event.has_registration_limit else None
+        )
+        item["approved_count"] = approved_count
+        item["available_spots"] = (
+            event.registration_limit - approved_count - item["pending_count"]
+            if event.has_registration_limit and event.registration_limit
+            else None
+        )
+        item["is_full"] = (
+            event.has_registration_limit
+            and event.registration_limit
+            and (approved_count + item["pending_count"]) >= event.registration_limit
+        )
+
+    context = {
+        "events": events,
+        "calendar_events": calendar_events,
+        "total_participants": total_participants,
+        "approved_participants": approved_participants,
+        "pending_participants": pending_participants,
+        "rejected_participants": rejected_participants,
+        "participants_per_event": participants_per_event,
+        "all_statuses": all_statuses,
+        "timeline_status": filter_status,
+        "available_years": available_years,
+        "selected_year": filter_year,
+    }
+    return render(request, "dashboard.html", context)
+
+
+@login_required
+def dashboard_pending_participants(request):
+    """AJAX endpoint to get pending participants for a specific event."""
+    from django.http import JsonResponse
+
+    event_name = request.GET.get("event_name")
+    if not event_name:
+        return JsonResponse({"error": "Event name is required"}, status=400)
+
+    try:
+        event = Event.objects.get(event_name=event_name)
+        pending_participants = Participant.objects.filter(
+            event=event, approval_status="pending"
+        ).values("id", "name", "email", "registered_at")
+
+        # Get capacity statistics
+        total_participants = Participant.objects.filter(event=event).count()
+        approved_participants = Participant.objects.filter(
+            event=event, approval_status="approved"
+        ).count()
+        rejected_participants = Participant.objects.filter(
+            event=event, approval_status="rejected"
+        ).count()
+        pending_count = pending_participants.count()
+
+        # Calculate capacity info
+        has_limit = event.has_registration_limit
+        capacity_limit = event.registration_limit if has_limit else None
+        available_spots = (
+            capacity_limit - approved_participants - pending_count
+            if has_limit and capacity_limit
+            else None
+        )
+
+        # Format the data
+        participants_data = []
+        for participant in pending_participants:
+            participants_data.append(
+                {
+                    "id": participant["id"],
+                    "name": participant["name"],
+                    "email": participant["email"],
+                    "registered_at": participant["registered_at"].strftime(
+                        "%Y-%m-%d %H:%M"
+                    ),
+                }
+            )
+
+        return JsonResponse(
+            {
+                "participants": participants_data,
+                "event_name": event_name,
+                "capacity_stats": {
+                    "total_participants": total_participants,
+                    "approved_participants": approved_participants,
+                    "rejected_participants": rejected_participants,
+                    "pending_count": pending_count,
+                    "has_limit": has_limit,
+                    "capacity_limit": capacity_limit,
+                    "available_spots": available_spots,
+                },
+            }
+        )
+
+    except Event.DoesNotExist:
+        return JsonResponse({"error": "Event not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def reports(request):
+    """Reports page with various report cards."""
+    from .models import Event, Participant, Status, RSVPResponse
+
+    report_type = request.GET.get("report_type")
+    selected_event_ids = (
+        request.GET.get("event_ids", "").split(",")
+        if request.GET.get("event_ids")
+        else []
+    )
+    selected_event_ids = [eid.strip() for eid in selected_event_ids if eid.strip()]
+
+    if report_type == "registration_summary":
+        # Get all events for the dropdown
+        all_events = Event.objects.select_related("status").order_by("event_date")
+
+        # Filter events based on selection
+        if selected_event_ids:
+            events = all_events.filter(id__in=selected_event_ids)
+        else:
+            events = all_events
+
+        # Get all events with participant counts
+        events = (
+            events.select_related("status")
+            .annotate(
+                total_participants=Count("participant"),
+                approved_participants=Count(
+                    "participant", filter=Q(participant__approval_status="approved")
+                ),
+                pending_participants=Count(
+                    "participant", filter=Q(participant__approval_status="pending")
+                ),
+                rejected_participants=Count(
+                    "participant", filter=Q(participant__approval_status="rejected")
+                ),
+            )
+            .order_by("event_date")
+        )
+
+        # Add RSVP statistics for each event
+        for event in events:
+            rsvp_responses = RSVPResponse.objects.filter(event=event)
+            event.rsvp_attend = rsvp_responses.filter(response="attend").count()
+            event.rsvp_cant_make_it = rsvp_responses.filter(
+                response="cant_make_it"
+            ).count()
+            event.rsvp_maybe = rsvp_responses.filter(response="maybe").count()
+            event.total_rsvp_responses = rsvp_responses.count()
+
+            # Calculate RSVP response rate
+            if event.total_participants > 0:
+                event.rsvp_response_rate = round(
+                    (event.total_rsvp_responses / event.total_participants) * 100, 1
+                )
+            else:
+                event.rsvp_response_rate = 0
+
+        # Calculate overall statistics
+        total_events = events.count()
+        total_participants = sum(event.total_participants for event in events)
+        total_approved = sum(event.approved_participants for event in events)
+        total_pending = sum(event.pending_participants for event in events)
+        total_rejected = sum(event.rejected_participants for event in events)
+
+        # Calculate overall RSVP statistics
+        total_rsvp_attend = sum(event.rsvp_attend for event in events)
+        total_rsvp_cant_make_it = sum(event.rsvp_cant_make_it for event in events)
+        total_rsvp_maybe = sum(event.rsvp_maybe for event in events)
+        total_rsvp_responses = sum(event.total_rsvp_responses for event in events)
+
+        # Calculate overall RSVP response rate
+        if total_participants > 0:
+            overall_rsvp_response_rate = round(
+                (total_rsvp_responses / total_participants) * 100, 1
+            )
+        else:
+            overall_rsvp_response_rate = 0
+
+        context = {
+            "events": events,
+            "all_events": all_events,
+            "selected_event_ids": selected_event_ids,
+            "total_events": total_events,
+            "total_participants": total_participants,
+            "total_approved": total_approved,
+            "total_pending": total_pending,
+            "total_rejected": total_rejected,
+            "total_rsvp_attend": total_rsvp_attend,
+            "total_rsvp_cant_make_it": total_rsvp_cant_make_it,
+            "total_rsvp_maybe": total_rsvp_maybe,
+            "total_rsvp_responses": total_rsvp_responses,
+            "overall_rsvp_response_rate": overall_rsvp_response_rate,
+            "report_type": report_type,
+        }
+        return render(request, "reports/registration_summary.html", context)
+
+    # Main reports page with buttons
+    context = {
+        "report_type": None,
+    }
+    return render(request, "reports.html", context)

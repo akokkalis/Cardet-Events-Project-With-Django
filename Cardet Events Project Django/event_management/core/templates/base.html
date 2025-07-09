@@ -28,7 +28,7 @@
                 </h5>
                 <ul class="space-y-3">
                     <li>
-                        <a href="#" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                        <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
                             {% heroicon_outline "chart-bar" class="h-5 w-5" %}
                             <span>Dashboard</span>
                         </a>
@@ -46,7 +46,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                        <a href="{% url 'reports' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
                             {% heroicon_outline "chart-bar-square" class="h-5 w-5" %}
                             <span>Reports</span>
                         </a>
