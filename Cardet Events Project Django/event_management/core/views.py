@@ -2840,8 +2840,284 @@ def reports(request):
         }
         return render(request, "reports/registration_summary.html", context)
 
+    elif report_type == "participant_summary":
+        # Get all events for reference
+        all_events = Event.objects.select_related("status").order_by("event_date")
+
+        # Get all participants for filtering
+        all_participants = Participant.objects.values_list(
+            "email", flat=True
+        ).distinct()
+
+        # Get participant filter from request
+        selected_participant_emails = (
+            request.GET.get("participant_emails", "").split(",")
+            if request.GET.get("participant_emails")
+            else []
+        )
+        selected_participant_emails = [
+            email.strip().lower()
+            for email in selected_participant_emails
+            if email.strip()
+        ]
+
+        # Get all events (no event filtering for participant summary)
+        events = all_events
+
+        # Get participants from all events, filter by selected emails if any
+        if selected_participant_emails:
+            participants = Participant.objects.filter(
+                email__in=selected_participant_emails
+            ).select_related("event")
+        else:
+            participants = Participant.objects.all().select_related("event")
+
+        # Aggregate participants by email
+        from django.db.models import Count, Q
+        from collections import defaultdict
+
+        participant_stats = defaultdict(
+            lambda: {
+                "email": "",
+                "name": "",
+                "total_registrations": 0,
+                "approved_registrations": 0,
+                "pending_registrations": 0,
+                "rejected_registrations": 0,
+                "events_registered": [],
+                "rsvp_responses": 0,
+                "rsvp_attend": 0,
+                "rsvp_cant_make_it": 0,
+                "rsvp_maybe": 0,
+                "total_attendances": 0,
+                "last_registration_date": None,
+                "first_registration_date": None,
+            }
+        )
+
+        for participant in participants:
+            email = participant.email.lower()
+            participant_stats[email]["email"] = participant.email
+            participant_stats[email]["name"] = participant.name
+            participant_stats[email]["total_registrations"] += 1
+
+            # Count approval status
+            if participant.approval_status == "approved":
+                participant_stats[email]["approved_registrations"] += 1
+            elif participant.approval_status == "pending":
+                participant_stats[email]["pending_registrations"] += 1
+            elif participant.approval_status == "rejected":
+                participant_stats[email]["rejected_registrations"] += 1
+
+            # Track events
+            event_info = {
+                "event_name": participant.event.event_name,
+                "event_date": participant.event.event_date,
+                "status": participant.approval_status,
+                "registration_date": participant.registered_at,
+            }
+            participant_stats[email]["events_registered"].append(event_info)
+
+            # Track registration dates
+            if (
+                not participant_stats[email]["first_registration_date"]
+                or participant.registered_at
+                < participant_stats[email]["first_registration_date"]
+            ):
+                participant_stats[email][
+                    "first_registration_date"
+                ] = participant.registered_at
+
+            if (
+                not participant_stats[email]["last_registration_date"]
+                or participant.registered_at
+                > participant_stats[email]["last_registration_date"]
+            ):
+                participant_stats[email][
+                    "last_registration_date"
+                ] = participant.registered_at
+
+        # Add RSVP statistics
+        for email, stats in participant_stats.items():
+            rsvp_responses = RSVPResponse.objects.filter(participant__email=email)
+            stats["rsvp_responses"] = rsvp_responses.count()
+            stats["rsvp_attend"] = rsvp_responses.filter(response="attend").count()
+            stats["rsvp_cant_make_it"] = rsvp_responses.filter(
+                response="cant_make_it"
+            ).count()
+            stats["rsvp_maybe"] = rsvp_responses.filter(response="maybe").count()
+
+        # Add attendance statistics
+        for email, stats in participant_stats.items():
+            attendances = Attendance.objects.filter(
+                participant__email=email, present=True
+            )
+            stats["total_attendances"] = attendances.count()
+
+        # Convert to list and sort by total registrations
+        participant_list = list(participant_stats.values())
+        participant_list.sort(key=lambda x: x["total_registrations"], reverse=True)
+
+        # Calculate overall statistics
+        total_unique_participants = len(participant_list)
+        total_registrations = sum(p["total_registrations"] for p in participant_list)
+        total_approved = sum(p["approved_registrations"] for p in participant_list)
+        total_pending = sum(p["pending_registrations"] for p in participant_list)
+        total_rejected = sum(p["rejected_registrations"] for p in participant_list)
+        total_attendances = sum(p["total_attendances"] for p in participant_list)
+
+        # Calculate average registrations per participant
+        avg_registrations = (
+            round(total_registrations / total_unique_participants, 1)
+            if total_unique_participants > 0
+            else 0
+        )
+
+        # Calculate attendance rate
+        attendance_rate = (
+            round((total_attendances / total_approved) * 100, 1)
+            if total_approved > 0
+            else 0
+        )
+
+        context = {
+            "participants": participant_list,
+            "all_participants": all_participants,
+            "selected_participant_emails": selected_participant_emails,
+            "total_unique_participants": total_unique_participants,
+            "total_registrations": total_registrations,
+            "total_approved": total_approved,
+            "total_pending": total_pending,
+            "total_rejected": total_rejected,
+            "total_attendances": total_attendances,
+            "avg_registrations": avg_registrations,
+            "attendance_rate": attendance_rate,
+            "report_type": report_type,
+        }
+        return render(request, "reports/participant_summary.html", context)
+
     # Main reports page with buttons
     context = {
         "report_type": None,
     }
     return render(request, "reports.html", context)
+
+
+@login_required
+def participant_detail(request, participant_email):
+    """Individual participant statistics page."""
+    from .models import Event, Participant, RSVPResponse, Attendance
+    from django.db.models import Count, Q
+    from collections import defaultdict
+
+    # Get all participants with this email
+    participants = (
+        Participant.objects.filter(email__iexact=participant_email)
+        .select_related("event")
+        .order_by("event__event_date")
+    )
+
+    if not participants.exists():
+        messages.error(
+            request, f"No participants found with email: {participant_email}"
+        )
+        return redirect("reports")
+
+    # Get the first participant for basic info (name, email)
+    first_participant = participants.first()
+    participant_name = first_participant.name
+    participant_email_clean = first_participant.email
+
+    # Calculate statistics
+    total_registrations = participants.count()
+    approved_registrations = participants.filter(approval_status="approved").count()
+    pending_registrations = participants.filter(approval_status="pending").count()
+    rejected_registrations = participants.filter(approval_status="rejected").count()
+
+    # Get RSVP statistics
+    rsvp_responses = RSVPResponse.objects.filter(
+        participant__email__iexact=participant_email
+    )
+    total_rsvp_responses = rsvp_responses.count()
+    rsvp_attend = rsvp_responses.filter(response="attend").count()
+    rsvp_cant_make_it = rsvp_responses.filter(response="cant_make_it").count()
+    rsvp_maybe = rsvp_responses.filter(response="maybe").count()
+
+    # Get attendance statistics
+    attendances = Attendance.objects.filter(
+        participant__email__iexact=participant_email
+    )
+    total_attendances = attendances.filter(present=True).count()
+    total_events_attended = (
+        attendances.filter(present=True).values("event").distinct().count()
+    )
+
+    # Calculate attendance rate
+    attendance_rate = 0
+    if total_registrations > 0:
+        attendance_rate = round((total_attendances / total_registrations) * 100, 1)
+
+    # Get registration dates
+    first_registration = participants.order_by("registered_at").first()
+    last_registration = participants.order_by("registered_at").last()
+
+    # Get events registered for with details
+    events_registered = []
+    for participant in participants:
+        # Get RSVP for this event
+        rsvp = RSVPResponse.objects.filter(
+            participant=participant, event=participant.event
+        ).first()
+
+        # Get attendance for this event
+        attendance = Attendance.objects.filter(
+            participant=participant, event=participant.event
+        ).first()
+
+        event_info = {
+            "event": participant.event,
+            "registration_date": participant.registered_at,
+            "approval_status": participant.approval_status,
+            "rsvp_response": rsvp.response if rsvp else None,
+            "rsvp_notes": rsvp.notes if rsvp else None,
+            "attended": attendance.present if attendance else False,
+            "has_ticket": bool(participant.pdf_ticket),
+            "has_certificate": bool(participant.certificate),
+        }
+        events_registered.append(event_info)
+
+    # Sort events by date
+    events_registered.sort(key=lambda x: x["event"].event_date, reverse=True)
+
+    # Get most recent activity
+    most_recent_activity = None
+    if events_registered:
+        most_recent_activity = max(
+            events_registered, key=lambda x: x["registration_date"]
+        )
+
+    context = {
+        "participant_name": participant_name,
+        "participant_email": participant_email_clean,
+        "total_registrations": total_registrations,
+        "approved_registrations": approved_registrations,
+        "pending_registrations": pending_registrations,
+        "rejected_registrations": rejected_registrations,
+        "total_rsvp_responses": total_rsvp_responses,
+        "rsvp_attend": rsvp_attend,
+        "rsvp_cant_make_it": rsvp_cant_make_it,
+        "rsvp_maybe": rsvp_maybe,
+        "total_attendances": total_attendances,
+        "total_events_attended": total_events_attended,
+        "attendance_rate": attendance_rate,
+        "first_registration_date": (
+            first_registration.registered_at if first_registration else None
+        ),
+        "last_registration_date": (
+            last_registration.registered_at if last_registration else None
+        ),
+        "events_registered": events_registered,
+        "most_recent_activity": most_recent_activity,
+    }
+
+    return render(request, "reports/participant_detail.html", context)

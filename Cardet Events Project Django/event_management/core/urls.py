@@ -57,6 +57,7 @@ from .views import (
     dashboard,
     dashboard_pending_participants,
     reports,
+    participant_detail,
 )
 
 urlpatterns = [
@@ -274,6 +275,11 @@ urlpatterns = [
         name="bulk_send_certificates",
     ),
     path("reports/", reports, name="reports"),
+    path(
+        "participant/<str:participant_email>/",
+        participant_detail,
+        name="participant_detail",
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
