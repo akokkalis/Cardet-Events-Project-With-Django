@@ -1709,6 +1709,9 @@ def event_rsvp_summary(request, event_id):
 @login_required
 def send_rsvp_email_participant_view(request, event_id, participant_id):
     """View to trigger sending an RSVP email to a single participant."""
+    from .models import RSVPEmailLog
+    from django.utils import timezone
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
 
@@ -1720,13 +1723,58 @@ def send_rsvp_email_participant_view(request, event_id, participant_id):
         )
         return redirect("event_detail", event_id=event.id)
 
+    # Create RSVP email log entry for individual sending
+    email_log = RSVPEmailLog.objects.create(
+        event=event,
+        user=request.user,
+        total_recipients=1,
+        emails_sent=0,
+        emails_failed=0,
+        status="in_progress",
+        log_messages=[],
+    )
+
     try:
         # Call the email sending function from signals.py
         send_rsvp_email(participant)
+
+        # Update log for success
+        email_log.emails_sent = 1
+        email_log.status = "completed"
+        email_log.log_messages.append(
+            {
+                "type": "success",
+                "timestamp": timezone.now().isoformat(),
+                "message": f"Successfully sent RSVP email to {participant.name} ({participant.email})",
+                "participant": f"{participant.name} ({participant.email})",
+                "email_type": "rsvp",
+                "operation_type": "individual_sending",
+            }
+        )
+        email_log.completed_at = timezone.now()
+        email_log.save()
+
         messages.success(
             request, f"RSVP email sent successfully to {participant.name}."
         )
     except Exception as e:
+        # Update log for failure
+        email_log.emails_failed = 1
+        email_log.status = "failed"
+        email_log.log_messages.append(
+            {
+                "type": "error",
+                "timestamp": timezone.now().isoformat(),
+                "message": f"Failed to send RSVP email to {participant.name} ({participant.email}): {str(e)}",
+                "participant": f"{participant.name} ({participant.email})",
+                "email_type": "rsvp",
+                "operation_type": "individual_sending",
+                "error_details": str(e),
+            }
+        )
+        email_log.completed_at = timezone.now()
+        email_log.save()
+
         messages.error(
             request, f"Failed to send RSVP email to {participant.name}. Error: {e}"
         )
@@ -1812,7 +1860,9 @@ def check_rsvp_email_status(request, log_id):
                     if email_log.completed_at
                     else None
                 ),
-                "error_message": email_log.error_message,
+                "log_messages": (
+                    email_log.log_messages[-5:] if email_log.log_messages else []
+                ),  # Last 5 log entries
             }
         )
     except Exception as e:
@@ -2133,9 +2183,17 @@ def import_participants_csv(request, event_id):
                         if len(row) != len(clean_headers):
                             error_msg = f"Row {row_num}: Column count mismatch (expected {len(clean_headers)}, got {len(row)})"
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             continue
 
                         # Create data dictionary
@@ -2145,18 +2203,34 @@ def import_participants_csv(request, event_id):
                         if not row_data.get("name", "").strip():
                             error_msg = f"Row {row_num}: Name is required"
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             continue
 
                         email = row_data.get("email", "").strip()
                         if not email:
                             error_msg = f"Row {row_num}: Email is required"
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             continue
 
                         # Check for duplicate email within this CSV
@@ -2165,9 +2239,17 @@ def import_participants_csv(request, event_id):
                                 f"Row {row_num}: Duplicate email {email} found in CSV"
                             )
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             continue
 
                         # Check for duplicate email in this event
@@ -2176,9 +2258,17 @@ def import_participants_csv(request, event_id):
                         ).exists():
                             error_msg = f"Row {row_num}: Email {email} already exists for this event"
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             continue
 
                         try:
@@ -2208,9 +2298,17 @@ def import_participants_csv(request, event_id):
                                         except ValueError:
                                             error_msg = f"Row {row_num}: Invalid number for {field.label}: {value}"
                                             errors.append(error_msg)
-                                            import_log.error_messages.append(error_msg)
+                                            import_log.log_messages.append(
+                                                {
+                                                    "type": "error",
+                                                    "timestamp": timezone.now().isoformat(),
+                                                    "message": error_msg,
+                                                    "row": row_num,
+                                                }
+                                            )
                                             import_log.failed_imports += 1
                                             error_count += 1
+                                            import_log.save()
                                             continue
                                     elif field.field_type == "multiselect":
                                         submitted_data[field.label] = [
@@ -2234,6 +2332,18 @@ def import_participants_csv(request, event_id):
                             processed_emails.add(email)
                             import_log.successful_imports += 1
                             imported_count += 1
+
+                            # Log success
+                            import_log.log_messages.append(
+                                {
+                                    "type": "success",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": f"Successfully imported participant: {participant.name} ({participant.email})",
+                                    "row": row_num,
+                                }
+                            )
+                            import_log.save()
+
                             print(
                                 f"✅ Successfully created participant {imported_count}: {participant.name} (Status: pending - awaiting manual approval)"
                             )
@@ -2253,9 +2363,17 @@ def import_participants_csv(request, event_id):
                                 f"Row {row_num}: Error creating participant: {str(e)}"
                             )
                             errors.append(error_msg)
-                            import_log.error_messages.append(error_msg)
+                            import_log.log_messages.append(
+                                {
+                                    "type": "error",
+                                    "timestamp": timezone.now().isoformat(),
+                                    "message": error_msg,
+                                    "row": row_num,
+                                }
+                            )
                             import_log.failed_imports += 1
                             error_count += 1
+                            import_log.save()
                             print(f"❌ {error_msg}")
                             continue
 
@@ -2271,7 +2389,14 @@ def import_participants_csv(request, event_id):
                 except Exception as e:
                     import_log.status = "failed"
                     import_log.completed_at = timezone.now()
-                    import_log.error_messages.append(f"Import failed: {str(e)}")
+                    import_log.log_messages.append(
+                        {
+                            "type": "error",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": f"Import failed: {str(e)}",
+                            "row": None,
+                        }
+                    )
                     import_log.save()
                     print(f"❌ Background import failed: {e}")
 
@@ -2318,9 +2443,9 @@ def check_import_progress(request, import_id):
             "total_rows": import_log.total_rows,
             "successful_imports": import_log.successful_imports,
             "failed_imports": import_log.failed_imports,
-            "error_messages": (
-                import_log.error_messages[-5:] if import_log.error_messages else []
-            ),  # Last 5 errors
+            "log_messages": (
+                import_log.log_messages[-5:] if import_log.log_messages else []
+            ),  # Last 5 log entries
         }
 
         # Add completion data if finished
@@ -2339,17 +2464,85 @@ def check_import_progress(request, import_id):
 @login_required
 def generate_participant_certificate(request, event_id, participant_id):
     from .utils import generate_certificate_for_participant
+    from .models import CertificateGenerationLog
+    from django.utils import timezone
 
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
 
-    # Use the shared utility function that contains the proven working logic
-    success, message = generate_certificate_for_participant(event, participant)
+    # Check if certificate template exists
+    if not event.certificate:
+        messages.error(request, "No certificate template found for this event.")
+        return redirect("event_detail", event_id=event.id)
 
-    if success:
-        messages.success(request, message)
-    else:
-        messages.error(request, message)
+    # Create certificate generation log entry for individual generation
+    cert_log = CertificateGenerationLog.objects.create(
+        event=event,
+        user=request.user,
+        total_participants=1,
+        processed_participants=0,
+        successful_generations=0,
+        failed_generations=0,
+        status="in_progress",
+        log_messages=[],
+    )
+
+    try:
+        # Use the shared utility function that contains the proven working logic
+        success, message = generate_certificate_for_participant(event, participant)
+
+        # Update log based on result
+        cert_log.processed_participants = 1
+        if success:
+            cert_log.successful_generations = 1
+            cert_log.status = "completed"
+            cert_log.log_messages.append(
+                {
+                    "type": "success",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Successfully generated certificate for {participant.name} ({participant.email})",
+                    "participant": f"{participant.name} ({participant.email})",
+                    "operation_type": "individual_generation",
+                }
+            )
+            messages.success(request, message)
+        else:
+            cert_log.failed_generations = 1
+            cert_log.status = "failed"
+            cert_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Failed to generate certificate for {participant.name} ({participant.email}): {message}",
+                    "participant": f"{participant.name} ({participant.email})",
+                    "operation_type": "individual_generation",
+                    "error_details": message,
+                }
+            )
+            messages.error(request, message)
+
+        cert_log.completed_at = timezone.now()
+        cert_log.save()
+
+    except Exception as e:
+        # Handle any unexpected errors
+        cert_log.processed_participants = 1
+        cert_log.failed_generations = 1
+        cert_log.status = "failed"
+        cert_log.log_messages.append(
+            {
+                "type": "error",
+                "timestamp": timezone.now().isoformat(),
+                "message": f"Exception occurred while generating certificate for {participant.name} ({participant.email}): {str(e)}",
+                "participant": f"{participant.name} ({participant.email})",
+                "operation_type": "individual_generation",
+                "error_details": str(e),
+            }
+        )
+        cert_log.completed_at = timezone.now()
+        cert_log.save()
+
+        messages.error(request, f"Error generating certificate: {str(e)}")
 
     return redirect("event_detail", event_id=event.id)
 
@@ -2429,9 +2622,9 @@ def check_certificate_generation_progress(request, log_id):
             "total_participants": cert_log.total_participants,
             "successful_generations": cert_log.successful_generations,
             "failed_generations": cert_log.failed_generations,
-            "error_messages": (
-                cert_log.error_messages[-5:] if cert_log.error_messages else []
-            ),  # Last 5 errors
+            "log_messages": (
+                cert_log.log_messages[-5:] if cert_log.log_messages else []
+            ),  # Last 5 log entries
         }
 
         # Add completion data if finished
@@ -3001,6 +3194,93 @@ def reports(request):
         "report_type": None,
     }
     return render(request, "reports.html", context)
+
+
+@login_required
+def logs_view(request):
+    """Display all system logs in a tabbed interface"""
+    from .models import RSVPEmailLog, CertificateGenerationLog, CSVImportLog
+
+    # Get logs for each type, ordered by most recent first
+    rsvp_logs = RSVPEmailLog.objects.select_related("event", "user").order_by(
+        "-started_at"
+    )[:50]
+    certificate_logs = CertificateGenerationLog.objects.select_related(
+        "event", "user"
+    ).order_by("-started_at")[:50]
+    import_logs = CSVImportLog.objects.select_related("event", "user").order_by(
+        "-started_at"
+    )[:50]
+
+    context = {
+        "rsvp_logs": rsvp_logs,
+        "certificate_logs": certificate_logs,
+        "import_logs": import_logs,
+    }
+
+    return render(request, "logs.html", context)
+
+
+@login_required
+def log_details_ajax(request, log_type, log_id):
+    """AJAX endpoint to get detailed log information"""
+    from django.http import JsonResponse
+    from .models import RSVPEmailLog, CertificateGenerationLog, CSVImportLog
+
+    try:
+        if log_type == "rsvp":
+            log = RSVPEmailLog.objects.select_related("event", "user").get(id=log_id)
+            stats_html = f"""
+                <div><span class="font-medium">Total Recipients:</span> {log.total_recipients}</div>
+                <div><span class="font-medium">Emails Sent:</span> {log.emails_sent}</div>
+                <div><span class="font-medium">Emails Failed:</span> {log.emails_failed}</div>
+                <div><span class="font-medium">Progress:</span> {log.progress_percentage}%</div>
+            """
+        elif log_type == "certificate":
+            log = CertificateGenerationLog.objects.select_related("event", "user").get(
+                id=log_id
+            )
+            stats_html = f"""
+                <div><span class="font-medium">Total Participants:</span> {log.total_participants}</div>
+                <div><span class="font-medium">Processed:</span> {log.processed_participants}</div>
+                <div><span class="font-medium">Successful:</span> {log.successful_generations}</div>
+                <div><span class="font-medium">Failed:</span> {log.failed_generations}</div>
+            """
+        elif log_type == "import":
+            log = CSVImportLog.objects.select_related("event", "user").get(id=log_id)
+            stats_html = f"""
+                <div><span class="font-medium">Total Rows:</span> {log.total_rows}</div>
+                <div><span class="font-medium">Processed Rows:</span> {log.processed_rows}</div>
+                <div><span class="font-medium">Successful Imports:</span> {log.successful_imports}</div>
+                <div><span class="font-medium">Failed Imports:</span> {log.failed_imports}</div>
+            """
+        else:
+            return JsonResponse({"success": False, "error": "Invalid log type"})
+
+        log_details = {
+            "event_name": log.event.event_name,
+            "user": log.user.username,
+            "status": log.status,
+            "started_at": log.started_at.strftime("%B %d, %Y at %H:%M:%S"),
+            "completed_at": (
+                log.completed_at.strftime("%B %d, %Y at %H:%M:%S")
+                if log.completed_at
+                else None
+            ),
+            "stats_html": stats_html,
+            "log_messages": log.log_messages if hasattr(log, "log_messages") else [],
+        }
+
+        return JsonResponse({"success": True, "log_details": log_details})
+
+    except (
+        RSVPEmailLog.DoesNotExist,
+        CertificateGenerationLog.DoesNotExist,
+        CSVImportLog.DoesNotExist,
+    ):
+        return JsonResponse({"success": False, "error": "Log not found"})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)})
 
 
 @login_required

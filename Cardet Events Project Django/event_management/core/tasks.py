@@ -26,8 +26,23 @@ def send_ticket_email_task(participant_id):
     This replaces the threading approach in send_ticket_email_view.
     """
     try:
+        from .models import RSVPEmailLog
+        from django.contrib.auth.models import User
+        from django.utils import timezone
+
         # Get the participant
         participant = Participant.objects.get(id=participant_id)
+
+        # Create email log for tracking
+        user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        email_log = RSVPEmailLog.objects.create(
+            event=participant.event,
+            user=user,
+            status="in_progress",
+            total_recipients=1,
+            emails_sent=0,
+            emails_failed=0,
+        )
 
         # Ensure event requires tickets and participant has a ticket
         if not participant.event.tickets or not participant.pdf_ticket:
@@ -105,6 +120,22 @@ def send_ticket_email_task(participant_id):
         email.send()
         print(f"✅ Ticket email sent to {participant.email} via Celery task")
 
+        # Log success
+        email_log.status = "completed"
+        email_log.emails_sent = 1
+        email_log.log_messages.append(
+            {
+                "type": "success",
+                "timestamp": timezone.now().isoformat(),
+                "message": f"Successfully sent ticket email to {participant.email}",
+                "participant": f"{participant.name} ({participant.email})",
+                "email_type": "ticket",
+                "subject": subject,
+            }
+        )
+        email_log.completed_at = timezone.now()
+        email_log.save()
+
         return {
             "status": "success",
             "message": f"Ticket sent successfully to {participant.email}!",
@@ -112,9 +143,38 @@ def send_ticket_email_task(participant_id):
 
     except Participant.DoesNotExist:
         print(f"❌ Participant with ID {participant_id} not found")
+        if "email_log" in locals():
+            email_log.status = "failed"
+            email_log.emails_failed = 1
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": "Participant not found",
+                    "participant": f"ID: {participant_id}",
+                    "email_type": "ticket",
+                }
+            )
+            email_log.completed_at = timezone.now()
+            email_log.save()
         return {"status": "error", "message": "Participant not found."}
     except Exception as e:
         print(f"❌ Error sending email to participant {participant_id}: {e}")
+        if "email_log" in locals():
+            email_log.status = "failed"
+            email_log.emails_failed = 1
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Error sending ticket email: {str(e)}",
+                    "participant": f"ID: {participant_id}",
+                    "email_type": "ticket",
+                    "error_details": str(e),
+                }
+            )
+            email_log.completed_at = timezone.now()
+            email_log.save()
         return {"status": "error", "message": f"Error sending email: {str(e)}"}
 
 
@@ -125,7 +185,22 @@ def send_approval_email_task(participant_id):
     This replaces the threading approach in signals.py.
     """
     try:
+        from .models import RSVPEmailLog
+        from django.contrib.auth.models import User
+        from django.utils import timezone
+
         participant = Participant.objects.get(id=participant_id)
+
+        # Create email log for tracking
+        user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        email_log = RSVPEmailLog.objects.create(
+            event=participant.event,
+            user=user,
+            status="in_progress",
+            total_recipients=1,
+            emails_sent=0,
+            emails_failed=0,
+        )
 
         # Get the event's approval email template
         try:
@@ -206,6 +281,23 @@ def send_approval_email_task(participant_id):
             f"✅ Approval email sent to {participant.email} for {participant.event.event_name} via Celery task"
         )
 
+        # Log success
+        email_log.status = "completed"
+        email_log.emails_sent = 1
+        email_log.log_messages.append(
+            {
+                "type": "success",
+                "timestamp": timezone.now().isoformat(),
+                "message": f"Successfully sent approval email to {participant.email}",
+                "participant": f"{participant.name} ({participant.email})",
+                "email_type": "approval",
+                "subject": rendered_subject,
+                "template_used": "approval",
+            }
+        )
+        email_log.completed_at = timezone.now()
+        email_log.save()
+
         return {
             "status": "success",
             "message": f"Approval email sent successfully to {participant.email}!",
@@ -213,9 +305,38 @@ def send_approval_email_task(participant_id):
 
     except Participant.DoesNotExist:
         print(f"❌ Participant with ID {participant_id} not found")
+        if "email_log" in locals():
+            email_log.status = "failed"
+            email_log.emails_failed = 1
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": "Participant not found",
+                    "participant": f"ID: {participant_id}",
+                    "email_type": "approval",
+                }
+            )
+            email_log.completed_at = timezone.now()
+            email_log.save()
         return {"status": "error", "message": "Participant not found."}
     except Exception as e:
         print(f"❌ Error sending approval email to participant {participant_id}: {e}")
+        if "email_log" in locals():
+            email_log.status = "failed"
+            email_log.emails_failed = 1
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Error sending approval email: {str(e)}",
+                    "participant": f"ID: {participant_id}",
+                    "email_type": "approval",
+                    "error_details": str(e),
+                }
+            )
+            email_log.completed_at = timezone.now()
+            email_log.save()
         return {"status": "error", "message": f"Error sending approval email: {str(e)}"}
 
 
@@ -453,7 +574,15 @@ def send_rsvp_email_task(participant_id, log_id=None):
                 try:
                     email_log = RSVPEmailLog.objects.get(id=log_id)
                     email_log.emails_failed += 1
-                    email_log.error_message = "No RSVP email template found."
+                    email_log.log_messages.append(
+                        {
+                            "type": "error",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": "No RSVP email template found.",
+                            "participant": f"ID: {participant_id}",
+                            "email_type": "rsvp",
+                        }
+                    )
                     email_log.save()
                 except RSVPEmailLog.DoesNotExist:
                     print(f"⚠️ RSVPEmailLog with ID {log_id} not found")
@@ -469,8 +598,14 @@ def send_rsvp_email_task(participant_id, log_id=None):
                 try:
                     email_log = RSVPEmailLog.objects.get(id=log_id)
                     email_log.emails_failed += 1
-                    email_log.error_message = (
-                        "No email configuration found for this company."
+                    email_log.log_messages.append(
+                        {
+                            "type": "error",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": "No email configuration found for this company.",
+                            "participant": f"ID: {participant_id}",
+                            "email_type": "rsvp",
+                        }
                     )
                     email_log.save()
                 except RSVPEmailLog.DoesNotExist:
@@ -540,6 +675,17 @@ def send_rsvp_email_task(participant_id, log_id=None):
                 try:
                     email_log = RSVPEmailLog.objects.get(id=log_id)
                     email_log.emails_sent += 1
+                    email_log.log_messages.append(
+                        {
+                            "type": "success",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": f"Successfully sent RSVP email to {participant.email}",
+                            "participant": f"{participant.name} ({participant.email})",
+                            "email_type": "rsvp",
+                            "subject": rendered_subject,
+                            "template_used": "rsvp",
+                        }
+                    )
                     email_log.save()
                 except RSVPEmailLog.DoesNotExist:
                     print(f"⚠️ RSVPEmailLog with ID {log_id} not found")
@@ -553,7 +699,16 @@ def send_rsvp_email_task(participant_id, log_id=None):
                 try:
                     email_log = RSVPEmailLog.objects.get(id=log_id)
                     email_log.emails_failed += 1
-                    email_log.error_message = str(e)
+                    email_log.log_messages.append(
+                        {
+                            "type": "error",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": f"Error sending RSVP email: {str(e)}",
+                            "participant": f"ID: {participant_id}",
+                            "email_type": "rsvp",
+                            "error_details": str(e),
+                        }
+                    )
                     email_log.save()
                 except RSVPEmailLog.DoesNotExist:
                     print(f"⚠️ RSVPEmailLog with ID {log_id} not found")
@@ -565,7 +720,15 @@ def send_rsvp_email_task(participant_id, log_id=None):
             try:
                 email_log = RSVPEmailLog.objects.get(id=log_id)
                 email_log.emails_failed += 1
-                email_log.error_message = "Participant not found."
+                email_log.log_messages.append(
+                    {
+                        "type": "error",
+                        "timestamp": timezone.now().isoformat(),
+                        "message": "Participant not found.",
+                        "participant": f"ID: {participant_id}",
+                        "email_type": "rsvp",
+                    }
+                )
                 email_log.save()
             except RSVPEmailLog.DoesNotExist:
                 print(f"⚠️ RSVPEmailLog with ID {log_id} not found")
@@ -576,7 +739,16 @@ def send_rsvp_email_task(participant_id, log_id=None):
             try:
                 email_log = RSVPEmailLog.objects.get(id=log_id)
                 email_log.emails_failed += 1
-                email_log.error_message = str(e)
+                email_log.log_messages.append(
+                    {
+                        "type": "error",
+                        "timestamp": timezone.now().isoformat(),
+                        "message": f"Error in send_rsvp_email_task: {str(e)}",
+                        "participant": f"ID: {participant_id}",
+                        "email_type": "rsvp",
+                        "error_details": str(e),
+                    }
+                )
                 email_log.save()
             except RSVPEmailLog.DoesNotExist:
                 print(f"⚠️ RSVPEmailLog with ID {log_id} not found")
@@ -616,7 +788,7 @@ def send_bulk_rsvp_emails_task(event_id, participant_ids, user_id):
             email_log.total_recipients = participants.count()
             email_log.emails_sent = 0
             email_log.emails_failed = 0
-            email_log.error_message = ""
+            email_log.log_messages = []
             email_log.save()
 
         # Queue individual RSVP email tasks for each participant
@@ -661,7 +833,15 @@ def send_bulk_rsvp_emails_task(event_id, participant_ids, user_id):
         # Update log as failed
         try:
             email_log.status = "failed"
-            email_log.error_message = str(e)
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Bulk RSVP task failed: {str(e)}",
+                    "email_type": "bulk_rsvp",
+                    "error_details": str(e),
+                }
+            )
             email_log.completed_at = timezone.now()
             email_log.save()
         except:
@@ -689,6 +869,17 @@ def check_bulk_rsvp_completion(log_id):
             # All emails have been processed
             email_log.status = "completed"
             email_log.completed_at = timezone.now()
+            email_log.log_messages.append(
+                {
+                    "type": "success",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Bulk RSVP operation completed: {email_log.emails_sent} sent, {email_log.emails_failed} failed",
+                    "email_type": "bulk_rsvp",
+                    "total_recipients": email_log.total_recipients,
+                    "successful_sends": email_log.emails_sent,
+                    "failed_sends": email_log.emails_failed,
+                }
+            )
             email_log.save()
             print(
                 f"✅ Bulk RSVP operation {log_id} completed: {email_log.emails_sent} sent, {email_log.emails_failed} failed"
@@ -887,7 +1078,7 @@ def bulk_generate_certificates_task(event_id, user_id):
             processed_participants=0,
             successful_generations=0,
             failed_generations=0,
-            error_messages=[],
+            log_messages=[],
         )
 
         # Get participants who have attended the event
@@ -899,8 +1090,13 @@ def bulk_generate_certificates_task(event_id, user_id):
 
         if not participants.exists():
             cert_log.status = "failed"
-            cert_log.error_messages.append(
-                "No participants with attendance records found for this event"
+            cert_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": "No participants with attendance records found for this event",
+                    "participant": None,
+                }
             )
             cert_log.completed_at = timezone.now()
             cert_log.save()
@@ -936,14 +1132,29 @@ def bulk_generate_certificates_task(event_id, user_id):
                 if success:
                     successful += 1
                     cert_log.successful_generations += 1
+                    cert_log.log_messages.append(
+                        {
+                            "type": "success",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": f"Successfully generated certificate for {participant.name} ({participant.email})",
+                            "participant": f"{participant.name} ({participant.email})",
+                        }
+                    )
                     print(f"✅ {message}")
                 else:
                     failed += 1
                     cert_log.failed_generations += 1
-                    cert_log.error_messages.append(
-                        f"Failed for {participant.name}: {message}"
+                    cert_log.log_messages.append(
+                        {
+                            "type": "error",
+                            "timestamp": timezone.now().isoformat(),
+                            "message": f"Failed to generate certificate for {participant.name} ({participant.email}): {message}",
+                            "participant": f"{participant.name} ({participant.email})",
+                        }
                     )
                     print(f"❌ {message}")
+
+                cert_log.save()
 
             except Exception as e:
                 failed += 1
@@ -951,7 +1162,15 @@ def bulk_generate_certificates_task(event_id, user_id):
                 error_msg = (
                     f"Exception generating certificate for {participant.name}: {str(e)}"
                 )
-                cert_log.error_messages.append(error_msg)
+                cert_log.log_messages.append(
+                    {
+                        "type": "error",
+                        "timestamp": timezone.now().isoformat(),
+                        "message": error_msg,
+                        "participant": f"{participant.name} ({participant.email})",
+                    }
+                )
+                cert_log.save()
                 print(f"❌ {error_msg}")
 
         # Mark as completed
@@ -1125,7 +1344,18 @@ def bulk_send_certificates_task(event_id, user_id):
             )
 
         email_log.status = "completed"
-        email_log.error_message = completion_message if error_messages else None
+        email_log.log_messages.append(
+            {
+                "type": "success",
+                "timestamp": timezone.now().isoformat(),
+                "message": completion_message,
+                "email_type": "certificate_sending",
+                "total_recipients": participants.count(),
+                "successful_sends": successful_count,
+                "failed_sends": failed_count,
+                "errors": error_messages if error_messages else [],
+            }
+        )
         email_log.completed_at = timezone.now()
         email_log.save()
 
@@ -1139,7 +1369,15 @@ def bulk_send_certificates_task(event_id, user_id):
     except Exception as e:
         if "email_log" in locals():
             email_log.status = "failed"
-            email_log.error_message = str(e)
+            email_log.log_messages.append(
+                {
+                    "type": "error",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"Certificate sending task failed: {str(e)}",
+                    "email_type": "certificate_sending",
+                    "error_details": str(e),
+                }
+            )
             email_log.completed_at = timezone.now()
             email_log.save()
 

@@ -21,6 +21,7 @@ from .models import (
     RSVPResponse,
     RSVPEmailLog,
     CertificateGenerationLog,
+    CSVImportLog,
 )
 
 
@@ -353,7 +354,7 @@ class RSVPEmailLogAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "event", "started_at")
     search_fields = ("event__event_name", "user__username")
-    readonly_fields = ("started_at", "completed_at")
+    readonly_fields = ("started_at", "completed_at", "progress_percentage")
     ordering = ("-started_at",)
 
     def status_display(self, obj):
@@ -383,6 +384,34 @@ class RSVPEmailLogAdmin(admin.ModelAdmin):
         )
 
     email_stats.short_description = "Email Stats"
+
+    fieldsets = (
+        (None, {"fields": ("event", "user", "status")}),
+        (
+            "Email Information",
+            {
+                "fields": (
+                    "total_recipients",
+                    "emails_sent",
+                    "emails_failed",
+                    "progress_percentage",
+                )
+            },
+        ),
+        (
+            "Timing",
+            {
+                "fields": ("started_at", "completed_at"),
+            },
+        ),
+        (
+            "Log Messages",
+            {
+                "fields": ("log_messages",),
+                "description": "Detailed log of email sending process (success and error messages)",
+            },
+        ),
+    )
 
 
 admin.site.register(RSVPEmailLog, RSVPEmailLogAdmin)
@@ -470,16 +499,91 @@ class CertificateGenerationLogAdmin(admin.ModelAdmin):
             },
         ),
         (
-            "Error Messages",
+            "Log Messages",
             {
-                "fields": ("error_messages",),
-                "description": "List of errors encountered during certificate generation",
+                "fields": ("log_messages",),
+                "description": "Detailed log of certificate generation process (success and error messages)",
             },
         ),
     )
 
 
 admin.site.register(CertificateGenerationLog, CertificateGenerationLogAdmin)
+
+
+class CSVImportLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "event",
+        "user",
+        "status_display",
+        "import_stats",
+        "started_at",
+        "completed_at",
+    )
+    list_filter = ("status", "event", "started_at")
+    search_fields = ("event__event_name", "user__username")
+    readonly_fields = ("started_at", "completed_at", "progress_percentage")
+    ordering = ("-started_at",)
+
+    def status_display(self, obj):
+        """Display status with color coding"""
+        if obj.status == "completed":
+            return format_html(
+                '<span style="color: green; font-weight: bold;">✅ Completed</span>'
+            )
+        elif obj.status == "failed":
+            return format_html(
+                '<span style="color: red; font-weight: bold;">❌ Failed</span>'
+            )
+        else:  # in_progress
+            return format_html(
+                '<span style="color: orange; font-weight: bold;">⏳ In Progress</span>'
+            )
+
+    status_display.short_description = "Status"
+
+    def import_stats(self, obj):
+        """Display import statistics"""
+        return format_html(
+            "✅ {}/{} imported<br/>" "❌ {} failed",
+            obj.successful_imports,
+            obj.total_rows,
+            obj.failed_imports,
+        )
+
+    import_stats.short_description = "Import Stats"
+
+    fieldsets = (
+        (None, {"fields": ("event", "user", "status")}),
+        (
+            "Import Information",
+            {
+                "fields": (
+                    "total_rows",
+                    "processed_rows",
+                    "successful_imports",
+                    "failed_imports",
+                    "progress_percentage",
+                )
+            },
+        ),
+        (
+            "Timing",
+            {
+                "fields": ("started_at", "completed_at"),
+            },
+        ),
+        (
+            "Log Messages",
+            {
+                "fields": ("log_messages",),
+                "description": "Detailed log of import process (success and error messages)",
+            },
+        ),
+    )
+
+
+admin.site.register(CSVImportLog, CSVImportLogAdmin)
 
 
 @admin.register(Status)

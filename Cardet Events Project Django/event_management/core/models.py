@@ -507,9 +507,10 @@ class RSVPEmailLog(models.Model):
     total_recipients = models.PositiveIntegerField(default=0)
     emails_sent = models.PositiveIntegerField(default=0)
     emails_failed = models.PositiveIntegerField(default=0)
+    action = models.CharField(max_length=50, blank=True, null=True)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    error_message = models.TextField(blank=True, null=True)
+    log_messages = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
@@ -546,7 +547,7 @@ class CSVImportLog(models.Model):
     failed_imports = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    error_messages = models.JSONField(default=list, blank=True)
+    log_messages = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
@@ -585,7 +586,7 @@ class CertificateGenerationLog(models.Model):
     failed_generations = models.PositiveIntegerField(default=0)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
-    error_messages = models.JSONField(default=list, blank=True)
+    log_messages = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["-started_at"]

@@ -154,7 +154,12 @@ class CSVImportProgress {
                 total_rows: 100,
                 successful_imports: 23,
                 failed_imports: 2,
-                error_messages: ['Test error message']
+                log_messages: [{
+                    type: 'error',
+                    timestamp: new Date().toISOString(),
+                    message: 'Test error message',
+                    row: 5
+                }]
             });
         }, 2000);
         
@@ -230,7 +235,7 @@ class CSVImportProgress {
             total_rows,
             successful_imports,
             failed_imports,
-            error_messages,
+            log_messages,
             redirect_url
         } = data;
 
@@ -257,9 +262,9 @@ class CSVImportProgress {
                                       status === 'failed' ? 'Failed' : status;
         }
 
-        // Show errors if any
-        if (error_messages && error_messages.length > 0) {
-            this.showErrors(error_messages);
+        // Show log messages if any
+        if (log_messages && log_messages.length > 0) {
+            this.showLogMessages(log_messages);
         }
 
         // Handle completion
@@ -268,13 +273,37 @@ class CSVImportProgress {
         }
     }
 
-    // Show error messages
-    showErrors(errors) {
+    // Show log messages
+    showLogMessages(logMessages) {
         const errorContainer = document.getElementById('error-container');
         const errorList = document.getElementById('error-list');
         
-        if (errorContainer && errorList && errors.length > 0) {
-            errorList.innerHTML = errors.map(error => `<div class="mb-1">${error}</div>`).join('');
+        if (errorContainer && errorList && logMessages.length > 0) {
+            // Filter to show only error messages for now, but we could expand this
+            const errorMessages = logMessages.filter(log => log.type === 'error');
+            const successMessages = logMessages.filter(log => log.type === 'success');
+            
+            let html = '';
+            
+            if (errorMessages.length > 0) {
+                html += '<div class="text-red-600 font-medium mb-2">❌ Errors:</div>';
+                html += errorMessages.map(log => 
+                    `<div class="mb-1 text-sm">
+                        <span class="text-gray-500">Row ${log.row || 'N/A'}:</span> ${log.message}
+                    </div>`
+                ).join('');
+            }
+            
+            if (successMessages.length > 0) {
+                html += '<div class="text-green-600 font-medium mb-2 mt-3">✅ Recent Successes:</div>';
+                html += successMessages.slice(-3).map(log => 
+                    `<div class="mb-1 text-sm text-green-700">
+                        <span class="text-gray-500">Row ${log.row || 'N/A'}:</span> ${log.message}
+                    </div>`
+                ).join('');
+            }
+            
+            errorList.innerHTML = html;
             errorContainer.style.display = 'block';
         }
     }

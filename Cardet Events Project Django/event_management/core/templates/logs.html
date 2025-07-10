@@ -1,0 +1,431 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}System Logs{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">System Logs</h1>
+        <p class="text-gray-600">Monitor and track all system operations including email sending, certificate generation, and CSV imports.</p>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="border-b border-gray-200 mb-6">
+        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <button onclick="showTab('rsvp')" id="tab-rsvp" class="tab-button active border-indigo-500 text-indigo-600 bg-indigo-50 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                📧 Email Logs
+                <span class="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">{{ rsvp_logs.count }}</span>
+            </button>
+            <button onclick="showTab('certificate')" id="tab-certificate" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                🎓 Certificate Logs
+                <span class="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">{{ certificate_logs.count }}</span>
+            </button>
+            <button onclick="showTab('import')" id="tab-import" class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                📊 Import Logs
+                <span class="ml-2 bg-gray-100 text-gray-900 py-0.5 px-2.5 rounded-full text-xs font-medium">{{ import_logs.count }}</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- RSVP Email Logs Tab -->
+    <div id="tab-content-rsvp" class="tab-content">
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">RSVP Email Logs</h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">Track email sending operations for RSVP requests, approvals, and other communications.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stats</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for log in rsvp_logs %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <a href="{% url 'event_detail' log.event.id %}" class="text-indigo-600 hover:text-indigo-900">
+                                    {{ log.event.event_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.user.username }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if log.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        ✅ Completed
+                                    </span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        ❌ Failed
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        ⏳ In Progress
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ log.progress_percentage }}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">{{ log.progress_percentage }}%</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="text-xs">
+                                    <div class="text-green-600">✅ {{ log.emails_sent }}/{{ log.total_recipients }} sent</div>
+                                    <div class="text-red-600">❌ {{ log.emails_failed }} failed</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.started_at|date:"M d, Y H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if log.completed_at %}
+                                    {{ log.completed_at|date:"M d, Y H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="showLogDetails('rsvp', {{ log.id }})" class="text-indigo-600 hover:text-indigo-900">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">No RSVP email logs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Certificate Generation Logs Tab -->
+    <div id="tab-content-certificate" class="tab-content hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Certificate Generation Logs</h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">Track certificate generation operations for event participants.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stats</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for log in certificate_logs %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <a href="{% url 'event_detail' log.event.id %}" class="text-indigo-600 hover:text-indigo-900">
+                                    {{ log.event.event_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.user.username }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if log.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        ✅ Completed
+                                    </span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        ❌ Failed
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        ⏳ In Progress
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ log.progress_percentage }}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">{{ log.progress_percentage }}%</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="text-xs">
+                                    <div class="text-green-600">✅ {{ log.successful_generations }}/{{ log.total_participants }} generated</div>
+                                    <div class="text-red-600">❌ {{ log.failed_generations }} failed</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.started_at|date:"M d, Y H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if log.completed_at %}
+                                    {{ log.completed_at|date:"M d, Y H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="showLogDetails('certificate', {{ log.id }})" class="text-indigo-600 hover:text-indigo-900">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">No certificate generation logs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Logs Tab -->
+    <div id="tab-content-import" class="tab-content hidden">
+        <div class="bg-white shadow overflow-hidden sm:rounded-md">
+            <div class="px-4 py-5 sm:px-6">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">CSV Import Logs</h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">Track CSV import operations for participant data.</p>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progress</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stats</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Started</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completed</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for log in import_logs %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                <a href="{% url 'event_detail' log.event.id %}" class="text-indigo-600 hover:text-indigo-900">
+                                    {{ log.event.event_name }}
+                                </a>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.user.username }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if log.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        ✅ Completed
+                                    </span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        ❌ Failed
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        ⏳ In Progress
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ log.progress_percentage }}%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">{{ log.progress_percentage }}%</span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <div class="text-xs">
+                                    <div class="text-green-600">✅ {{ log.successful_imports }}/{{ log.total_rows }} imported</div>
+                                    <div class="text-red-600">❌ {{ log.failed_imports }} failed</div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ log.started_at|date:"M d, Y H:i" }}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {% if log.completed_at %}
+                                    {{ log.completed_at|date:"M d, Y H:i" }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="showLogDetails('import', {{ log.id }})" class="text-indigo-600 hover:text-indigo-900">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">No import logs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Details Modal -->
+<div id="logDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Log Details</h3>
+                <button onclick="closeLogDetails()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="logDetailsContent" class="max-h-96 overflow-y-auto">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showTab(tabName) {
+    // Hide all tab contents
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // Remove active class from all tab buttons
+    const tabButtons = document.querySelectorAll('.tab-button');
+    tabButtons.forEach(button => {
+        button.classList.remove('active', 'border-indigo-500', 'text-indigo-600', 'bg-indigo-50');
+        button.classList.add('border-transparent', 'text-gray-500', 'bg-transparent');
+    });
+    
+    // Show selected tab content
+    document.getElementById(`tab-content-${tabName}`).classList.remove('hidden');
+    
+    // Add active class to selected tab button
+    const activeButton = document.getElementById(`tab-${tabName}`);
+    activeButton.classList.add('active', 'border-indigo-500', 'text-indigo-600', 'bg-indigo-50');
+    activeButton.classList.remove('border-transparent', 'text-gray-500', 'bg-transparent');
+}
+
+function showLogDetails(logType, logId) {
+    const modal = document.getElementById('logDetailsModal');
+    const content = document.getElementById('logDetailsContent');
+    const title = document.getElementById('modalTitle');
+    
+    // Set title based on log type
+    const titles = {
+        'rsvp': 'RSVP Email Log Details',
+        'certificate': 'Certificate Generation Log Details',
+        'import': 'CSV Import Log Details'
+    };
+    title.textContent = titles[logType];
+    
+    // Show loading
+    content.innerHTML = '<div class="text-center py-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div><p class="mt-2 text-gray-600">Loading log details...</p></div>';
+    modal.classList.remove('hidden');
+    
+    // Fetch log details via AJAX
+    fetch(`/logs/${logType}/${logId}/details/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                content.innerHTML = formatLogDetails(data.log_details);
+            } else {
+                content.innerHTML = '<div class="text-red-600 text-center py-4">Error loading log details</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = '<div class="text-red-600 text-center py-4">Error loading log details</div>';
+        });
+}
+
+function closeLogDetails() {
+    document.getElementById('logDetailsModal').classList.add('hidden');
+}
+
+function formatLogDetails(logDetails) {
+    let html = `
+        <div class="space-y-4">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-medium text-gray-900 mb-2">Basic Information</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div><span class="font-medium">Event:</span> ${logDetails.event_name}</div>
+                    <div><span class="font-medium">User:</span> ${logDetails.user}</div>
+                    <div><span class="font-medium">Status:</span> ${logDetails.status}</div>
+                    <div><span class="font-medium">Started:</span> ${logDetails.started_at}</div>
+                    ${logDetails.completed_at ? `<div><span class="font-medium">Completed:</span> ${logDetails.completed_at}</div>` : ''}
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-medium text-gray-900 mb-2">Statistics</h4>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    ${logDetails.stats_html}
+                </div>
+            </div>
+    `;
+    
+    if (logDetails.log_messages && logDetails.log_messages.length > 0) {
+        html += `
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="font-medium text-gray-900 mb-2">Log Messages (${logDetails.log_messages.length})</h4>
+                <div class="space-y-2 max-h-64 overflow-y-auto">
+        `;
+        
+        logDetails.log_messages.forEach(log => {
+            const typeClass = log.type === 'success' ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50';
+            const typeIcon = log.type === 'success' ? '✅' : '❌';
+            
+            html += `
+                <div class="p-3 rounded border ${typeClass}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span>${typeIcon}</span>
+                            <span class="font-medium">${log.timestamp}</span>
+                        </div>
+                        ${log.row ? `<span class="text-xs bg-gray-200 px-2 py-1 rounded">Row ${log.row}</span>` : ''}
+                    </div>
+                    <div class="mt-1 text-sm">${log.message}</div>
+                    ${log.participant ? `<div class="mt-1 text-xs text-gray-600">Participant: ${log.participant}</div>` : ''}
+                    ${log.email_type ? `<div class="mt-1 text-xs text-gray-600">Type: ${log.email_type}</div>` : ''}
+                    ${log.error_details ? `<div class="mt-1 text-xs text-red-600">Error: ${log.error_details}</div>` : ''}
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Initialize with RSVP tab active
+document.addEventListener('DOMContentLoaded', function() {
+    showTab('rsvp');
+});
+</script>
+
+<style>
+.tab-button.active {
+    border-color: #3b82f6;
+    color: #2563eb;
+    background-color: #eff6ff;
+}
+</style>
+{% endblock %} 

@@ -58,6 +58,8 @@ from .views import (
     dashboard_pending_participants,
     reports,
     participant_detail,
+    logs_view,
+    log_details_ajax,
 )
 
 urlpatterns = [
@@ -275,6 +277,12 @@ urlpatterns = [
         name="bulk_send_certificates",
     ),
     path("reports/", reports, name="reports"),
+    path("logs/", logs_view, name="logs"),
+    path(
+        "logs/<str:log_type>/<int:log_id>/details/",
+        log_details_ajax,
+        name="log_details_ajax",
+    ),
     path(
         "participant/<str:participant_email>/",
         participant_detail,
