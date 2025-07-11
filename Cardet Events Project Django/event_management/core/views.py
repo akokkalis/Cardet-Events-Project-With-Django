@@ -3066,7 +3066,6 @@ def reports(request):
             participants = Participant.objects.all().select_related("event")
 
         # Aggregate participants by email
-        from django.db.models import Count, Q
         from collections import defaultdict
 
         participant_stats = defaultdict(
@@ -3287,7 +3286,6 @@ def log_details_ajax(request, log_type, log_id):
 def participant_detail(request, participant_email):
     """Individual participant statistics page."""
     from .models import Event, Participant, RSVPResponse, Attendance
-    from django.db.models import Count, Q
     from collections import defaultdict
 
     # Get all participants with this email
