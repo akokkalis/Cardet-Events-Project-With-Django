@@ -20,6 +20,52 @@ def test_hello(name):
 
 
 @shared_task
+def test_database_connection():
+    """Test task to verify database connectivity in Celery workers."""
+    try:
+        # Test basic database connection
+        total_participants = Participant.objects.count()
+        print(
+            f"✅ Database connection successful. Total participants: {total_participants}"
+        )
+
+        # Test specific participant lookup
+        if total_participants > 0:
+            first_participant = Participant.objects.first()
+            print(
+                f"✅ First participant: ID={first_participant.id}, Name={first_participant.name}"
+            )
+
+            # Test participant with ID 3 specifically
+            try:
+                participant_3 = Participant.objects.get(id=3)
+                print(f"✅ Participant with ID 3 found: {participant_3.name}")
+                return {
+                    "status": "success",
+                    "message": f"Database connection working. Participant 3: {participant_3.name}",
+                    "total_participants": total_participants,
+                }
+            except Participant.DoesNotExist:
+                print(f"❌ Participant with ID 3 not found")
+                return {
+                    "status": "error",
+                    "message": "Participant with ID 3 not found in database",
+                    "total_participants": total_participants,
+                }
+        else:
+            print("❌ No participants found in database")
+            return {
+                "status": "error",
+                "message": "No participants found in database",
+                "total_participants": 0,
+            }
+
+    except Exception as e:
+        print(f"❌ Database connection error: {e}")
+        return {"status": "error", "message": f"Database connection failed: {str(e)}"}
+
+
+@shared_task
 def send_ticket_email_task(participant_id):
     """
     Celery task to send ticket email to a participant.

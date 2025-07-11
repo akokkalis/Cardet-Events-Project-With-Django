@@ -104,12 +104,12 @@ DEBUG = os.getenv("DJANGO_DEBUG")
 # ✅ Database Configuration
 # if DEBUG == "True":
 # 💻 DEVELOPMENT: Use SQLite
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
-}
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": BASE_DIR / "db.sqlite3",
+#     }
+# }
 # print("🚀 Running in DEVELOPMENT mode with SQLite")
 # else:
 # # 🌍 PRODUCTION: Use MySQL
@@ -128,16 +128,16 @@ DATABASES = {
 # }
 # print("🌍 Running in PRODUCTION mode with MySQL")
 # 🌍 PRODUCTION: Use PostgreSQL (Docker)
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.getenv("POSTGRES_DB"),
-#         "USER": os.getenv("POSTGRES_USER"),
-#         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-#         "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
-#         "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
-#     }
-# }
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB"),
+        "USER": os.getenv("POSTGRES_USER"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
+        "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
+    }
+}
 # print("🌍 Running in PRODUCTION mode with PostgreSQL")
 
 # Password validation
