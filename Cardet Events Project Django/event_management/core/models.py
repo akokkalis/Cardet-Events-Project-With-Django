@@ -343,10 +343,14 @@ class Participant(models.Model):
         default="pending",
         help_text="Status of the participant's registration approval",
     )
-    pdf_ticket = models.FileField(upload_to=pdf_ticket_path, blank=True, null=True)
-    qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
+    pdf_ticket = models.FileField(
+        upload_to=pdf_ticket_path, blank=True, null=True, max_length=500
+    )
+    qr_code = models.ImageField(
+        upload_to=qr_code_path, blank=True, null=True, max_length=500
+    )
     certificate = models.FileField(
-        upload_to=participant_certificate_path, blank=True, null=True
+        upload_to=participant_certificate_path, blank=True, null=True, max_length=500
     )
     registered_at = models.DateTimeField(auto_now_add=True)
     submitted_data = models.JSONField(blank=True, null=True)
