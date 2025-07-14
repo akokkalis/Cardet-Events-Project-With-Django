@@ -537,6 +537,7 @@ END:VCALENDAR
 def generate_rsvp_urls(participant, request_or_site_url=None):
     """Generate RSVP URLs for email templates."""
     from django.urls import reverse
+    from django.conf import settings
 
     # Get the base URL - either from request or settings
     if hasattr(request_or_site_url, "build_absolute_uri"):
@@ -548,8 +549,30 @@ def generate_rsvp_urls(participant, request_or_site_url=None):
         # It's a site URL string
         base_url = request_or_site_url.rstrip("/")
     else:
-        # Fallback to settings
-        base_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000").rstrip("/")
+        # Fallback to settings - check for SITE_URL first, then ALLOWED_HOSTS
+        base_url = getattr(settings, "SITE_URL", None)
+        if not base_url:
+            # Try to get from ALLOWED_HOSTS if SITE_URL is not set
+            allowed_hosts = getattr(settings, "ALLOWED_HOSTS", [])
+            if allowed_hosts and allowed_hosts != ["*"]:
+                # Use the first non-wildcard host
+                for host in allowed_hosts:
+                    if host != "*" and not host.startswith("."):
+                        # Check if it's HTTPS or HTTP based on CSRF_TRUSTED_ORIGINS
+                        csrf_origins = getattr(settings, "CSRF_TRUSTED_ORIGINS", [])
+                        protocol = (
+                            "https"
+                            if any(host in origin for origin in csrf_origins)
+                            else "http"
+                        )
+                        base_url = f"{protocol}://{host}"
+                        break
+                else:
+                    base_url = "http://127.0.0.1:8000"
+            else:
+                base_url = "http://127.0.0.1:8000"
+
+        base_url = base_url.rstrip("/")
 
     # Generate the RSVP URLs
     rsvp_urls = {

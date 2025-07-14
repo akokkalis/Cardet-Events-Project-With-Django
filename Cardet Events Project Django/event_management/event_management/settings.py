@@ -31,9 +31,9 @@ SECRET_KEY = "django-insecure-wqk6_y73o3ut26x+l7el&qiyihfi@@duw3*n*3w=89xf58#ii7
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-ALLOWED_HOSTS = ["*", "https://63d5-87-228-149-85.ngrok-free.app"]
+ALLOWED_HOSTS = ["*"]
 CSRF_TRUSTED_ORIGINS = [
-    "https://63d5-87-228-149-85.ngrok-free.app",
+    "http://198.199.79.173:8000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
 ]
@@ -198,4 +198,6 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 LOGIN_URL = "/login/"
-SITE_URL = "http://127.0.0.1:8000"
+
+# Site URL for generating absolute URLs in emails
+SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
