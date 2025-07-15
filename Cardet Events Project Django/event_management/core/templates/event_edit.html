@@ -294,6 +294,32 @@
                         {% endfor %}
 
                         <div class="flex items-center">
+                            {{ form.paid_tickets|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.paid_tickets.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.paid_tickets.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Paid Tickets</strong><br>
+                                        When enabled, tickets will require payment processing:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Integrate with Stripe for secure payment processing</li>
+                                            <li>Set different ticket types with varying prices</li>
+                                            <li>Manage ticket inventory and availability</li>
+                                            <li>Generate tickets only after successful payment</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            💳 Only applies when ticketing is enabled
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.paid_tickets.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
                             {{ form.signatures|add_class:"checkbox-field h-5 w-5 rounded" }}
                             <label for="{{ form.signatures.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
                                 {{ form.signatures.label }}

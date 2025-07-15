@@ -1,5 +1,6 @@
 from django import template
 from django.template.defaultfilters import stringfilter
+from decimal import Decimal
 
 register = template.Library()
 
@@ -21,3 +22,31 @@ def filter_queryset(queryset, filter_string):
         return [item for item in queryset if getattr(item, field, None) == value]
     except (ValueError, AttributeError):
         return []
+
+
+@register.filter(name="euro")
+def euro(value):
+    """Format a numeric value as euro currency."""
+    if value is None:
+        return "€0.00"
+
+    try:
+        # Convert to Decimal for precise formatting
+        if isinstance(value, str):
+            # Remove any existing currency symbols
+            clean_value = (
+                value.replace("$", "")
+                .replace("€", "")
+                .replace("£", "")
+                .replace("¥", "")
+                .replace("₹", "")
+                .strip()
+            )
+            decimal_value = Decimal(clean_value)
+        else:
+            decimal_value = Decimal(str(value))
+
+        # Format with 2 decimal places
+        return f"€{decimal_value:.2f}"
+    except (ValueError, TypeError, ArithmeticError):
+        return "€0.00"

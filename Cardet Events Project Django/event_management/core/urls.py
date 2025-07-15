@@ -62,6 +62,20 @@ from .views import (
     log_details_ajax,
 )
 
+# Import ticket views
+from .ticket_views import (
+    event_tickets,
+    select_tickets,
+    checkout,
+    payment_success,
+    payment_cancel,
+    stripe_webhook,
+    manage_ticket_types,
+    create_ticket_type,
+    edit_ticket_type,
+    delete_ticket_type,
+)
+
 urlpatterns = [
     path("", event_list, name="event_list"),
     path("dashboard/", dashboard, name="dashboard"),
@@ -287,6 +301,44 @@ urlpatterns = [
         "participant/<str:participant_email>/",
         participant_detail,
         name="participant_detail",
+    ),
+    # Ticket URLs
+    path("events/<int:event_id>/tickets/", event_tickets, name="event_tickets"),
+    path(
+        "events/<int:event_id>/tickets/select/", select_tickets, name="select_tickets"
+    ),
+    path("events/<int:event_id>/tickets/checkout/", checkout, name="checkout"),
+    path(
+        "events/<int:event_id>/tickets/payment/success/",
+        payment_success,
+        name="payment_success",
+    ),
+    path(
+        "events/<int:event_id>/tickets/payment/cancel/",
+        payment_cancel,
+        name="payment_cancel",
+    ),
+    path("stripe/webhook/", stripe_webhook, name="stripe_webhook"),
+    # Ticket Management URLs (Admin)
+    path(
+        "events/<int:event_id>/manage-tickets/",
+        manage_ticket_types,
+        name="manage_ticket_types",
+    ),
+    path(
+        "events/<int:event_id>/create-ticket-type/",
+        create_ticket_type,
+        name="create_ticket_type",
+    ),
+    path(
+        "events/<int:event_id>/edit-ticket-type/<int:ticket_type_id>/",
+        edit_ticket_type,
+        name="edit_ticket_type",
+    ),
+    path(
+        "events/<int:event_id>/delete-ticket-type/<int:ticket_type_id>/",
+        delete_ticket_type,
+        name="delete_ticket_type",
     ),
 ]
 

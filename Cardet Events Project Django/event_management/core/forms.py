@@ -8,6 +8,9 @@ from .models import (
     EventCustomField,
     EventEmail,
     EmailConfiguration,
+    TicketType,
+    Order,
+    OrderItem,
 )
 from ckeditor.widgets import CKEditorWidget
 
@@ -88,6 +91,7 @@ class EventForm(forms.ModelForm):
             "location",
             "description",
             "tickets",
+            "paid_tickets",
             "has_registration_limit",
             "registration_limit",
             "signatures",
@@ -142,6 +146,12 @@ class EventForm(forms.ModelForm):
                 attrs={
                     "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
                     "title": "Enable this if you want to have ticketing system for the event.",
+                }
+            ),
+            "paid_tickets": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded",
+                    "title": "Enable this if tickets require payment. Only applies when ticketing is enabled.",
                 }
             ),
             "has_registration_limit": forms.CheckboxInput(
@@ -578,3 +588,136 @@ class EmailConfigurationForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+# Ticketing System Forms
+
+
+class TicketTypeForm(forms.ModelForm):
+    class Meta:
+        model = TicketType
+        fields = ["name", "description", "price", "max_quantity", "is_active"]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "e.g., General Admission, VIP, Early Bird",
+                }
+            ),
+            "description": forms.Textarea(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "rows": "3",
+                    "placeholder": "Describe what this ticket includes...",
+                }
+            ),
+            "price": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "step": "0.01",
+                    "min": "0",
+                    "placeholder": "0.00",
+                }
+            ),
+            "max_quantity": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "min": "1",
+                    "placeholder": "100",
+                }
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                }
+            ),
+        }
+
+
+class TicketSelectionForm(forms.Form):
+    def __init__(self, *args, **kwargs):
+        event = kwargs.pop("event")
+        super().__init__(*args, **kwargs)
+
+        # Get all available ticket types for this event
+        ticket_types = TicketType.objects.filter(event=event, is_active=True)
+
+        for ticket_type in ticket_types:
+            field_name = f"ticket_{ticket_type.id}"
+            help_text = f"Available: {ticket_type.tickets_available}"
+            if ticket_type.description:
+                help_text += f" | {ticket_type.description}"
+
+            self.fields[field_name] = forms.IntegerField(
+                label=f"{ticket_type.name} - €{ticket_type.price}",
+                min_value=0,
+                max_value=min(
+                    ticket_type.tickets_available, 10
+                ),  # Limit to 10 per purchase
+                initial=0,
+                required=False,
+                widget=forms.NumberInput(
+                    attrs={
+                        "class": "w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                        "min": "0",
+                        "max": min(ticket_type.tickets_available, 10),
+                    }
+                ),
+                help_text=help_text,
+            )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        total_tickets = 0
+
+        for field_name, quantity in cleaned_data.items():
+            if field_name.startswith("ticket_") and quantity:
+                total_tickets += quantity
+
+        if total_tickets == 0:
+            raise forms.ValidationError("Please select at least one ticket.")
+
+        return cleaned_data
+
+
+class ParticipantOrderForm(forms.Form):
+    """Form for collecting participant information during ticket purchase"""
+
+    name = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                "placeholder": "Your full name",
+            }
+        ),
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                "placeholder": "your.email@example.com",
+            }
+        ),
+    )
+    phone = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                "placeholder": "Your phone number (optional)",
+            }
+        ),
+    )
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email:
+            # Check if participant already exists for this event
+            event = getattr(self, "event", None)
+            if event and Participant.objects.filter(event=event, email=email).exists():
+                raise forms.ValidationError(
+                    "A participant with this email already exists for this event."
+                )
+        return email

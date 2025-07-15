@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ title }} - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="{% url 'manage_ticket_types' event.id %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-800">{{ title }}</h1>
+        </div>
+
+        <!-- Event Information -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-2">{{ event.event_name }}</h2>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                <span>{{ event.event_date|date:"F d, Y" }}</span>
+                {% if event.start_time %}
+                <span>{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</span>
+                {% endif %}
+                {% if event.location %}
+                <span>{{ event.location }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Ticket Name -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    {{ form.name.label }}
+                    <span class="text-red-500">*</span>
+                </label>
+                <div class="mt-1">
+                    {{ form.name|add_class:"form-field" }}
+                </div>
+                <p class="mt-2 text-sm text-gray-600">
+                    Examples: "General Admission", "VIP", "Early Bird", "Student"
+                </p>
+                {% for error in form.name.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    {{ form.description.label }}
+                </label>
+                <div class="mt-1">
+                    {{ form.description|add_class:"form-field" }}
+                </div>
+                <p class="mt-2 text-sm text-gray-600">
+                    Describe what this ticket includes (optional)
+                </p>
+                {% for error in form.description.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Price and Quantity -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.price.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 sm:text-sm">&euro;</span>
+                        </div>
+                        {{ form.price|add_class:"form-field pl-7" }}
+                    </div>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Price per ticket in EUR
+                    </p>
+                    {% for error in form.price.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+
+                <div>
+                    <label for="{{ form.max_quantity.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        {{ form.max_quantity.label }}
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="mt-1">
+                        {{ form.max_quantity|add_class:"form-field" }}
+                    </div>
+                    <p class="mt-2 text-sm text-gray-600">
+                        Maximum number of tickets available for this type
+                    </p>
+                    {% for error in form.max_quantity.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Active Status -->
+            <div>
+                <div class="flex items-center">
+                    {{ form.is_active|add_class:"h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" }}
+                    <label for="{{ form.is_active.id_for_label }}" class="ml-2 block text-sm text-gray-700">
+                        {{ form.is_active.label }}
+                    </label>
+                </div>
+                <p class="mt-2 text-sm text-gray-600">
+                    When enabled, this ticket type will be available for purchase
+                </p>
+                {% for error in form.is_active.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    {% for error in form.non_field_errors %}
+                        <p class="text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Information Box -->
+            <div class="bg-blue-50 rounded-lg p-4">
+                <h3 class="text-lg font-medium text-blue-900 mb-2">Important Notes</h3>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• Ticket names should be unique within the event</li>
+                    <li>• You can deactivate ticket types to stop sales without deleting them</li>
+                    <li>• Prices cannot be changed after tickets have been sold</li>
+                    <li>• Maximum quantity can be increased but not decreased below sold tickets</li>
+                </ul>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between pt-4">
+                <a href="{% url 'manage_ticket_types' event.id %}" class="btn btn-outline-gray">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-blue">
+                    {% if ticket_type %}
+                        Update Ticket Type
+                    {% else %}
+                        Create Ticket Type
+                    {% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %} 

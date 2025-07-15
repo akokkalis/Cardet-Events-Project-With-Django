@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Payment Successful - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Success Header -->
+        <div class="text-center mb-8">
+            <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                <svg class="h-8 w-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900">Payment Successful!</h1>
+            <p class="text-lg text-gray-600 mt-2">Thank you for your purchase. Your tickets have been confirmed.</p>
+        </div>
+
+        <!-- Order Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Order Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Order Number</p>
+                    <p class="font-medium text-lg">{{ order.order_number }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Total Amount</p>
+                    <p class="font-medium text-lg text-green-600">{{ order.total_amount|euro }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Customer</p>
+                    <p class="font-medium">{{ order.participant.name }}</p>
+                    <p class="text-sm text-gray-600">{{ order.participant.email }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Order Date</p>
+                    <p class="font-medium">{{ order.created_at|date:"F d, Y g:i A" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Details -->
+        <div class="bg-blue-50 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Event Details</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm text-gray-600">Event Name</p>
+                    <p class="font-medium text-lg">{{ event.event_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Date</p>
+                    <p class="font-medium">{{ event.event_date|date:"F d, Y" }}</p>
+                </div>
+                {% if event.start_time %}
+                <div>
+                    <p class="text-sm text-gray-600">Time</p>
+                    <p class="font-medium">{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</p>
+                </div>
+                {% endif %}
+                {% if event.location %}
+                <div>
+                    <p class="text-sm text-gray-600">Location</p>
+                    <p class="font-medium">{{ event.location }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Ticket Details -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">Your Tickets</h2>
+            <div class="space-y-3">
+                {% for item in order.order_items.all %}
+                <div class="flex justify-between items-center py-3 border-b border-gray-200 last:border-b-0">
+                    <div>
+                        <p class="font-medium text-lg">{{ item.ticket_type.name }}</p>
+                        <p class="text-sm text-gray-600">{{ item.quantity }} ticket{{ item.quantity|pluralize }} × {{ item.price_per_ticket|euro }}</p>
+                        {% if item.ticket_type.description %}
+                        <p class="text-sm text-gray-500 mt-1">{{ item.ticket_type.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-right">
+                        <p class="font-semibold text-lg">{{ item.total_price|euro }}</p>
+                        <p class="text-sm text-gray-600">{{ item.quantity }} ticket{{ item.quantity|pluralize }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="bg-yellow-50 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 mb-4">What's Next?</h2>
+            <ul class="space-y-2 text-gray-700">
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>You will receive a confirmation email with your tickets shortly</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Please bring your tickets (printed or on mobile) to the event</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Arrive at the event location at least 15 minutes early</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-5 h-5 text-yellow-600 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Keep your order number ({{ order.order_number }}) for reference</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-blue">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Event
+            </a>
+            <button onclick="window.print()" class="btn btn-outline-blue">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                </svg>
+                Print Receipt
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %} 

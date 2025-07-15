@@ -138,7 +138,7 @@ DATABASES = {
         "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
     }
 }
-# print("🌍 Running in PRODUCTION mode with PostgreSQL")
+print("🌍 Running in PRODUCTION mode with PostgreSQL")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -201,3 +201,11 @@ LOGIN_URL = "/login/"
 
 # Site URL for generating absolute URLs in emails
 SITE_URL = os.getenv("SITE_URL", "http://127.0.0.1:8000")
+
+# Stripe Configuration
+STRIPE_PUBLIC_KEY = os.getenv("STRIPE_PUBLIC_KEY", "")
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+# Stripe API Version
+STRIPE_API_VERSION = "2024-06-20"

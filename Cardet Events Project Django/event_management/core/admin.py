@@ -22,6 +22,10 @@ from .models import (
     RSVPEmailLog,
     CertificateGenerationLog,
     CSVImportLog,
+    TicketType,
+    Order,
+    OrderItem,
+    Payment,
 )
 
 
@@ -99,6 +103,7 @@ class EventAdmin(admin.ModelAdmin):
         "location",
         "status",
         "tickets",
+        "paid_tickets",
         "has_registration_limit",
         "registration_limit",
         "public_registration_enabled",
@@ -109,6 +114,7 @@ class EventAdmin(admin.ModelAdmin):
         "event_date",
         "status",
         "tickets",
+        "paid_tickets",
         "has_registration_limit",
         "public_registration_enabled",
         "auto_approval_enabled",
@@ -590,3 +596,125 @@ admin.site.register(CSVImportLog, CSVImportLogAdmin)
 class StatusAdmin(admin.ModelAdmin):
     list_display = ("name", "color")
     search_fields = ("name",)
+
+
+# Ticketing System Admin
+
+
+class TicketTypeInline(admin.TabularInline):
+    model = TicketType
+    extra = 1
+    fields = ("name", "description", "price", "max_quantity", "is_active")
+
+
+@admin.register(TicketType)
+class TicketTypeAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "event",
+        "price",
+        "max_quantity",
+        "tickets_sold",
+        "tickets_available",
+        "is_active",
+    )
+    list_filter = ("is_active", "event__company", "event")
+    search_fields = ("name", "event__event_name")
+    readonly_fields = ("tickets_sold", "tickets_available", "created_at", "updated_at")
+
+    def tickets_sold(self, obj):
+        return obj.tickets_sold
+
+    tickets_sold.short_description = "Sold"
+
+    def tickets_available(self, obj):
+        return obj.tickets_available
+
+    tickets_available.short_description = "Available"
+
+
+class OrderItemInline(admin.TabularInline):
+    model = OrderItem
+    extra = 0
+    readonly_fields = ("total_price",)
+    fields = ("ticket_type", "quantity", "price_per_ticket", "total_price")
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display = (
+        "order_number",
+        "participant",
+        "event",
+        "total_amount",
+        "payment_status",
+        "created_at",
+    )
+    list_filter = ("payment_status", "event__company", "event", "created_at")
+    search_fields = (
+        "order_number",
+        "participant__name",
+        "participant__email",
+        "event__event_name",
+    )
+    readonly_fields = ("order_number", "total_quantity", "created_at", "updated_at")
+    inlines = [OrderItemInline]
+
+    def total_quantity(self, obj):
+        return obj.total_quantity
+
+    total_quantity.short_description = "Total Tickets"
+
+
+@admin.register(OrderItem)
+class OrderItemAdmin(admin.ModelAdmin):
+    list_display = (
+        "order",
+        "ticket_type",
+        "quantity",
+        "price_per_ticket",
+        "total_price",
+    )
+    list_filter = ("ticket_type__event__company", "ticket_type__event", "ticket_type")
+    search_fields = ("order__order_number", "ticket_type__name")
+    readonly_fields = ("total_price",)
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = (
+        "order",
+        "payment_method",
+        "payment_status",
+        "amount_paid",
+        "payment_date",
+        "created_at",
+    )
+    list_filter = ("payment_method", "payment_status", "created_at")
+    search_fields = (
+        "order__order_number",
+        "stripe_payment_intent_id",
+        "stripe_charge_id",
+    )
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (
+            "Order Information",
+            {
+                "fields": (
+                    "order",
+                    "payment_method",
+                    "payment_status",
+                    "amount_paid",
+                    "transaction_fee",
+                )
+            },
+        ),
+        (
+            "Stripe Information",
+            {"fields": ("stripe_payment_intent_id", "stripe_charge_id")},
+        ),
+        ("Payment Details", {"fields": ("payment_date", "failure_reason")}),
+        ("Timestamps", {"fields": ("created_at", "updated_at")}),
+    )

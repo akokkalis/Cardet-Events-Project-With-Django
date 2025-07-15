@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}Payment - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+    .StripeElement {
+        box-sizing: border-box;
+        height: 40px;
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        background-color: white;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        -webkit-transition: box-shadow 150ms ease;
+        transition: box-shadow 150ms ease;
+    }
+
+    .StripeElement--focus {
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06), 0 0 0 2px #3b82f6;
+    }
+
+    .StripeElement--invalid {
+        border-color: #ef4444;
+    }
+
+    .StripeElement--webkit-autofill {
+        background-color: #fefefe !important;
+    }
+
+    #card-errors {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+
+    .payment-form {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .payment-form.processing {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+
+    .spinner {
+        border: 2px solid #f3f4f6;
+        border-top: 2px solid #3b82f6;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3 mb-6">
+            <h1 class="text-2xl font-semibold text-gray-800">Complete Payment</h1>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Order Summary -->
+            <div class="order-2 lg:order-1">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h2>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Order #:</span>
+                            <span>{{ order.order_number }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Event:</span>
+                            <span>{{ event.event_name }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Date:</span>
+                            <span>{{ event.event_date|date:"F d, Y" }}</span>
+                        </div>
+                        {% if event.start_time %}
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Time:</span>
+                            <span>{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <h3 class="font-medium text-gray-900">Tickets</h3>
+                    {% for item in order.order_items.all %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                        <div>
+                            <p class="font-medium">{{ item.ticket_type.name }}</p>
+                            <p class="text-sm text-gray-600">{{ item.quantity }} × {{ item.price_per_ticket|euro }}</p>
+                        </div>
+                        <span class="font-medium">{{ item.total_price|euro }}</span>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-300">
+                        <span class="text-lg font-medium">Total:</span>
+                        <span class="text-xl font-bold text-green-600">{{ total_amount|euro }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Form -->
+            <div class="order-1 lg:order-2">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Payment Information</h2>
+                
+                <div class="payment-form" id="payment-form">
+                    <div class="space-y-4">
+                        <div>
+                            <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
+                                Card information
+                            </label>
+                            <div id="card-element" class="StripeElement">
+                                <!-- Stripe Elements will create form elements here -->
+                            </div>
+                            <div id="card-errors" role="alert"></div>
+                        </div>
+
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm text-green-800">Your payment is secured by Stripe</span>
+                            </div>
+                        </div>
+
+                        <button type="submit" id="submit-button" class="w-full btn btn-blue">
+                            <span id="button-text">Pay {{ total_amount|euro }}</span>
+                            <div id="spinner" class="spinner hidden ml-2"></div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-xs text-gray-500">
+                    <p>By completing this purchase, you agree to the terms and conditions of the event.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    // Initialize Stripe
+    var stripe = Stripe('{{ stripe_public_key }}');
+    var elements = stripe.elements();
+
+    // Create card element
+    var cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#424770',
+                '::placeholder': {
+                    color: '#aab7c4',
+                },
+            },
+        },
+    });
+
+    cardElement.mount('#card-element');
+
+    // Handle real-time validation errors from the card Element
+    cardElement.addEventListener('change', function(event) {
+        var displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    // Handle form submission
+    var form = document.getElementById('payment-form');
+    var submitButton = document.getElementById('submit-button');
+    var buttonText = document.getElementById('button-text');
+    var spinner = document.getElementById('spinner');
+
+    form.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        setLoading(true);
+
+        stripe.confirmCardPayment('{{ payment_intent_client_secret }}', {
+            payment_method: {
+                card: cardElement,
+                billing_details: {
+                    name: '{{ order.participant.name }}',
+                    email: '{{ order.participant.email }}',
+                }
+            }
+        }).then(function(result) {
+            if (result.error) {
+                // Show error to customer
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = result.error.message;
+                setLoading(false);
+            } else {
+                // Payment succeeded
+                window.location.href = '{% url "payment_success" event.id %}';
+            }
+        });
+    });
+
+    function setLoading(isLoading) {
+        if (isLoading) {
+            submitButton.disabled = true;
+            buttonText.textContent = 'Processing...';
+            spinner.classList.remove('hidden');
+            document.querySelector('.payment-form').classList.add('processing');
+        } else {
+            submitButton.disabled = false;
+            buttonText.textContent = 'Pay {{ total_amount|euro }}';
+            spinner.classList.add('hidden');
+            document.querySelector('.payment-form').classList.remove('processing');
+        }
+    }
+</script>
+{% endblock %} 

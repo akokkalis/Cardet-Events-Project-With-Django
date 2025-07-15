@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_filters %}
+
+{% block title %}Checkout - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="{% url 'select_tickets' event.id %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-800">Checkout</h1>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Order Summary -->
+            <div class="order-2 lg:order-1">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Order Summary</h2>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Event:</span>
+                            <span>{{ event.event_name }}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Date:</span>
+                            <span>{{ event.event_date|date:"F d, Y" }}</span>
+                        </div>
+                        {% if event.start_time %}
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Time:</span>
+                            <span>{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</span>
+                        </div>
+                        {% endif %}
+                        {% if event.location %}
+                        <div class="flex justify-between text-sm">
+                            <span class="font-medium">Location:</span>
+                            <span>{{ event.location }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <h3 class="font-medium text-gray-900">Tickets</h3>
+                    {% for item in order_summary %}
+                    <div class="flex justify-between items-center py-2 border-b border-gray-200">
+                        <div>
+                            <p class="font-medium">{{ item.ticket_type.name }}</p>
+                            <p class="text-sm text-gray-600">{{ item.quantity }} × {{ item.ticket_type.price|euro }}</p>
+                        </div>
+                        <span class="font-medium">{{ item.subtotal|euro }}</span>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="flex justify-between items-center pt-4 border-t border-gray-300">
+                        <span class="text-lg font-medium">Total:</span>
+                        <span class="text-xl font-bold text-green-600">{{ total_amount|euro }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Participant Information Form -->
+            <div class="order-1 lg:order-2">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Your Information</h2>
+                
+                <form method="POST" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.name.label }}
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.name|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.name.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.email.label }}
+                            <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.email|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.email.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.phone.label }}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.phone|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.phone.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Terms and Conditions -->
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h3 class="font-medium text-blue-900 mb-2">Before you continue:</h3>
+                        <ul class="text-sm text-blue-800 space-y-1">
+                            <li>• You will receive your tickets via email after payment</li>
+                            <li>• Please bring your tickets (printed or on mobile) to the event</li>
+                            <li>• Refunds are subject to the event organizer's policy</li>
+                        </ul>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex justify-between pt-4">
+                        <a href="{% url 'select_tickets' event.id %}" class="btn btn-outline-gray">
+                            Back to Tickets
+                        </a>
+                        <button type="submit" class="btn btn-blue">
+                            Proceed to Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

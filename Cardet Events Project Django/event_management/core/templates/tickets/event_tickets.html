@@ -1,0 +1,545 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+{% load custom_filters %}
+
+{% block title %}{{ event.event_name }} - Tickets{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script id="ticket-prices" type="application/json">
+{
+    {% for ticket_type in ticket_types %}
+        "ticket_{{ ticket_type.id }}": "{{ ticket_type.price|euro }}"{% if not forloop.last %},{% endif %}
+    {% endfor %}
+}
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎟️ Ticket calculator JavaScript loaded!');
+    
+    // Get price data from JSON script tag
+    const ticketPricesScript = document.getElementById('ticket-prices');
+    if (ticketPricesScript) {
+        const rawPrices = JSON.parse(ticketPricesScript.textContent);
+        console.log('Raw prices from template:', rawPrices);
+        
+        // Clean up prices - remove any currency symbols and convert to numbers
+        window.ticketPrices = {};
+        for (const [key, value] of Object.entries(rawPrices)) {
+            // Remove currency symbols and convert to float
+            const cleanPrice = parseFloat(String(value).replace(/[$€£¥₹]/g, ''));
+            window.ticketPrices[key] = isNaN(cleanPrice) ? 0 : cleanPrice;
+        }
+        console.log('Cleaned ticket prices:', window.ticketPrices);
+    } else {
+        console.error('Could not find ticket-prices script tag');
+        window.ticketPrices = {};
+    }
+    
+    const ticketInputs = document.querySelectorAll('input[type="number"]');
+    const totalDisplay = document.getElementById('total-amount');
+    const totalTicketsDisplay = document.getElementById('total-tickets');
+    const continueBtn = document.getElementById('continue-btn');
+    const breakdownSection = document.getElementById('ticket-breakdown');
+    
+    console.log('Elements found:');
+    console.log('- Ticket inputs:', ticketInputs.length);
+    console.log('- Total display:', totalDisplay ? '✅' : '❌');
+    console.log('- Total tickets display:', totalTicketsDisplay ? '✅' : '❌');
+    console.log('- Continue button:', continueBtn ? '✅' : '❌');
+    console.log('- Breakdown section:', breakdownSection ? '✅' : '❌');
+    
+    // Initialize price data for each input
+    function initializePrices() {
+        console.log('Initializing prices...');
+        console.log('Found ticket inputs:', ticketInputs.length);
+        console.log('Available prices:', window.ticketPrices);
+        
+        ticketInputs.forEach((input, index) => {
+            
+            
+            // First, try to get price from the price mapping
+            if (window.ticketPrices && window.ticketPrices[input.name]) {
+                input.dataset.price = window.ticketPrices[input.name];
+                console.log('✅ Price set from mapping for input:', input.name, '= €' + input.dataset.price);
+                return;
+            }
+            
+            // Fallback: try to get from data attributes
+            const ticketItem = input.closest('.ticket-item');
+            if (ticketItem) {
+                console.log('Found ticket item for input:', input.name);
+                
+                const price = ticketItem.getAttribute('data-price');
+                const ticketId = ticketItem.getAttribute('data-ticket-id');
+                
+                console.log('Price from data-price:', price);
+                console.log('Ticket ID from data-ticket-id:', ticketId);
+                
+                if (price && price !== 'null' && price !== '') {
+                    input.dataset.price = price;
+                    console.log('✅ Price set from data-price for input:', input.name, '= €' + price);
+                    return;
+                }
+            }
+            
+            // Final fallback: try to extract from price display
+            const priceElement = ticketItem?.querySelector('.ticket-price');
+            if (priceElement) {
+                const priceText = priceElement.textContent || priceElement.innerText;
+                console.log('Trying to extract price from text:', priceText);
+                
+                // Try multiple patterns
+                const patterns = [
+                    /€\s*([0-9]+\.?[0-9]*)/,  // €25.00
+                    /euro;\s*([0-9]+\.?[0-9]*)/,  // &euro;25.00
+                    /([0-9]+\.?[0-9]*)/  // Just the number
+                ];
+                
+                let priceFound = false;
+                for (const pattern of patterns) {
+                    const match = priceText.match(pattern);
+                    if (match) {
+                        input.dataset.price = match[1];
+                        console.log('✅ Price set (text extraction) for input:', input.name, '= €' + match[1]);
+                        priceFound = true;
+                        break;
+                    }
+                }
+                
+                if (!priceFound) {
+                    input.dataset.price = '0';
+                    console.log('❌ Could not extract price from text:', priceText);
+                }
+            } else {
+                input.dataset.price = '0';
+                console.log('❌ No price element found for input:', input.name);
+            }
+        });
+        
+        console.log('Price initialization complete');
+    }
+    
+    // Show temporary message to user
+    function showTempMessage(message, type = 'info') {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white font-medium transition-all duration-300 ${
+            type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+        }`;
+        messageDiv.textContent = message;
+        messageDiv.style.transform = 'translateY(-20px)';
+        messageDiv.style.opacity = '0';
+        
+        document.body.appendChild(messageDiv);
+        
+        // Animate in
+        setTimeout(() => {
+            messageDiv.style.transform = 'translateY(0)';
+            messageDiv.style.opacity = '1';
+        }, 10);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            messageDiv.style.transform = 'translateY(-20px)';
+            messageDiv.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(messageDiv);
+            }, 300);
+        }, 3000);
+    }
+    
+    function updateTotal() {
+        console.log('=== UPDATE TOTAL CALLED ===');
+        let total = 0;
+        let totalTickets = 0;
+        let selectedTickets = [];
+        
+        ticketInputs.forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price) || 0;
+            const subtotal = quantity * price;
+            
+            console.log(`Input: ${input.name}, Quantity: ${quantity}, Price: €${price}, Subtotal: €${subtotal}`);
+            
+            total += subtotal;
+            totalTickets += quantity;
+            
+            // Collect selected tickets for breakdown
+            if (quantity > 0) {
+                const ticketName = input.closest('.ticket-item').querySelector('label').textContent.trim();
+                selectedTickets.push({
+                    name: ticketName,
+                    quantity: quantity,
+                    price: price,
+                    subtotal: subtotal
+                });
+            }
+            
+            // Update individual subtotal display
+            const subtotalElement = input.closest('.ticket-item').querySelector('.subtotal-amount');
+            if (subtotalElement) {
+                subtotalElement.textContent = '€' + subtotal.toFixed(2);
+                
+                // Add visual feedback for changes
+                subtotalElement.style.transition = 'color 0.3s ease';
+                subtotalElement.style.color = subtotal > 0 ? '#059669' : '#6B7280';
+            }
+            
+        });
+        
+        // Update the total tickets display
+        const totalTicketsElement = document.getElementById('total-tickets');
+        if (totalTicketsElement) {
+            totalTicketsElement.textContent = totalTickets;
+            totalTicketsElement.style.transition = 'all 0.3s ease';
+            if (totalTickets > 0) {
+                totalTicketsElement.style.color = '#2563EB';
+                totalTicketsElement.style.transform = 'scale(1.1)';
+                setTimeout(() => {
+                    totalTicketsElement.style.transform = 'scale(1)';
+                }, 200);
+            } else {
+                totalTicketsElement.style.color = '#6B7280';
+            }
+        }
+        
+        // Update the total amount display with enhanced animation
+        totalDisplay.textContent = '€' + total.toFixed(2);
+        
+        // Add visual feedback for total changes
+        totalDisplay.style.transition = 'all 0.4s ease';
+        if (total > 0) {
+            totalDisplay.style.color = '#059669';
+            totalDisplay.style.transform = 'scale(1.08)';
+            totalDisplay.style.boxShadow = '0 4px 12px rgba(5, 150, 105, 0.3)';
+            setTimeout(() => {
+                totalDisplay.style.transform = 'scale(1)';
+                totalDisplay.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+            }, 300);
+        } else {
+            totalDisplay.style.color = '#6B7280';
+            totalDisplay.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+        }
+        
+        // Update breakdown section
+        updateBreakdown(selectedTickets);
+        
+        console.log(`FINAL TOTALS: Total Amount: €${total}, Total Tickets: ${totalTickets}`);
+        console.log('=== UPDATE TOTAL COMPLETE ===\n');
+        
+        // Update button state
+        if (totalTickets > 0) {
+            continueBtn.disabled = false;
+            continueBtn.classList.remove('btn-gray', 'cursor-not-allowed');
+            continueBtn.classList.add('btn-blue');
+            continueBtn.textContent = `Continue to Checkout (${totalTickets} ticket${totalTickets > 1 ? 's' : ''})`;
+        } else {
+            continueBtn.disabled = true;
+            continueBtn.classList.add('btn-gray', 'cursor-not-allowed');
+            continueBtn.classList.remove('btn-blue');
+            continueBtn.textContent = 'Continue to Checkout';
+        }
+    }
+    
+    // Update the breakdown section
+    function updateBreakdown(selectedTickets) {
+        const breakdownSection = document.getElementById('ticket-breakdown');
+        const breakdownItems = document.getElementById('breakdown-items');
+        
+        if (selectedTickets.length > 0) {
+            breakdownSection.classList.remove('hidden');
+            breakdownItems.innerHTML = '';
+            
+            selectedTickets.forEach(ticket => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center text-sm';
+                item.innerHTML = `
+                    <span class="text-gray-700">${ticket.quantity}x ${ticket.name}</span>
+                    <span class="font-medium text-gray-900">€${ticket.subtotal.toFixed(2)}</span>
+                `;
+                breakdownItems.appendChild(item);
+            });
+        } else {
+            breakdownSection.classList.add('hidden');
+        }
+    }
+    
+    // Add event listeners to all ticket inputs
+    ticketInputs.forEach(input => {
+        // Listen for input, change, and keyup events
+        input.addEventListener('input', updateTotal);
+        input.addEventListener('change', updateTotal);
+        input.addEventListener('keyup', updateTotal);
+        
+        // Set min value to 0
+        input.setAttribute('min', '0');
+        
+        // Set max value based on available tickets
+        const ticketItem = input.closest('.ticket-item');
+        const availableElement = ticketItem.querySelector('.text-gray-500');
+        if (availableElement) {
+            const availableText = availableElement.textContent;
+            const availableMatch = availableText.match(/(\d+) available/);
+            if (availableMatch) {
+                const maxTickets = parseInt(availableMatch[1]);
+                input.setAttribute('max', maxTickets);
+                input.setAttribute('title', `Maximum ${maxTickets} tickets available`);
+            }
+        }
+        
+        // Prevent negative values and values exceeding maximum
+        input.addEventListener('blur', function() {
+            const value = parseInt(this.value);
+            const min = parseInt(this.getAttribute('min')) || 0;
+            const max = parseInt(this.getAttribute('max')) || 999;
+            
+            if (isNaN(value) || value < min) {
+                this.value = min;
+                updateTotal();
+            } else if (value > max) {
+                this.value = max;
+                updateTotal();
+                // Show warning message
+                const warningMsg = `Only ${max} tickets available for this type`;
+                showTempMessage(warningMsg, 'warning');
+            }
+        });
+    });
+    
+    // Initialize everything
+    initializePrices();
+    
+    // Debug: Check if prices were set correctly
+    console.log('=== PRICE VERIFICATION ===');
+    ticketInputs.forEach(input => {
+        console.log(`Input ${input.name} has price: €${input.dataset.price}`);
+    });
+    console.log('=== END PRICE VERIFICATION ===\n');
+    
+    updateTotal(); // Initial calculation
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-800">{{ event.event_name }} - Select Tickets</h1>
+        </div>
+
+        <!-- Event Information -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Event Details Column -->
+                <div class="space-y-4">
+                    <h2 class="text-xl font-medium text-gray-900 mb-4">{{ event.event_name }}</h2>
+                    
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Date & Time</p>
+                        <p class="text-gray-900">{{ event.event_date|date:"F d, Y" }}</p>
+                        {% if event.start_time %}
+                        <p class="text-gray-700">{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if event.location %}
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Location</p>
+                        <p class="text-gray-900">{{ event.location }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if event.description %}
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Description</p>
+                        <div class="text-gray-900 prose prose-sm">{{ event.description|safe }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div>
+                        <p class="text-sm text-gray-600 font-medium">Organized by</p>
+                        <p class="text-gray-900">{{ event.company.name }}</p>
+                    </div>
+                </div>
+                
+                <!-- Event Image Column -->
+                <div class="flex items-center justify-center">
+                    {% if event.image %}
+                    <div class="w-full max-w-md">
+                        <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="w-full h-64 object-cover rounded-lg shadow-md">
+                    </div>
+                    {% else %}
+                    <div class="w-full max-w-md h-64 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <div class="text-center text-gray-500">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <p class="mt-2 text-sm">No event image</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Two Column Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Column: Ticket Selection -->
+                <div class="space-y-6">
+                    <div class="space-y-4">
+                        <h2 class="text-lg font-medium text-gray-900">Select Number of Tickets</h2>
+                        
+                        {% for field in form %}
+                        <div class="border border-gray-200 rounded-lg p-4 ticket-item"
+                             {% for ticket_type in ticket_types %}
+                                 {% if field.name == 'ticket_'|add:ticket_type.id|stringformat:"s" %}
+                                     data-price="{{ ticket_type.price }}" data-ticket-id="{{ ticket_type.id }}"
+                                 {% endif %}
+                             {% endfor %}>
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                    <label class="block text-lg font-medium text-gray-900">
+                                        {{ field.label }}
+                                    </label>
+                                    {% if field.help_text %}
+                                    <p class="text-sm text-gray-600 mt-1">{{ field.help_text }}</p>
+                                    {% endif %}
+                                    <div class="mt-2 flex items-center space-x-4">
+                                        <span class="text-2xl font-bold text-green-600 ticket-price">
+                                            {% for ticket_type in ticket_types %}
+                                                {% if field.name == 'ticket_'|add:ticket_type.id|stringformat:"s" %}
+                                                    {{ ticket_type.price|euro }}
+                                                {% endif %}
+                                            {% endfor %}
+                                        </span>
+                                        {% for ticket_type in ticket_types %}
+                                            {% if field.name == 'ticket_'|add:ticket_type.id|stringformat:"s" %}
+                                                {% if ticket_type.is_available %}
+                                                <span class="text-sm text-gray-500">{{ ticket_type.tickets_available }} available</span>
+                                                {% else %}
+                                                <span class="text-sm text-red-500 font-medium">Sold Out</span>
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    
+                                        
+                                    
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center">
+                                        <label for="{{ field.id_for_label }}" class="sr-only">Quantity</label>
+                                        {{ field|add_class:"w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-center" }}
+                                    </div>
+                                    <div class="text-sm text-gray-600">
+                                        <span class="font-medium">Subtotal:</span>
+                                        <span class="subtotal-amount text-green-600 font-medium">€0.00</span>
+                                    </div>
+                                    
+                                </div>
+                            </div>
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Back Button -->
+                    <div>
+                        <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-gray">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back to Event
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 border-l-4 border-blue-400 sticky top-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Total Tickets -->
+                            <div class="bg-white rounded-lg p-3 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm font-medium text-gray-600">Total Tickets:</span>
+                                    <span id="total-tickets" class="text-lg font-bold text-blue-600">0</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Total Amount -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-xl font-bold text-gray-900">Total Amount:</span>
+                                    <span id="total-amount" class="text-3xl font-bold text-green-600">€0.00</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Selected Tickets Breakdown -->
+                            <div id="ticket-breakdown" class="hidden bg-white rounded-lg p-4 shadow-sm">
+                                <p class="text-sm font-medium text-gray-600 mb-2">Selected Tickets:</p>
+                                <div id="breakdown-items" class="space-y-1"></div>
+                            </div>
+
+                            <!-- Continue Button -->
+                            <button type="submit" id="continue-btn" class="w-full btn btn-gray cursor-not-allowed" disabled>
+                                Continue to Checkout
+                            </button>
+                            
+                            <!-- Purchase Instructions -->
+                            <div class="text-sm text-gray-600 bg-white rounded-lg p-4 shadow-sm">
+                                <h4 class="font-medium text-gray-900 mb-2">How to Purchase:</h4>
+                                <ol class="list-decimal list-inside space-y-1">
+                                    <li>Select the number of tickets you want for each ticket type</li>
+                                    <li>Review your order and provide your contact information</li>
+                                    <li>Complete payment securely with Stripe</li>
+                                    <li>Receive your tickets via email</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Purchase Instructions -->
+        <div class="mt-8 bg-blue-50 rounded-lg p-4">
+            <h3 class="text-lg font-medium text-blue-900 mb-2">How to Purchase</h3>
+            <ol class="list-decimal list-inside space-y-1 text-blue-800">
+                <li>Select the number of tickets you want for each ticket type</li>
+                <li>Review your order and provide your contact information</li>
+                <li>Complete payment securely with Stripe</li>
+                <li>Receive your tickets via email</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %} 

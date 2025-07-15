@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}Select Tickets - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ticketInputs = document.querySelectorAll('input[type="number"]');
+    const totalDisplay = document.getElementById('total-amount');
+    const continueBtn = document.getElementById('continue-btn');
+    
+    function updateTotal() {
+        let total = 0;
+        let totalTickets = 0;
+        
+        ticketInputs.forEach(input => {
+            const quantity = parseInt(input.value) || 0;
+            const price = parseFloat(input.dataset.price) || 0;
+            total += quantity * price;
+            totalTickets += quantity;
+        });
+        
+        totalDisplay.textContent = '€' + total.toFixed(2);
+        
+        if (totalTickets > 0) {
+            continueBtn.disabled = false;
+            continueBtn.classList.remove('btn-gray', 'cursor-not-allowed');
+            continueBtn.classList.add('btn-blue');
+        } else {
+            continueBtn.disabled = true;
+            continueBtn.classList.add('btn-gray', 'cursor-not-allowed');
+            continueBtn.classList.remove('btn-blue');
+        }
+    }
+    
+    ticketInputs.forEach(input => {
+        input.addEventListener('input', updateTotal);
+    });
+    
+    updateTotal(); // Initial calculation
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="{% url 'event_tickets' event.id %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-2xl font-semibold text-gray-800">Select Tickets</h1>
+        </div>
+
+        <!-- Event Information -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-2">{{ event.event_name }}</h2>
+            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                <span>{{ event.event_date|date:"F d, Y" }}</span>
+                {% if event.start_time %}
+                <span>{{ event.start_time|time:"g:i A" }}{% if event.end_time %} - {{ event.end_time|time:"g:i A" }}{% endif %}</span>
+                {% endif %}
+                {% if event.location %}
+                <span>{{ event.location }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Two Column Layout -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Column: Ticket Selection -->
+                <div class="space-y-6">
+                    <div class="space-y-4">
+                        <h2 class="text-lg font-medium text-gray-900">Select Number of Tickets</h2>
+                        
+                        {% for field in form %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <div class="flex-1">
+                                                                <label class="block text-lg font-medium text-gray-900">
+                                {{ field.label }}
+                            </label>
+                            <p class="text-sm text-gray-600 mt-1">{{ field.help_text }}</p>
+
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center">
+                                        <label for="{{ field.id_for_label }}" class="sr-only">Quantity</label>
+                                        {{ field|add_class:"w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% if field.errors %}
+                                {% for error in field.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Form Errors -->
+                    {% if form.non_field_errors %}
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            {% for error in form.non_field_errors %}
+                                <p class="text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Back Button -->
+                    <div>
+                        <a href="{% url 'event_tickets' event.id %}" class="btn btn-outline-gray">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                            Back to Event
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Right Column: Order Summary -->
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 border-l-4 border-blue-400 sticky top-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Total Amount -->
+                            <div class="bg-white rounded-lg p-4 shadow-sm">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-lg font-medium text-gray-900">Total Amount:</span>
+                                    <span id="total-amount" class="text-3xl font-bold text-green-600">€0.00</span>
+                                </div>
+                            </div>
+
+                            <!-- Continue Button -->
+                            <button type="submit" id="continue-btn" class="w-full btn btn-gray cursor-not-allowed" disabled>
+                                Continue to Checkout
+                            </button>
+                            
+                            <!-- Instructions -->
+                            <div class="text-sm text-gray-600 bg-white rounded-lg p-4 shadow-sm">
+                                <h4 class="font-medium text-gray-900 mb-2">How to Purchase:</h4>
+                                <ol class="list-decimal list-inside space-y-1">
+                                    <li>Select the number of tickets you want</li>
+                                    <li>Review your total amount</li>
+                                    <li>Click "Continue to Checkout"</li>
+                                    <li>Complete your order details</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Add data attributes for price calculation -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Extract price from each input field's label
+    const ticketInputs = document.querySelectorAll('input[type="number"]');
+    ticketInputs.forEach(input => {
+        const label = input.closest('.border').querySelector('label').textContent;
+        const priceMatch = label.match(/€([0-9]+\.?[0-9]*)/);
+        if (priceMatch) {
+            input.dataset.price = priceMatch[1];
+        }
+    });
+});
+</script>
+{% endblock %} 

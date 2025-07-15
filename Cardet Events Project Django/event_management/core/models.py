@@ -195,6 +195,10 @@ class Event(models.Model):
         default=False,
         help_text="Enable this if you want to have ticketing system for the event.",
     )
+    paid_tickets = models.BooleanField(
+        default=False,
+        help_text="Enable this if tickets require payment. Only applies when ticketing is enabled.",
+    )
     has_registration_limit = models.BooleanField(
         default=False,
         help_text="Enable this if you want to limit the number of registrations for this event.",
@@ -564,6 +568,203 @@ class CSVImportLog(models.Model):
         if self.total_rows == 0:
             return 0
         return round((self.processed_rows / self.total_rows) * 100, 1)
+
+
+class TicketType(models.Model):
+    """Represents different types of tickets available for an event"""
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="ticket_types"
+    )
+    name = models.CharField(
+        max_length=255,
+        help_text="Name of the ticket type (e.g., 'General Admission', 'VIP', 'Early Bird')",
+    )
+    description = models.TextField(
+        blank=True, null=True, help_text="Description of what this ticket includes"
+    )
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text="Price per ticket"
+    )
+    max_quantity = models.PositiveIntegerField(
+        help_text="Maximum number of tickets available for this type"
+    )
+    is_active = models.BooleanField(
+        default=True, help_text="Whether this ticket type is available for purchase"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ["event", "name"]
+        ordering = ["price"]
+
+    def __str__(self):
+        return f"{self.event.event_name} - {self.name} (€{self.price})"
+
+    @property
+    def tickets_sold(self):
+        """Returns the number of tickets sold for this ticket type"""
+        return (
+            self.order_items.filter(order__payment_status="completed").aggregate(
+                total=models.Sum("quantity")
+            )["total"]
+            or 0
+        )
+
+    @property
+    def tickets_available(self):
+        """Returns the number of tickets still available for purchase"""
+        return self.max_quantity - self.tickets_sold
+
+    @property
+    def is_available(self):
+        """Returns True if tickets are still available for purchase"""
+        return self.is_active and self.tickets_available > 0
+
+
+class Order(models.Model):
+    """Represents an order placed by a participant"""
+
+    PAYMENT_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("processing", "Processing"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+        ("cancelled", "Cancelled"),
+        ("refunded", "Refunded"),
+    ]
+
+    participant = models.ForeignKey(
+        Participant, on_delete=models.CASCADE, related_name="orders"
+    )
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name="orders")
+    order_number = models.CharField(
+        max_length=50, unique=True, help_text="Unique order identifier"
+    )
+    total_amount = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text="Total order amount"
+    )
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Order {self.order_number} - {self.participant.name}"
+
+    def save(self, *args, **kwargs):
+        if not self.order_number:
+            # Generate unique order number
+            import uuid
+
+            self.order_number = f"ORD-{uuid.uuid4().hex[:8].upper()}"
+        super().save(*args, **kwargs)
+
+    @property
+    def total_quantity(self):
+        """Returns the total number of tickets in this order"""
+        return self.order_items.aggregate(total=models.Sum("quantity"))["total"] or 0
+
+
+class OrderItem(models.Model):
+    """Represents individual items within an order"""
+
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="order_items"
+    )
+    ticket_type = models.ForeignKey(
+        TicketType, on_delete=models.CASCADE, related_name="order_items"
+    )
+    quantity = models.PositiveIntegerField(help_text="Number of tickets of this type")
+    price_per_ticket = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Price per ticket at time of purchase",
+    )
+    total_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Total price for this item (quantity × price_per_ticket)",
+    )
+
+    class Meta:
+        unique_together = ["order", "ticket_type"]
+
+    def __str__(self):
+        return f"{self.quantity}x {self.ticket_type.name} - ${self.total_price}"
+
+    def save(self, *args, **kwargs):
+        # Automatically calculate total price
+        self.total_price = self.quantity * self.price_per_ticket
+        super().save(*args, **kwargs)
+
+
+class Payment(models.Model):
+    """Represents payment information for an order"""
+
+    PAYMENT_METHOD_CHOICES = [
+        ("stripe", "Stripe"),
+        ("manual", "Manual"),
+    ]
+
+    PAYMENT_STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("processing", "Processing"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+        ("cancelled", "Cancelled"),
+        ("refunded", "Refunded"),
+    ]
+
+    order = models.OneToOneField(
+        Order, on_delete=models.CASCADE, related_name="payment"
+    )
+    payment_method = models.CharField(
+        max_length=20, choices=PAYMENT_METHOD_CHOICES, default="stripe"
+    )
+    payment_status = models.CharField(
+        max_length=20, choices=PAYMENT_STATUS_CHOICES, default="pending"
+    )
+    stripe_payment_intent_id = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Stripe Payment Intent ID"
+    )
+    stripe_charge_id = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Stripe Charge ID"
+    )
+    amount_paid = models.DecimalField(
+        max_digits=10, decimal_places=2, help_text="Amount actually paid"
+    )
+    transaction_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Transaction fee charged by payment processor",
+    )
+    payment_date = models.DateTimeField(
+        blank=True, null=True, help_text="Date and time when payment was completed"
+    )
+    failure_reason = models.TextField(
+        blank=True, null=True, help_text="Reason for payment failure"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Payment for {self.order.order_number} - {self.payment_status}"
+
+    def save(self, *args, **kwargs):
+        # Update order payment status when payment status changes
+        if self.pk:  # Only for existing payments
+            old_payment = Payment.objects.get(pk=self.pk)
+            if old_payment.payment_status != self.payment_status:
+                self.order.payment_status = self.payment_status
+                self.order.save()
+        super().save(*args, **kwargs)
 
 
 class CertificateGenerationLog(models.Model):
