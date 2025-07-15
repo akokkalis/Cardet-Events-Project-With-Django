@@ -120,7 +120,7 @@
             <div class="order-1 lg:order-2">
                 <h2 class="text-lg font-medium text-gray-900 mb-4">Payment Information</h2>
                 
-                <div class="payment-form" id="payment-form">
+                <form id="payment-form" class="payment-form">
                     <div class="space-y-4">
                         <div>
                             <label for="card-element" class="block text-sm font-medium text-gray-700 mb-2">
@@ -146,7 +146,7 @@
                             <div id="spinner" class="spinner hidden ml-2"></div>
                         </button>
                     </div>
-                </div>
+                </form>
 
                 <div class="mt-4 text-xs text-gray-500">
                     <p>By completing this purchase, you agree to the terms and conditions of the event.</p>
@@ -158,9 +158,16 @@
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
+    // Check if Stripe is loaded
+    console.log('Stripe loaded:', typeof Stripe !== 'undefined');
+    console.log('Stripe public key:', '{{ stripe_public_key }}');
+    
     // Initialize Stripe
     var stripe = Stripe('{{ stripe_public_key }}');
     var elements = stripe.elements();
+    
+    console.log('Stripe instance:', stripe);
+    console.log('Elements instance:', elements);
 
     // Create card element
     var cardElement = elements.create('card', {
@@ -175,7 +182,18 @@
         },
     });
 
-    cardElement.mount('#card-element');
+    console.log('Card element created:', cardElement);
+    
+    // Check if card element container exists
+    var cardElementContainer = document.getElementById('card-element');
+    console.log('Card element container:', cardElementContainer);
+    
+    if (cardElementContainer) {
+        cardElement.mount('#card-element');
+        console.log('Card element mounted successfully');
+    } else {
+        console.error('Card element container not found!');
+    }
 
     // Handle real-time validation errors from the card Element
     cardElement.addEventListener('change', function(event) {
@@ -193,31 +211,59 @@
     var buttonText = document.getElementById('button-text');
     var spinner = document.getElementById('spinner');
 
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
+    console.log('Form element:', form);
+    console.log('Submit button:', submitButton);
 
-        setLoading(true);
+    if (form) {
+        form.addEventListener('submit', function(event) {
+            console.log('Form submitted!');
+            event.preventDefault();
 
-        stripe.confirmCardPayment('{{ payment_intent_client_secret }}', {
-            payment_method: {
-                card: cardElement,
-                billing_details: {
-                    name: '{{ order.participant.name }}',
-                    email: '{{ order.participant.email }}',
-                }
-            }
-        }).then(function(result) {
-            if (result.error) {
-                // Show error to customer
+            setLoading(true);
+
+            console.log('Starting payment confirmation...');
+            console.log('Payment intent client secret:', '{{ payment_intent_client_secret }}');
+            
+            var clientSecret = '{{ payment_intent_client_secret }}';
+            if (!clientSecret || clientSecret === '') {
+                console.error('Payment intent client secret is empty!');
                 var errorElement = document.getElementById('card-errors');
-                errorElement.textContent = result.error.message;
+                errorElement.textContent = 'Payment configuration error. Please try again.';
                 setLoading(false);
-            } else {
-                // Payment succeeded
-                window.location.href = '{% url "payment_success" event.id %}';
+                return;
             }
+
+            stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: '{{ order.participant.name }}',
+                        email: '{{ order.participant.email }}',
+                    }
+                }
+            }).then(function(result) {
+                console.log('Payment result:', result);
+                if (result.error) {
+                    // Show error to customer
+                    console.error('Payment error:', result.error);
+                    var errorElement = document.getElementById('card-errors');
+                    errorElement.textContent = result.error.message;
+                    setLoading(false);
+                } else {
+                    // Payment succeeded
+                    console.log('Payment succeeded!');
+                    window.location.href = '{% url "payment_success" event.id %}';
+                }
+            }).catch(function(error) {
+                console.error('Payment confirmation error:', error);
+                var errorElement = document.getElementById('card-errors');
+                errorElement.textContent = 'Payment processing failed. Please try again.';
+                setLoading(false);
+            });
         });
-    });
+    } else {
+        console.error('Payment form not found!');
+    }
 
     function setLoading(isLoading) {
         if (isLoading) {
