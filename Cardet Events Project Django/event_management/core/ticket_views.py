@@ -25,20 +25,35 @@ def event_tickets(request, event_id):
     """Display available tickets for an event and handle ticket selection"""
     event = get_object_or_404(Event, id=event_id)
 
-    # Check if event has tickets enabled
-    if not event.tickets:
-        messages.error(request, "This event does not have ticketing enabled.")
-        return redirect("event_detail", event_id=event_id)
+    # If paid ticketing is not enabled, show the ticket closed page
+    if not event.paid_tickets:
+        return render(
+            request,
+            "tickets/ticket_closed.html",
+            {"event": event, "reason": "not_enabled"},
+        )
 
     # Get available ticket types
     ticket_types = TicketType.objects.filter(event=event, is_active=True).order_by(
         "price"
     )
 
-    # Check if any tickets are available
+    # Check if all ticket types are sold out
+    sold_out = not any(t.is_available for t in ticket_types)
+    if sold_out:
+        return render(
+            request,
+            "tickets/ticket_closed.html",
+            {"event": event, "reason": "sold_out"},
+        )
+
     if not ticket_types.exists():
         messages.info(request, "No tickets are currently available for this event.")
-        return redirect("event_detail", event_id=event_id)
+        return render(
+            request,
+            "tickets/ticket_closed.html",
+            {"event": event, "reason": "not_enabled"},
+        )
 
     if request.method == "POST":
         form = TicketSelectionForm(request.POST, event=event)
@@ -330,6 +345,20 @@ def payment_success(request, event_id):
         return redirect("event_tickets", event_id=event_id)
 
     order = get_object_or_404(Order, id=order_id)
+
+    # Update order status to completed if not already
+    if order.payment_status != "completed":
+        order.payment_status = "completed"
+        order.save()
+
+        # Also update the associated payment record
+        try:
+            payment = Payment.objects.get(order=order)
+            payment.payment_status = "completed"
+            payment.save()
+            logger.info(f"Order {order.id} marked as completed")
+        except Payment.DoesNotExist:
+            logger.warning(f"Payment record not found for order {order.id}")
 
     # Clear session data
     request.session.pop("ticket_selections", None)

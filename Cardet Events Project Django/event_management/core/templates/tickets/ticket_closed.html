@@ -1,0 +1,28 @@
+{% extends 'base_public.html' %}
+{% block title %}Ticket Sales Closed{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto text-center py-10">
+
+    <div class="flex flex-col md:flex-row justify-center items-center gap-6 mb-6">
+        {% if event.image %}
+            <img src="{{ event.image.url }}" alt="{{ event.event_name }} Image" class="w-64 rounded shadow-md">
+        {% endif %}
+
+        {% if event.company.logo %}
+            <img src="{{ event.company.logo.url }}" alt="Company Logo" class="h-20">
+        {% endif %}
+    </div>
+
+    <h2 class="text-3xl font-bold text-red-600">Ticket Sales Closed 🚫</h2>
+    
+    {% if reason == "sold_out" %}
+        <p class="mt-4 text-gray-700">Ticket sales for <strong>{{ event.event_name }}</strong> are closed because all tickets have been sold.</p>
+    {% elif reason == "ended" %}
+        <p class="mt-4 text-gray-700">Ticket sales for <strong>{{ event.event_name }}</strong> have ended.</p>
+    {% else %}
+        <p class="mt-4 text-gray-700">Ticket sales for <strong>{{ event.event_name }}</strong> are not currently open.</p>
+    {% endif %}
+
+</div>
+{% endblock %} 
