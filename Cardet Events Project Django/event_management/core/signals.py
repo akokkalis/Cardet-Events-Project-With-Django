@@ -4,7 +4,15 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
-from .models import Company, Event, Participant, EventEmail
+from .models import (
+    Company,
+    Event,
+    Participant,
+    EventEmail,
+    Order,
+    OrderItem,
+    PaidTicket,
+)
 from .utils import (
     generate_pdf_ticket,
     generate_rsvp_urls,
@@ -23,6 +31,7 @@ from .tasks import (
     process_registration_task,
     process_approval_task,
     process_rejection_task,
+    generate_paidticket_pdf_task,
 )
 
 
@@ -101,6 +110,20 @@ def delete_event_folder(sender, instance, **kwargs):
     if os.path.exists(event_folder):
         shutil.rmtree(event_folder)  # Remove event directory with all files
         print(f"🗑 Event folder deleted: {event_folder}")
+
+
+### **Paid Tickets Folder Creation**
+@receiver(post_save, sender=Event)
+def create_paid_tickets_folder(sender, instance, **kwargs):
+    """Creates a 'Paid Tickets' folder inside the event's folder if paid_tickets is enabled."""
+    if instance.paid_tickets:
+        event_folder = os.path.join(
+            EVENTS_MASTER_FOLDER,
+            f"{instance.id}_{instance.event_name.replace(' ', '_')}",
+        )
+        paid_tickets_folder = os.path.join(event_folder, "paid_tickets")
+        os.makedirs(paid_tickets_folder, exist_ok=True)
+        print(f"✅ Paid Tickets folder created: {paid_tickets_folder}")
 
 
 ## **QR Code & PDF Ticket Generation for Participants**
@@ -472,3 +495,23 @@ def send_rsvp_email(participant):
     print(
         f"✅ Celery task {task.id} queued for sending RSVP email to {participant.email}"
     )
+
+
+@receiver(post_save, sender=Order)
+def generate_paid_tickets_on_order_complete(sender, instance, created, **kwargs):
+    """Generate PaidTicket objects and QR codes when an order is marked as completed."""
+    if instance.payment_status == "completed":
+        print("inside signal pdf gen paid")
+        # Only generate if not already generated
+        if not PaidTicket.objects.filter(order=instance).exists():
+            order_items = OrderItem.objects.filter(order=instance)
+            for item in order_items:
+                for _ in range(item.quantity):
+                    paid_ticket = PaidTicket.objects.create(
+                        order=instance,
+                        ticket_type=item.ticket_type,
+                        participant=instance.participant,
+                    )
+                    paid_ticket.generate_qr_code()
+                    paid_ticket.save()
+                    generate_paidticket_pdf_task.delay(paid_ticket.id)

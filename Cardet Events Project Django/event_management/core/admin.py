@@ -26,6 +26,7 @@ from .models import (
     Order,
     OrderItem,
     Payment,
+    PaidTicket,
 )
 
 
@@ -718,3 +719,26 @@ class PaymentAdmin(admin.ModelAdmin):
         ("Payment Details", {"fields": ("payment_date", "failure_reason")}),
         ("Timestamps", {"fields": ("created_at", "updated_at")}),
     )
+
+
+class PaidTicketAdmin(admin.ModelAdmin):
+    list_display = (
+        "order",
+        "ticket_type",
+        "participant",
+        "uuid",
+        "scanned",
+        "created_at",
+    )
+    search_fields = (
+        "order__order_number",
+        "participant__name",
+        "participant__email",
+        "ticket_type__name",
+        "uuid",
+    )
+    list_filter = ("order__event", "ticket_type", "scanned", "created_at")
+    readonly_fields = ("uuid", "created_at")
+
+
+admin.site.register(PaidTicket, PaidTicketAdmin)

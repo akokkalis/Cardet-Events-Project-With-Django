@@ -4,8 +4,8 @@ import os
 from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 from django.template import Template, Context
-from .models import Participant, EventEmail
-from .utils import email_body, generate_rsvp_urls
+from .models import Participant, EventEmail, PaidTicket
+from .utils import email_body, generate_rsvp_urls, generate_paidticket_pdf
 from datetime import date, timedelta
 
 
@@ -1427,4 +1427,151 @@ def bulk_send_certificates_task(event_id, user_id):
             email_log.completed_at = timezone.now()
             email_log.save()
 
+        return {"status": "error", "message": str(e)}
+
+
+@shared_task
+def generate_paidticket_pdf_task(paid_ticket_id):
+    """Background task to generate a PDF for a PaidTicket and save it to the model."""
+    try:
+        print(f"Generating PDF for PaidTicket {paid_ticket_id} in celery task")
+        paid_ticket = PaidTicket.objects.get(id=paid_ticket_id)
+        from .utils import generate_paidticket_pdf
+
+        generate_paidticket_pdf(paid_ticket)
+        paid_ticket.save()
+        print(f"✅ PDF generated and saved for PaidTicket {paid_ticket_id}")
+        # Check if all PaidTickets for the order have a pdf_ticket
+        order = paid_ticket.order
+        from .tasks import send_paid_tickets_email_task
+
+        all_ready = all(pt.pdf_ticket for pt in PaidTicket.objects.filter(order=order))
+        if all_ready:
+            send_paid_tickets_email_task.delay(order.id)
+        return {
+            "status": "success",
+            "message": f"PDF generated for PaidTicket {paid_ticket_id}",
+        }
+    except PaidTicket.DoesNotExist:
+        print(f"❌ PaidTicket with ID {paid_ticket_id} not found")
+        return {"status": "error", "message": f"PaidTicket {paid_ticket_id} not found"}
+    except Exception as e:
+        print(f"❌ Error generating PDF for PaidTicket {paid_ticket_id}: {e}")
+        return {"status": "error", "message": str(e)}
+
+
+@shared_task
+def send_paid_tickets_email_task(order_id):
+    """Send all paid ticket PDFs for an order to the participant as attachments and log to RSVPEmailLog."""
+    from .models import Order, PaidTicket, RSVPEmailLog
+    from django.core.mail import EmailMessage, get_connection
+    from django.conf import settings
+    from django.contrib.auth.models import User
+    import os
+    from django.utils import timezone
+
+    try:
+        order = Order.objects.get(id=order_id)
+        participant = order.participant
+        event = order.event
+        paid_tickets = PaidTicket.objects.filter(order=order)
+        pdf_paths = [pt.pdf_ticket.path for pt in paid_tickets if pt.pdf_ticket]
+
+        if not pdf_paths:
+            print(f"No paid ticket PDFs found for order {order_id}")
+            return
+
+        # Get company email config
+        email_config = getattr(event.company, "email_config", None)
+        if not email_config:
+            print(f"No email config for company {event.company.name}")
+            return
+
+        subject = f"Your Paid Tickets for {event.event_name}"
+        body = f"Dear {participant.name},\n\nAttached are your paid tickets for {event.event_name}.\n\nThank you!\nCardet Team"
+
+        connection = get_connection(
+            host=email_config.smtp_server,
+            port=email_config.smtp_port,
+            username=email_config.email_address,
+            password=email_config.email_password,
+            use_tls=email_config.use_tls,
+            use_ssl=email_config.use_ssl,
+        )
+
+        email = EmailMessage(
+            subject,
+            body,
+            from_email=email_config.email_address,
+            to=[participant.email],
+            connection=connection,
+        )
+        for pdf_path in pdf_paths:
+            if os.path.exists(pdf_path):
+                email.attach_file(pdf_path)
+        email.send()
+        print(
+            f"✅ Sent {len(pdf_paths)} paid tickets email to {participant.email} for order {order_id}"
+        )
+
+        # Log to RSVPEmailLog
+        user = User.objects.filter(is_superuser=True).first() or User.objects.first()
+        log = RSVPEmailLog.objects.create(
+            event=event,
+            user=user,
+            status="completed",
+            total_recipients=1,
+            emails_sent=1,
+            emails_failed=0,
+            action="send_paid_tickets_email_task",
+            started_at=timezone.now(),
+            completed_at=timezone.now(),
+            log_messages=[
+                {
+                    "type": "success",
+                    "timestamp": timezone.now().isoformat(),
+                    "message": f"{len(pdf_paths)} Paid tickets email sent to {participant.email} for order {order_id}",
+                    "order_id": order_id,
+                    "participant_id": participant.id,
+                    "email": participant.email,
+                }
+            ],
+        )
+        return {
+            "status": "success",
+            "message": f"✅ Sent {len(pdf_paths)} paid tickets email to {participant.email} for order {order_id}",
+        }
+    except Exception as e:
+        print(f"❌ Failed to send paid tickets email for order {order_id}: {e}")
+        # Log failure to RSVPEmailLog
+        try:
+            order = Order.objects.get(id=order_id)
+            event = order.event
+            participant = order.participant
+            user = (
+                User.objects.filter(is_superuser=True).first() or User.objects.first()
+            )
+            RSVPEmailLog.objects.create(
+                event=event,
+                user=user,
+                status="failed",
+                total_recipients=1,
+                emails_sent=0,
+                emails_failed=1,
+                action="send_paid_tickets_email_task",
+                started_at=timezone.now(),
+                completed_at=timezone.now(),
+                log_messages=[
+                    {
+                        "type": "error",
+                        "timestamp": timezone.now().isoformat(),
+                        "message": f"Failed to send paid tickets email: {str(e)}",
+                        "order_id": order_id,
+                        "participant_id": participant.id,
+                        "email": participant.email,
+                    }
+                ],
+            )
+        except Exception as log_error:
+            print(f"❌ Failed to log RSVPEmailLog for order {order_id}: {log_error}")
         return {"status": "error", "message": str(e)}

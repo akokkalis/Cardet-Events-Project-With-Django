@@ -94,8 +94,18 @@ def pdf_ticket_path(instance, filename):
 
 
 def qr_code_path(instance, filename):
-    """Returns the correct path to store QR codes inside the event folder."""
-    return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/qr_codes/{instance.name}_{instance.email}_qr.png"
+    """Returns the correct path to store QR codes inside the event folder for both Participant and PaidTicket."""
+    from .models import PaidTicket
+
+    if hasattr(instance, "event") and hasattr(instance, "email"):
+        # Participant
+        return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/qr_codes/{instance.name}_{instance.email}_qr.png"
+    elif isinstance(instance, PaidTicket):
+        event = instance.order.event
+        return f"Events/{event.id}_{event.event_name.replace(' ', '_')}/qr_codes/paidticket_{instance.uuid}_qr.png"
+    else:
+        # fallback
+        return f"Events/unknown_event/qr_codes/{filename}"
 
 
 def custom_field_file_path(instance, filename):
@@ -117,6 +127,12 @@ def participant_certificate_path(instance, filename):
     if not filename.lower().endswith(".pdf"):
         filename = f"{os.path.splitext(filename)[0]}.pdf"
     return f"Events/{instance.event.id}_{instance.event.event_name.replace(' ', '_')}/certificates/{sanitized_name}_{sanitized_email}_{filename}"
+
+
+def paid_ticket_pdf_path(instance, filename):
+    """Returns the path to store PDF tickets for PaidTicket inside the event folder."""
+    event = instance.order.event
+    return f"Events/{event.id}_{event.event_name.replace(' ', '_')}/paid_tickets/paidticket_{instance.uuid}_ticket.pdf"
 
 
 class Company(models.Model):
@@ -385,7 +401,7 @@ class Participant(models.Model):
         # ✅ Ensure QR codes are saved inside the correct event folder
         qr_folder = os.path.join(
             settings.MEDIA_ROOT,
-            f"Events\{self.event.id}_{self.event.event_name.replace(' ', '_')}\qr_codes",
+            f"Events/{self.event.id}_{self.event.event_name.replace(' ', '_')}/qr_codes",
         )
 
         print("QR CODE FOLDER")
@@ -807,6 +823,59 @@ class CertificateGenerationLog(models.Model):
         return min(
             100, int((self.processed_participants / self.total_participants) * 100)
         )
+
+
+class PaidTicket(models.Model):
+    order = models.ForeignKey(
+        "Order", on_delete=models.CASCADE, related_name="paid_tickets"
+    )
+    ticket_type = models.ForeignKey("TicketType", on_delete=models.CASCADE)
+    participant = models.ForeignKey("Participant", on_delete=models.CASCADE)
+    qr_code = models.ImageField(upload_to=qr_code_path, blank=True, null=True)
+    pdf_ticket = models.FileField(
+        upload_to=paid_ticket_pdf_path, blank=True, null=True, max_length=500
+    )
+    scanned = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+
+    def __str__(self):
+        return f"PaidTicket for {self.participant.name} ({self.ticket_type.name}) - Order {self.order.order_number}"
+
+    def generate_qr_code(self):
+        """Generate a QR Code for this paid ticket using its UUID."""
+        import qrcode
+        from io import BytesIO
+        from django.core.files.base import ContentFile
+        import os
+        from django.conf import settings
+
+        # QR data uses the paid ticket's uuid
+        qr_data = f"/scan_paid_ticket/{self.uuid}/"
+        qr = qrcode.make(qr_data)
+
+        event = self.order.event
+        event_name = event.event_name.replace(" ", "_")
+        qr_folder = os.path.join(
+            settings.MEDIA_ROOT,
+            f"Events/{event.id}_{event_name}/qr_codes",
+        )
+        os.makedirs(qr_folder, exist_ok=True)
+
+        # Use uuid in filename for uniqueness
+        qr_filename = f"paidticket_{self.uuid}_qr.png"
+        qr_path = os.path.join(qr_folder, qr_filename)
+
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+
+        # Save QR code in the correct path inside the event's folder
+        self.qr_code.save(
+            f"Events/{event.id}_{event_name}/qr_codes/{qr_filename}",
+            ContentFile(buffer.getvalue()),
+            save=False,
+        )
+        return os.path.abspath(qr_path)
 
 
 ###  - Signal Section - ###

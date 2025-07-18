@@ -422,4 +422,15 @@ document.addEventListener('DOMContentLoaded', function() {
     hasLimitCheckbox.addEventListener('change', toggleLimitField);
 });
 </script>
+{% if form.non_field_errors %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Validation Error',
+            html: `{% for error in form.non_field_errors %}{{ error|escapejs }}<br>{% endfor %}`,
+        });
+    });
+</script>
+{% endif %}
 {% endblock %}

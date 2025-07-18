@@ -212,6 +212,19 @@ class EventForm(forms.ModelForm):
             Status.objects.all()
         )  # Allow selection from all companies
 
+    def clean(self):
+        cleaned_data = super().clean()
+        tickets = cleaned_data.get("tickets")
+        paid_tickets = cleaned_data.get("paid_tickets")
+        if tickets and paid_tickets:
+            from django.core.exceptions import ValidationError
+
+            raise ValidationError(
+                "You cannot enable both 'Automatic Ticket Generation' and 'Paid Tickets' at the same time. Please select only one.",
+                code="tickets_paid_conflict",
+            )
+        return cleaned_data
+
 
 class ParticipantForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
