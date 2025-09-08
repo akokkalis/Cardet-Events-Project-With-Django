@@ -36,7 +36,16 @@ CSRF_TRUSTED_ORIGINS = [
     "http://198.199.79.173:8000",
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "https://qrscanner.innovedu.com",
+    "http://qrscanner.innovedu.com"
 ]
+
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True #Was TRUE
+CSRF_COOKIE_DOMAIN = ".innovedu.com"
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
 
 # Application definition
 
@@ -99,7 +108,7 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # ✅ Determine if we're in development or production
-DEBUG = os.getenv("DJANGO_DEBUG")
+DEBUG = False
 
 # ✅ Database Configuration
 # if DEBUG == "True":
