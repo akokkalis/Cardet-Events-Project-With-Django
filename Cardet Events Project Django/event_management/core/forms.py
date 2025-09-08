@@ -89,6 +89,7 @@ class EventForm(forms.ModelForm):
             "start_time",
             "end_time",
             "location",
+            "map_link",
             "description",
             "tickets",
             "paid_tickets",
@@ -135,6 +136,12 @@ class EventForm(forms.ModelForm):
                 attrs={
                     "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
                     "placeholder": "Enter event location",
+                }
+            ),
+            "map_link": forms.URLInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "placeholder": "Paste Google Maps link here",
                 }
             ),
             "description": CKEditorWidget(

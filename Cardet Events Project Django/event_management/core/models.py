@@ -206,6 +206,12 @@ class Event(models.Model):
     start_time = models.TimeField(blank=True, null=True)
     end_time = models.TimeField(blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
+    map_link = models.URLField(
+        max_length=500,
+        blank=True,
+        null=True,
+        help_text="Google Maps link for the event location. Copy and paste the Google Maps URL here.",
+    )
     description = RichTextField()
     tickets = models.BooleanField(
         default=False,

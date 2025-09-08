@@ -102,6 +102,7 @@ class EventAdmin(admin.ModelAdmin):
         "start_time",
         "end_time",
         "location",
+        "map_link",
         "status",
         "tickets",
         "paid_tickets",
@@ -136,6 +137,7 @@ class EventAdmin(admin.ModelAdmin):
                     "start_time",
                     "end_time",
                     "location",
+                    "map_link",
                     "description",
                     "status",
                 )

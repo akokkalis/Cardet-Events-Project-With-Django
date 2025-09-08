@@ -189,6 +189,36 @@
                     </div>
 
                     <div>
+                        <label for="{{ form.map_link.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                            {{ form.map_link.label }}
+                            {% if form.map_link.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                            <div class="tooltip-container ml-2">
+                                <span class="tooltip-icon">?</span>
+                                <div class="tooltip-content">
+                                    <strong>Google Maps Link</strong><br>
+                                    Paste a Google Maps link for the event location:
+                                    <ul class="mt-2 ml-4 list-disc">
+                                        <li>Copy the link from Google Maps</li>
+                                        <li>Helps participants find the exact location</li>
+                                        <li>Can be shared in event details and tickets</li>
+                                    </ul>
+                                    <div class="mt-2 text-xs opacity-75">
+                                        🗺️ Optional - Makes it easier for participants to navigate to your event
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.map_link|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.map_link.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
                         <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700">
                             {{ form.image.label }}
                             {% if form.image.field.required %}

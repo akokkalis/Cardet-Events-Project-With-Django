@@ -116,6 +116,7 @@ def send_ticket_email_task(participant_id):
         event_info = {
             "title": participant.event.event_name,
             "location": participant.event.location,
+            "map_link": participant.event.map_link,
             "date": participant.event.event_date.strftime("%d-%m-%y"),
             "starttime": (
                 participant.event.start_time.strftime("%H:%M")

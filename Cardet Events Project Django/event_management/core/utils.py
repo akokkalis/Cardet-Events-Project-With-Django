@@ -229,14 +229,14 @@ def generate_pdf_ticket(participant, qr_code_path):
 
 def email_body(participant_name, event_info):
     """Generate the email body with dynamic participant and event details."""
-    location_html = (
+    map_link_html = (
         f"""
-        📍 <a href="{event_info['location']}" target="_blank" style="color: #1a73e8; text-decoration: none;">
+        🗺️ <a href="{event_info['map_link']}" target="_blank" style="color: #1a73e8; text-decoration: none;">
             View Location on Google Maps
         </a>
     """
-        if event_info["location"]
-        else "📍 Location: Not Provided"
+        if event_info["map_link"]
+        else "🗺️ map_link: Not Provided"
     )
     body = f"""
         <h4>Dear {participant_name},</h4>
@@ -244,7 +244,8 @@ def email_body(participant_name, event_info):
 
         <p><strong>Event Details:</strong></p>
         <p>📅 Event: {event_info['title']}</p>
-        {location_html}
+        <p> 📍 Location: {event_info['location']}</p>
+        {map_link_html}
         <p>🕒 Date & Time: {event_info['date']} at {event_info['starttime']} - {event_info['endtime']}</p>
         
         <h5>Important Information:</h5>

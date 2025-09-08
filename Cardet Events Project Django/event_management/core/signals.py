@@ -146,6 +146,7 @@ def send_ticket_email(participant):
     """Send an email with the event ticket attached asynchronously using the company's SMTP settings."""
 
     # ✅ Get company email configuration
+
     email_config = getattr(participant.event.company, "email_config", None)
     if not email_config:
         print(f"⚠️ No email configuration found for {participant.event.company.name}")
@@ -157,6 +158,7 @@ def send_ticket_email(participant):
     event_info = {
         "title": participant.event.event_name,
         "location": participant.event.location,
+        "map_link": participant.event.map_link,
         "date": participant.event.event_date.strftime("%d-%m-%y"),
         "starttime": (
             participant.event.start_time.strftime("%H:%M")
