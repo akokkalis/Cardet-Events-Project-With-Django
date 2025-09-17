@@ -1,0 +1,296 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Email Templates - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+/* Loading spinner styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.spinner {
+    border: 4px solid #f3f4f6;
+    border-top: 4px solid #3b82f6;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-text {
+    color: #374151;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.loading-subtext {
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+}
+
+/* Clickable card loading state */
+.card-loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.card-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading Email Template</div>
+        <div class="loading-subtext">Please wait while we prepare the form...</div>
+    </div>
+</div>
+
+<div class="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Header -->
+        <div class="flex items-center mb-6 gap-3">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800">Email Templates</h1>
+                <p class="text-gray-600">{{ event.event_name }}</p>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-blue-800 font-medium mb-2">📧 Email Template Information</h3>
+            <p class="text-blue-700 text-sm mb-2">
+                Create custom email templates for different event scenarios. Each template can use placeholders to personalize messages.
+            </p>
+            <div class="text-blue-600 text-xs">
+                <strong>Available placeholders:</strong> {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}
+            </div>
+        </div>
+
+        <!-- Existing Email Templates -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Existing Email Templates</h2>
+            
+            {% if email_templates %}
+                <div class="grid gap-4">
+                    {% for template in email_templates %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-3 mb-2">
+                                    {% if template.reason == 'registration' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            📋 {{ all_reasons.registration }}
+                                        </span>
+                                    {% elif template.reason == 'approval' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            ✅ {{ all_reasons.approval }}
+                                        </span>
+                                    {% elif template.reason == 'rejection' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            ❌ {{ all_reasons.rejection }}
+                                        </span>
+                                    {% elif template.reason == 'rsvp' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                            📩 {{ all_reasons.rsvp }}
+                                        </span>
+                                    {% elif template.reason == 'certificates' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            🎓 {{ all_reasons.certificates }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <h3 class="font-medium text-gray-900 mb-1">{{ template.subject }}</h3>
+                                <p class="text-gray-600 text-sm">{{ template.body|truncatechars:100 }}</p>
+                            </div>
+                            <div class="flex items-center gap-2 ml-4">
+                                <a href="{% url 'edit_email_template' event.id template.id %}" 
+                                   class="template-link btn btn-outline-blue text-sm px-3 py-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 112.828 2.828L7 16H4v-3L14.586 3.414z" />
+                                    </svg>
+                                    Edit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-12 border border-gray-200 rounded-lg bg-gray-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-gray-900 mb-1">No Email Templates</h3>
+                    <p class="text-gray-500">Create your first email template to get started.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Add New Templates -->
+        <div>
+            <h2 class="text-xl font-semibold mb-4 text-gray-800">Create New Email Template</h2>
+            
+            {% if missing_templates %}
+                <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    {% for reason, display_name in missing_templates %}
+                    <a href="{% url 'add_email_template' event.id %}?reason={{ reason }}"
+                       class="template-link block p-4 border border-gray-200 rounded-lg hover:shadow-md hover:border-blue-300 transition-all">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                {% if reason == 'registration' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-blue-600">📋</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent when participants register</p>
+                                {% elif reason == 'approval' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-green-600">✅</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent when registration is approved</p>
+                                {% elif reason == 'rejection' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-red-600">❌</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent when registration is rejected</p>
+                                {% elif reason == 'rsvp' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-purple-600">📩</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent to request RSVP responses from participants</p>
+                                {% elif reason == 'certificates' %}
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-yellow-600">🎓</span>
+                                        <span class="font-medium text-gray-900">{{ display_name }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">Sent when certificates are generated for participants</p>
+                                {% endif %}
+                            </div>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-8 border border-gray-200 rounded-lg bg-green-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="text-lg font-medium text-green-800 mb-1">All Templates Created</h3>
+                    <p class="text-green-600">You have created all available email templates for this event.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Quick Actions</h3>
+            <div class="flex flex-wrap gap-3">
+                <a href="{% url 'event_detail' event.id %}" 
+                   class="btn btn-outline-blue flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Back to Event
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const templateLinks = document.querySelectorAll('.template-link');
+
+    // Add loading spinner to template links
+    templateLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            // Show loading overlay
+            loadingOverlay.style.display = 'flex';
+            
+            // Add loading state to the clicked element
+            this.classList.add('card-loading');
+            
+            // Update loading text based on link
+            const loadingText = document.querySelector('.loading-text');
+            const loadingSubtext = document.querySelector('.loading-subtext');
+            
+            if (this.href.includes('add_email_template')) {
+                loadingText.textContent = 'Loading Template Form';
+                loadingSubtext.textContent = 'Please wait while we prepare the creation form...';
+            } else if (this.href.includes('edit_email_template')) {
+                loadingText.textContent = 'Loading Template Editor';
+                loadingSubtext.textContent = 'Please wait while we load the template data...';
+            }
+        });
+    });
+
+    // Hide loading on page unload (in case of errors)
+    window.addEventListener('beforeunload', function() {
+        loadingOverlay.style.display = 'none';
+    });
+
+    // Handle page errors - hide loading if there's an error
+    window.addEventListener('error', function() {
+        loadingOverlay.style.display = 'none';
+        templateLinks.forEach(link => {
+            link.classList.remove('card-loading');
+        });
+    });
+});
+</script>
+{% endblock %} 

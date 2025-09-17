@@ -1,0 +1,466 @@
+{% extends "base.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}Edit Event - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<link rel="stylesheet" href="{% static 'css/tooltips.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex  items-center mb-6 gap-3">
+            
+            {% if request.GET.next %}
+                <a href="{{ request.GET.next }}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+            
+                
+            {% else %}
+
+                <a href="{% url 'event_list' %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                
+            {% endif %}
+
+            <h1 class="text-2xl font-semibold text-gray-800">Edit Event - {{ event.event_name }}</h1>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.company.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.company.label }}
+                            {% if form.company.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.company|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.company.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.event_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.event_name.label }}
+                            {% if form.event_name.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.event_name|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.event_name.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.status.label }}
+                            {% if form.status.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.status|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.status.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.event_date.label }}
+                            {% if form.event_date.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.event_date|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.event_date.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.start_time.label }}
+                            {% if form.start_time.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.start_time|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.start_time.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.end_time.label }}
+                            {% if form.end_time.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.end_time|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.end_time.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.has_registration_limit|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.has_registration_limit.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.has_registration_limit.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Registration Limit</strong><br>
+                                        When enabled, you can set a maximum number of participants:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Prevents overbooking of events</li>
+                                            <li>Shows availability status in reports</li>
+                                            <li>Can be used with public registration</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            📊 Useful for capacity-limited venues or exclusive events
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.has_registration_limit.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div id="registration-limit-field" class="ml-8" style="display: none;">
+                            <label for="{{ form.registration_limit.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                                {{ form.registration_limit.label }}
+                                <div class="tooltip-container ml-2">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Maximum Participants</strong><br>
+                                        Set the maximum number of participants allowed:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Must be a positive number</li>
+                                            <li>Only applies when registration limit is enabled</li>
+                                            <li>Will show as "Full" when limit is reached</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            🎯 Recommended: Set based on venue capacity or event goals
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.registration_limit|add_class:"form-field w-32" }}
+                            </div>
+                            {% for error in form.registration_limit.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div>
+                        <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.location.label }}
+                            {% if form.location.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.location|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.location.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.map_link.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                            {{ form.map_link.label }}
+                            {% if form.map_link.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                            <div class="tooltip-container ml-2">
+                                <span class="tooltip-icon">?</span>
+                                <div class="tooltip-content">
+                                    <strong>Google Maps Link</strong><br>
+                                    Paste a Google Maps link for the event location:
+                                    <ul class="mt-2 ml-4 list-disc">
+                                        <li>Copy the link from Google Maps</li>
+                                        <li>Helps participants find the exact location</li>
+                                        <li>Can be shared in event details and tickets</li>
+                                    </ul>
+                                    <div class="mt-2 text-xs opacity-75">
+                                        🗺️ Optional - Makes it easier for participants to navigate to your event
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.map_link|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.map_link.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.image.label }}
+                            {% if form.image.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.image|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.image.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.certificate.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                            {{ form.certificate.label }}
+                            {% if form.certificate.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                            <div class="tooltip-container ml-2">
+                                <span class="tooltip-icon">?</span>
+                                <div class="tooltip-content">
+                                    <strong>Certificate Template</strong><br>
+                                    Upload a PDF certificate template file for this event:
+                                    <ul class="mt-2 ml-4 list-disc">
+                                        <li>Supported format: PDF only</li>
+                                        <li>Use placeholders like {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}}</li>
+                                        <li>Template will be automatically filled with participant data</li>
+                                        <li>Will be stored in the event's media folder</li>
+                                    </ul>
+                                    <div class="mt-2 text-xs opacity-75">
+                                        🏆 Optional - PDF templates with fillable forms or text placeholders recommended
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.certificate|add_class:"form-field" }}
+                        </div>
+                        {% if event.certificate %}
+                            <div class="mt-2 text-sm text-gray-600">
+                                Current file: <a href="{{ event.certificate.url }}" target="_blank" class="text-blue-600 hover:text-blue-800">{{ event.certificate.name|default:"certificate file" }}</a>
+                            </div>
+                        {% endif %}
+                        {% for error in form.certificate.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            {{ form.description.label }}
+                            {% if form.description.field.required %}
+                                <span class="text-red-500">*</span>
+                            {% endif %}
+                        </label>
+                        <div class="mt-1">
+                            {{ form.description|add_class:"form-field" }}
+                        </div>
+                        {% for error in form.description.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            {{ form.tickets|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.tickets.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.tickets.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Automatic Ticket Generation</strong><br>
+                                        When enabled, registered participants will automatically receive:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Confirmation email with registration details</li>
+                                            <li>PDF ticket attachment with unique QR code</li>
+                                            <li>QR code for easy check-in at the event</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            💡 Perfect for events requiring entry verification
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.tickets.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.paid_tickets|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.paid_tickets.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.paid_tickets.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Paid Tickets</strong><br>
+                                        When enabled, tickets will require payment processing:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Integrate with Stripe for secure payment processing</li>
+                                            <li>Set different ticket types with varying prices</li>
+                                            <li>Manage ticket inventory and availability</li>
+                                            <li>Generate tickets only after successful payment</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            💳 Only applies when ticketing is enabled
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.paid_tickets.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.signatures|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.signatures.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.signatures.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Digital Signature Collection</strong><br>
+                                        When enabled, participants can provide digital signatures during registration.
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>Capture signatures via touchscreen or mouse</li>
+                                            <li>Store signatures securely for legal compliance</li>
+                                            <li>Include signatures in exported participant data</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            📝 Useful for waivers, agreements, or attendance confirmation
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.signatures.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.public_registration_enabled|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.public_registration_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.public_registration_enabled.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Public Registration Access</strong><br>
+                                        Controls who can register for this event:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li><strong>Enabled:</strong> Anyone can register via public form</li>
+                                            <li><strong>Disabled:</strong> Only admin can add participants</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            🔒 Disable for private/invitation-only events
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.public_registration_enabled.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+
+                        <div class="flex items-center">
+                            {{ form.auto_approval_enabled|add_class:"checkbox-field h-5 w-5 rounded" }}
+                            <label for="{{ form.auto_approval_enabled.id_for_label }}" class="ml-3 text-sm text-gray-700 flex items-center">
+                                {{ form.auto_approval_enabled.label }}
+                                <div class="tooltip-container">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>Automatic Registration Approval</strong><br>
+                                        Controls how registrations are processed:
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li><strong>Enabled:</strong> Registrations are immediately approved and confirmed</li>
+                                            <li><strong>Disabled:</strong> Registrations require manual admin approval</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            ⚡ Enable for open events, disable for exclusive/capacity-limited events
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% for error in form.auto_approval_enabled.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4">
+                <button type="submit" class="btn btn-outline-blue">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const hasLimitCheckbox = document.getElementById('{{ form.has_registration_limit.id_for_label }}');
+    const limitField = document.getElementById('registration-limit-field');
+    
+    function toggleLimitField() {
+        if (hasLimitCheckbox.checked) {
+            limitField.style.display = 'block';
+        } else {
+            limitField.style.display = 'none';
+        }
+    }
+    
+    // Initial state
+    toggleLimitField();
+    
+    // Listen for changes
+    hasLimitCheckbox.addEventListener('change', toggleLimitField);
+});
+</script>
+{% if form.non_field_errors %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: 'error',
+            title: 'Validation Error',
+            html: `{% for error in form.non_field_errors %}{{ error|escapejs }}<br>{% endfor %}`,
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

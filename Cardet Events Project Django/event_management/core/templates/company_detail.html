@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-semibold flex items-center space-x-2">
+        <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <span class="hidden md:inline">{{ company.name }}</span>
+    </h1>
+
+    <!-- Action Buttons -->
+    <div class="flex space-x-3">
+        <a href="{% url 'company_list' %}" class="btn btn-outline-gray">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span>Back to Companies</span>
+        </a>
+        <a href="{% url 'company_edit' company.id %}" class="btn btn-outline-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span>Edit Company</span>
+        </a>
+        <a href="{% url 'company_email_settings' company.id %}" class="btn btn-outline-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.807-.108 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>
+                {% if has_email_config %}
+                    Edit Email Settings
+                {% else %}
+                    Add Email Settings
+                {% endif %}
+            </span>
+        </a>
+    </div>
+</div>
+
+<!-- Company Information Card -->
+<div class="bg-white p-6 rounded-lg shadow-md mb-6">
+    <div class="flex items-start space-x-6">
+        <!-- Company Logo -->
+        <div class="flex-shrink-0">
+            {% if company.logo %}
+                <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="h-24 w-24 object-contain border border-gray-200 rounded">
+            {% else %}
+                <div class="h-24 w-24 bg-gray-200 rounded flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6" />
+                    </svg>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Company Details -->
+        <div class="flex-1">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">{{ company.name }}</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Email</h3>
+                    <p class="mt-1 text-sm text-gray-900">
+                        <a href="mailto:{{ company.email }}" class="text-brand-blue hover:text-blue-800">
+                            {{ company.email }}
+                        </a>
+                    </p>
+                </div>
+
+                {% if company.phone %}
+                <div>
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Phone</h3>
+                    <p class="mt-1 text-sm text-gray-900">
+                        <a href="tel:{{ company.phone }}" class="text-brand-blue hover:text-blue-800">
+                            {{ company.phone }}
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+
+                {% if company.address %}
+                <div class="md:col-span-2">
+                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Address</h3>
+                    <p class="mt-1 text-sm text-gray-900">{{ company.address }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Company Statistics -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Total Events</p>
+                <p class="text-2xl font-semibold text-gray-900">{{ events.count }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Total Participants</p>
+                <p class="text-2xl font-semibold text-gray-900">
+                    {% with total_participants=0 %}
+                        {% for event in events %}
+                            {% with total_participants=total_participants|add:event.participant_set.count %}
+                            {% endwith %}
+                        {% endfor %}
+                        {{ total_participants }}
+                    {% endwith %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-gray-500">Upcoming Events</p>
+                <p class="text-2xl font-semibold text-gray-900">
+                    {% now "Y-m-d" as today %}
+                    {{ events|length }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Company Events -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <div class="flex justify-between items-center mb-6">
+        <h3 class="text-lg font-medium text-gray-900">Company Events</h3>
+        <a href="{% url 'event_create' %}" class="btn btn-outline-blue">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Add New Event</span>
+        </a>
+    </div>
+
+    {% if events %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for event in events %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if event.image %}
+                                        <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="h-10 w-10 object-cover rounded">
+                                    {% else %}
+                                        <div class="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </div>
+                                    {% endif %}
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ event.event_name }}</div>
+                                        {% if event.location %}
+                                            <div class="text-sm text-gray-500">{{ event.location }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ event.event_date|date:"M d, Y" }}</div>
+                                {% if event.start_time and event.end_time %}
+                                    <div class="text-sm text-gray-500">{{ event.start_time|time:"g:i A" }} - {{ event.end_time|time:"g:i A" }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if event.status %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" 
+                                          style="background-color: {{ event.status.color }}20; color: {{ event.status.color }};">
+                                        {{ event.status.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        No Status
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                <div class="flex flex-col">
+                                    <span class="font-medium">{{ event.participant_set.count }} participants</span>
+                                    {% if event.has_rsvp_template %}
+                                        {% if event.rsvp_responses_count > 0 %}
+                                            <span class="text-xs text-gray-500">
+                                                📩 {{ event.rsvp_responses_count }}/{{ event.total_participants_count }} RSVP responses
+                                            </span>
+                                        {% else %}
+                                            <span class="text-xs text-gray-400">
+                                                📩 No RSVP responses yet
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-xs text-gray-300">
+                                            📩 No RSVP template
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <a href="{% url 'event_detail' event.id %}" class="text-brand-blue hover:text-blue-800">View</a>
+                                    <a href="{% url 'event_edit' event.id %}" class="text-gray-600 hover:text-gray-800">Edit</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="text-center py-12">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No events found</h3>
+            <p class="text-gray-500 mb-4">This company hasn't created any events yet.</p>
+            <a href="{% url 'event_create' %}" class="btn btn-outline-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Create First Event
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+{% endblock %} 

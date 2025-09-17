@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Registration Summary Report{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-semibold flex items-center space-x-2">
+        <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <span class="hidden md:inline">Registration Summary Report</span>
+    </h1>
+    
+    <a href="{% url 'reports' %}" class="btn btn-outline-blue flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Reports</span>
+    </a>
+</div>
+
+<!-- Registration Summary Report -->
+<div class="bg-white p-6 rounded-lg shadow-md">
+    <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold text-gray-800">
+            {% if selected_event_ids %}
+                Registration Summary for Selected Events
+            {% else %}
+                Overall Registration Summary per Event
+            {% endif %}
+        </h2>
+        <div class="text-sm text-gray-500">
+            {% if selected_event_ids %}
+                {{ events.count }} Event{{ events.count|pluralize }} Selected
+            {% else %}
+                Total Events: {{ total_events }}
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Multi-Select Event Filter -->
+    <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Filter by Events:</label>
+        <div class="relative">
+            <div class="relative">
+                <input 
+                    type="text" 
+                    id="eventSearch" 
+                    placeholder="Search events..." 
+                    class="w-full md:w-80 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+            
+            <div id="eventDropdown" class="hidden absolute z-10 w-full md:w-80 mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                <div class="p-2">
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                        <input type="checkbox" id="selectAll" class="mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                        <span class="text-sm font-medium text-gray-700">Select All Events</span>
+                    </label>
+                    <hr class="my-2">
+                    {% for event in all_events %}
+                    <label class="flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer event-option" data-event-name="{{ event.event_name|lower }}">
+                        <input 
+                            type="checkbox" 
+                            value="{{ event.id }}" 
+                            class="event-checkbox mr-2 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            {% if event.id|stringformat:"s" in selected_event_ids %}checked{% endif %}
+                        >
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-gray-900">{{ event.event_name }}</div>
+                            <div class="text-xs text-gray-500">{{ event.event_date|date:"M j, Y" }}</div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Selected Events Display -->
+        <div id="selectedEvents" class="mt-2 flex flex-wrap gap-2">
+            {% for event in all_events %}
+                {% if event.id|stringformat:"s" in selected_event_ids %}
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ event.event_name }}
+                    <button type="button" class="ml-1 text-blue-600 hover:text-blue-800" onclick="removeEvent({{ event.id }})">
+                        <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    
+    <!-- Registration Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-blue-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-blue-600">{{ total_participants }}</div>
+            <div class="text-sm text-gray-600">Total Participants</div>
+        </div>
+        <div class="bg-green-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-green-600">{{ total_approved }}</div>
+            <div class="text-sm text-gray-600">Approved</div>
+        </div>
+        <div class="bg-yellow-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-yellow-600">{{ total_pending }}</div>
+            <div class="text-sm text-gray-600">Pending</div>
+        </div>
+        <div class="bg-red-50 p-3 rounded-lg text-center">
+            <div class="text-2xl font-bold text-red-600">{{ total_rejected }}</div>
+            <div class="text-sm text-gray-600">Rejected</div>
+        </div>
+    </div>
+    
+    <!-- RSVP Summary Stats -->
+    <div class="border-t pt-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-800 mb-4">RSVP Statistics</h3>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="bg-purple-50 p-3 rounded-lg text-center">
+                <div class="text-2xl font-bold text-purple-600">{{ total_rsvp_responses }}</div>
+                <div class="text-sm text-gray-600">Total RSVPs</div>
+            </div>
+            <div class="bg-green-50 p-3 rounded-lg text-center">
+                <div class="text-2xl font-bold text-green-600">{{ total_rsvp_attend }}</div>
+                <div class="text-sm text-gray-600">Will Attend</div>
+            </div>
+            <div class="bg-red-50 p-3 rounded-lg text-center">
+                <div class="text-2xl font-bold text-red-600">{{ total_rsvp_cant_make_it }}</div>
+                <div class="text-sm text-gray-600">Can't Make It</div>
+            </div>
+            <div class="bg-yellow-50 p-3 rounded-lg text-center">
+                <div class="text-2xl font-bold text-yellow-600">{{ total_rsvp_maybe }}</div>
+                <div class="text-sm text-gray-600">Maybe</div>
+            </div>
+            <div class="bg-blue-50 p-3 rounded-lg text-center">
+                <div class="text-2xl font-bold text-blue-600">{{ overall_rsvp_response_rate }}%</div>
+                <div class="text-sm text-gray-600">Response Rate</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Events Table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Registration</th>
+                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RSVP</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for event in events %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="text-sm font-medium text-gray-900">{{ event.event_name }}</div>
+                            {% if event.status %}
+                                <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium" style="background-color: {{ event.status.color }}20; color: {{ event.status.color }};">
+                                    {{ event.status.name }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                        {{ event.event_date|date:"M j, Y" }}
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <div class="text-sm">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-gray-900 font-medium">{{ event.total_participants }}</span>
+                                <span class="text-gray-400">|</span>
+                                <span class="text-green-600">{{ event.approved_participants }}</span>
+                                <span class="text-yellow-600">{{ event.pending_participants }}</span>
+                                <span class="text-red-600">{{ event.rejected_participants }}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Total | Approved | Pending | Rejected
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-2 whitespace-nowrap">
+                        <div class="text-sm">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-purple-600 font-medium">{{ event.total_rsvp_responses }}</span>
+                                <span class="text-gray-400">|</span>
+                                <span class="text-green-600">{{ event.rsvp_attend }}</span>
+                                <span class="text-red-600">{{ event.rsvp_cant_make_it }}</span>
+                                <span class="text-yellow-600">{{ event.rsvp_maybe }}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1">
+                                Total | Attend | Can't | Maybe
+                            </div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                {{ event.rsvp_response_rate }}% response rate
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="px-3 py-4 text-center text-gray-500">No events found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Multi-select dropdown functionality
+let selectedEventIds = new Set({{ selected_event_ids|safe }});
+
+// Toggle dropdown
+document.getElementById('eventSearch').addEventListener('click', function() {
+    document.getElementById('eventDropdown').classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('eventDropdown');
+    const searchInput = document.getElementById('eventSearch');
+    
+    if (!dropdown.contains(event.target) && !searchInput.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+// Search functionality
+document.getElementById('eventSearch').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const eventOptions = document.querySelectorAll('.event-option');
+    
+    eventOptions.forEach(option => {
+        const eventName = option.getAttribute('data-event-name');
+        if (eventName.includes(searchTerm)) {
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+});
+
+// Handle individual event selection
+document.querySelectorAll('.event-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        if (this.checked) {
+            selectedEventIds.add(this.value);
+        } else {
+            selectedEventIds.delete(this.value);
+        }
+        updateSelectedEventsDisplay();
+        updateURL();
+    });
+});
+
+// Handle select all
+document.getElementById('selectAll').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.event-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+        if (this.checked) {
+            selectedEventIds.add(checkbox.value);
+        } else {
+            selectedEventIds.delete(checkbox.value);
+        }
+    });
+    updateSelectedEventsDisplay();
+    updateURL();
+});
+
+// Remove individual event
+function removeEvent(eventId) {
+    selectedEventIds.delete(eventId.toString());
+    const checkbox = document.querySelector(`input[value="${eventId}"]`);
+    if (checkbox) {
+        checkbox.checked = false;
+    }
+    updateSelectedEventsDisplay();
+    updateURL();
+}
+
+// Update selected events display
+function updateSelectedEventsDisplay() {
+    const container = document.getElementById('selectedEvents');
+    container.innerHTML = '';
+    
+    selectedEventIds.forEach(eventId => {
+        const checkbox = document.querySelector(`input[value="${eventId}"]`);
+        if (checkbox) {
+            const eventOption = checkbox.closest('.event-option');
+            const eventName = eventOption.querySelector('.text-sm.font-medium').textContent;
+            
+            const tag = document.createElement('span');
+            tag.className = 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+            tag.innerHTML = `
+                ${eventName}
+                <button type="button" class="ml-1 text-blue-600 hover:text-blue-800" onclick="removeEvent(${eventId})">
+                    <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            `;
+            container.appendChild(tag);
+        }
+    });
+}
+
+// Update URL with selected events
+function updateURL() {
+    const currentUrl = new URL(window.location);
+    
+    if (selectedEventIds.size > 0) {
+        currentUrl.searchParams.set('event_ids', Array.from(selectedEventIds).join(','));
+    } else {
+        currentUrl.searchParams.delete('event_ids');
+    }
+    
+    // Keep the report_type parameter
+    currentUrl.searchParams.set('report_type', 'registration_summary');
+    
+    window.location.href = currentUrl.toString();
+}
+
+// Initialize display
+updateSelectedEventsDisplay();
+</script>
+{% endblock %} 

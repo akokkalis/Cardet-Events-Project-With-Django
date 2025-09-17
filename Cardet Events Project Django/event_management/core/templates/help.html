@@ -1,0 +1,314 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Help{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/help_styles.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">Help & Documentation</h1>
+    
+    <!-- Event Status Section -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('event-status')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Event Status Guide</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Understanding the different stages of your events</p>
+        </div>
+        
+        <div id="event-status" class="toggle-content hidden">
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- Pending Status -->
+                    <div class="border-l-4 border-yellow-500 pl-4">
+                        <h3 class="text-xl font-medium text-yellow-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-2"></span>
+                            Pending
+                        </h3>
+                        <p class="text-gray-600">
+                            This status is for events that are still in the planning phase. The event exists in your system but is not yet visible to the public. Use this status when you're preparing event details, setting up logistics, or waiting for approval before making the event available for registration. You can register any number of participants for a pending event only from admin panel.
+                        </p>
+                    </div>
+                    
+                    <!-- On-going Status -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="text-xl font-medium text-green-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            On-going
+                        </h3>
+                        <p class="text-gray-600">
+                            Events with this status are live and public. Participants can view event details and submit registrations. This is the active phase where you'll be managing attendee registrations, sending confirmations, and preparing for the event execution.
+                        </p>
+                    </div>
+                    
+                    <!-- Completed Status -->
+                    <div class="border-l-4 border-gray-500 pl-4">
+                        <h3 class="text-xl font-medium text-gray-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-gray-500 rounded-full mr-2"></span>
+                            Completed
+                        </h3>
+                        <p class="text-gray-600">
+                            This status indicates that the event has ended and registration is closed. No new participants can register for completed events. Use this status for archival purposes and to maintain historical records of past events.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">💡 Pro Tip:</h4>
+                    <p class="text-blue-700 text-sm">
+                        You can change the event status at any time from the event management dashboard. This gives you full control over when your events go public and when to close registrations.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Participant Management Section -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('participant-management')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Participant Management</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Learn how to manage participants and their approval status</p>
+        </div>
+        
+        <div id="participant-management" class="toggle-content hidden">
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- Approval Process -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="text-xl font-medium text-blue-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                            Approval Process
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            When participants register for your events, they go through an approval workflow:
+                        </p>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1 ml-4">
+                            <li><strong>Pending:</strong> New registrations await your review</li>
+                            <li><strong>Approved:</strong> Participants can receive tickets and attend</li>
+                            <li><strong>Rejected:</strong> Registration declined with optional notification</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- PDF Tickets -->
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h3 class="text-xl font-medium text-purple-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                            PDF Tickets & QR Codes
+                        </h3>
+                        <p class="text-gray-600">
+                            Approved participants automatically receive PDF tickets with QR codes for easy check-in. The system generates these files in the background and provides download links for both participants and administrators.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Email Configuration Section -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('email-configuration')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Email Configuration</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Set up SMTP settings for sending automated emails</p>
+        </div>
+        
+        <div id="email-configuration" class="toggle-content hidden">
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- One Config Per Company -->
+                    <div class="border-l-4 border-red-500 pl-4">
+                        <h3 class="text-xl font-medium text-red-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-red-500 rounded-full mr-2"></span>
+                            ⚠️ Important: One Configuration Per Company
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Each company can have <strong>only ONE</strong> email configuration. This ensures consistency and prevents conflicts when sending automated emails.
+                        </p>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <p class="text-red-800 text-sm font-medium">
+                                <strong>❌ Do NOT create multiple email configurations for the same company.</strong><br>
+                                If you need to change email settings, update the existing configuration instead of creating a new one.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- How to Configure -->
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h3 class="text-xl font-medium text-orange-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
+                            Setting Up Email Configuration
+                        </h3>
+                        <p class="text-gray-600 mb-3">To configure email settings for your company:</p>
+                        <ol class="list-decimal list-inside text-gray-600 space-y-2 ml-4">
+                            <li>Go to <strong>Django Admin</strong> → <strong>Email Configurations</strong></li>
+                            <li>If no configuration exists for your company, click <strong>"Add Email Configuration"</strong></li>
+                            <li>If a configuration already exists, click on it to <strong>edit the existing one</strong></li>
+                            <li>Fill in your SMTP server details (see required fields below)</li>
+                            <li>Test the configuration by sending a test email</li>
+                        </ol>
+                    </div>
+                    
+                    <!-- Required Fields -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="text-xl font-medium text-blue-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                            Required SMTP Settings
+                        </h3>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <ul class="list-disc list-inside text-blue-800 space-y-1 text-sm">
+                                <li><strong>SMTP Server:</strong> Your email provider's SMTP server (e.g., smtp.gmail.com)</li>
+                                <li><strong>SMTP Port:</strong> Usually 587 for TLS or 465 for SSL</li>
+                                <li><strong>Email Address:</strong> The sender email address</li>
+                                <li><strong>Email Password:</strong> App password or account password</li>
+                                <li><strong>Use TLS:</strong> Enable for most providers (recommended)</li>
+                                <li><strong>Use SSL:</strong> Alternative to TLS (check with your provider)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Common Providers -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="text-xl font-medium text-green-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            Common Email Provider Settings
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                            <div class="bg-gray-50 p-3 rounded">
+                                <h4 class="font-semibold text-gray-700">Gmail</h4>
+                                <p class="text-sm text-gray-600">
+                                    Server: smtp.gmail.com<br>
+                                    Port: 587<br>
+                                    TLS: Yes<br>
+                                    <em>Note: Use App Password, not regular password</em>
+                                </p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded">
+                                <h4 class="font-semibold text-gray-700">Outlook/Hotmail</h4>
+                                <p class="text-sm text-gray-600">
+                                    Server: smtp-mail.outlook.com<br>
+                                    Port: 587<br>
+                                    TLS: Yes
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Troubleshooting -->
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h3 class="text-xl font-medium text-purple-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                            Troubleshooting Tips
+                        </h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-1 ml-4">
+                            <li><strong>Gmail Users:</strong> Enable 2-factor authentication and use an App Password</li>
+                            <li><strong>Authentication Errors:</strong> Double-check email and password credentials</li>
+                            <li><strong>Connection Timeouts:</strong> Verify SMTP server and port settings</li>
+                            <li><strong>SSL/TLS Issues:</strong> Try switching between TLS and SSL options</li>
+                            <li><strong>Corporate Email:</strong> Contact your IT department for SMTP settings</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <h4 class="font-medium text-yellow-800 mb-2">💡 Best Practice:</h4>
+                    <p class="text-yellow-700 text-sm">
+                        Always test your email configuration after setup by sending a test email. This ensures that automated notifications (registration confirmations, approvals, etc.) will work properly for your events.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Email Templates Section -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('email-templates')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Email Templates</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Customize automated emails sent to participants</p>
+        </div>
+        
+        <div id="email-templates" class="toggle-content hidden">
+            <div class="p-6">
+                <div class="space-y-6">
+                    <!-- Template Types -->
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <h3 class="text-xl font-medium text-indigo-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-indigo-500 rounded-full mr-2"></span>
+                            Available Templates
+                        </h3>
+                        <ul class="list-disc list-inside text-gray-600 space-y-2 ml-4">
+                            <li><strong>Registration Confirmation:</strong> Sent immediately when someone registers</li>
+                            <li><strong>Approval Notification:</strong> Sent when a participant is approved</li>
+                            <li><strong>Rejection Notification:</strong> Sent when a registration is declined</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Placeholders -->
+                    <div class="border-l-4 border-teal-500 pl-4">
+                        <h3 class="text-xl font-medium text-teal-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-teal-500 rounded-full mr-2"></span>
+                            Dynamic Placeholders
+                        </h3>
+                        <p class="text-gray-600 mb-3">Use these placeholders in your email templates:</p>
+                        <div class="bg-gray-50 p-3 rounded text-sm font-mono text-gray-700">
+                            {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional Help Section -->
+    <div class="bg-white rounded-lg shadow-md">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('additional-help')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Need More Help?</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Contact support and access additional resources</p>
+        </div>
+        
+        <div id="additional-help" class="toggle-content hidden">
+            <div class="p-6">
+                <p class="text-gray-600 mb-4">
+                    If you have questions about managing your events or need assistance with specific features, don't hesitate to reach out for support.
+                </p>
+                <div class="flex flex-wrap gap-4">
+                    <a href="#" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors">
+                        Contact Support
+                    </a>
+                    <a href="#" class="bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors">
+                        View Documentation
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/help_toggles.js' %}"></script>
+{% endblock %}

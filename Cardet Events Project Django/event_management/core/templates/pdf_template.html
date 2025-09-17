@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Ticket</title>
+    <style>
+        @font-face {
+            font-family: 'DejaVu';
+            src: url('file://{{ font_path }}');
+        }
+        body {
+            font-family: 'DejaVu', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .ticket {
+            width: 600px;
+            background: #fff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .header-section {
+            padding: 20px;
+            background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .company-logo {
+            flex-shrink: 0;
+        }
+        .company-logo img {
+            width: 80px;
+            height: auto;
+            max-height: 60px;
+            object-fit: contain;
+        }
+        .event-title {
+            flex-grow: 1;
+            text-align: center;
+            margin: 0 20px;
+        }
+        .event-title h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+            font-weight: bold;
+        }
+        .main-content {
+            display: flex;
+            padding: 0 20px 20px 20px;
+            background: #fff;
+            gap: 20px;
+        }
+        .image-section {
+            flex: 1;
+        }
+        .image-section img {
+            width: 100%;
+            height: 200px;
+            border-radius: 8px;
+            object-fit: cover;
+        }
+        .event-details {
+            flex: 1;
+            padding-left: 10px;
+        }
+        .event-details .detail-item {
+            margin: 12px 0;
+            font-size: 14px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        .event-details .detail-item .icon {
+            margin-right: 8px;
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+        .event-details .detail-item .label {
+            font-weight: bold;
+            margin-right: 5px;
+            color: #666;
+        }
+        .event-details .detail-item .value {
+            color: #333;
+        }
+        .event-details .detail-item a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        .qrcode-section {
+            text-align: center;
+            padding: 20px;
+            background: #f0f0f0;
+            border-top: 2px dashed #ddd;
+        }
+        .qrcode-section img {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 15px;
+        }
+        .qrcode-section h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+        .qrcode-section p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .footer {
+            padding: 15px;
+            text-align: center;
+            font-size: 14px;
+            background: #00bcd4;
+            color: #fff;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="ticket">
+        <!-- Header Section with Logo and Title -->
+        <div class="header-section">
+            <div class="company-logo">
+                {% if company_logo_url %}
+                    <img src="https://qrscanner.innovedu.com{{ company_logo_url }}" alt="Company Logo">
+                {% endif %}
+            </div>
+            <div class="event-title">
+                <h1>{{ participant.event.event_name }}</h1>
+            </div>
+            <div style="width: 80px;"></div> <!-- Spacer for balance -->
+        </div>
+
+        <!-- Main Content with Image and Details Side by Side -->
+        <div class="main-content">
+            <div class="image-section">
+                {% if event_image_url %}
+                    <img src="https://qrscanner.innovedu.com{{ event_image_url }}" alt="Event Image">
+                {% endif %}
+            </div>
+            
+            <div class="event-details">
+                <div class="detail-item">
+                    <span class="icon">👤</span>
+                    <span class="label">Participant:</span>
+                    <span class="value">{{ participant.name }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="icon">📧</span>
+                    <span class="label">Email:</span>
+                    <span class="value">{{ participant.email }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="icon">📅</span>
+                    <span class="label">Date:</span>
+                    <span class="value">{{ participant.event.event_date }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="icon">⏰</span>
+                    <span class="label">Time:</span>
+                    <span class="value">{{ participant.event.start_time|default:"TBA" }} - {{ participant.event.end_time|default:"TBA" }}</span>
+                </div>
+                
+                <div class="detail-item">
+                    <span class="icon">📍</span>
+                    <span class="label">Venue:</span>
+                    {% if participant.event.location %}
+                        <a href="{{ participant.event.location }}" target="_blank">
+                            View on Google Maps
+                        </a>
+                    {% else %}
+                        <span class="value">Not Provided</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Code Section -->
+        <div class="qrcode-section">
+            <img src="{{qr_image_path}}" alt="QR Code">
+            <h2>Name of event</h2>
+            <p>Scan this QR code for entry</p>
+        </div>
+
+        <!-- Footer Section -->
+        <div class="footer">
+            Thank you for attending our event!
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,260 @@
+{% extends 'base.html' %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block title %}
+    {% if is_edit %}Edit{% else %}Create{% endif %} {{ reason_display }} Template - {{ event.event_name }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{{ form.media }}
+<!-- SweetAlert2 CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <!-- Header -->
+        <div class="flex items-center mb-6 gap-3">
+            <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <div>
+                <h1 class="text-2xl font-semibold text-gray-800">
+                    {% if is_edit %}Edit{% else %}Create{% endif %} {{ reason_display }} Template
+                </h1>
+                <p class="text-gray-600">{{ event.event_name }}</p>
+            </div>
+        </div>
+
+        <!-- Information Card -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <h3 class="text-blue-800 font-medium mb-2">
+                {% if form.reason.value == 'registration' %}
+                    📋 Registration Email Template
+                {% elif form.reason.value == 'approval' %}
+                    ✅ Approval Email Template
+                {% elif form.reason.value == 'rejection' %}
+                    ❌ Rejection Email Template
+                {% elif form.reason.value == 'rsvp' %}
+                    📩 RSVP Request Email Template
+                {% elif form.reason.value == 'certificates' %}
+                    🎓 Certificate Generation Email Template
+                {% endif %}
+            </h3>
+            <p class="text-blue-700 text-sm mb-2">
+                {% if form.reason.value == 'registration' %}
+                    This email will be sent automatically when participants register for the event (if auto-approval is enabled).
+                {% elif form.reason.value == 'approval' %}
+                    This email will be sent when a participant's registration is manually approved by an admin.
+                {% elif form.reason.value == 'rejection' %}
+                    This email will be sent when a participant's registration is rejected by an admin.
+                {% elif form.reason.value == 'rsvp' %}
+                    This email is used to request RSVP responses from participants.
+                {% elif form.reason.value == 'certificates' %}
+                    This email will be sent when certificates are generated for participants who attended the event.
+                {% endif %}
+            </p>
+            <div class="text-blue-600 text-xs">
+                <strong>Available placeholders:</strong> {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}
+                {% if form.reason.value == 'rsvp' %}
+                    , {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}
+                {% endif %}
+                {% if form.reason.value == 'certificates' %}
+                    <br><br>
+                    <strong>Certificate-specific placeholders:</strong><br>
+                    • <code>{{ certificate_url }}</code> - Direct link to download the certificate<br>
+                    • <code>{{ participant_name }}</code> - Full name of the participant<br>
+                    • <code>{{ event_name }}</code> - Name of the event<br>
+                    • <code>{{ event_date }}</code> - Date of the event<br>
+                    • <code>{{ event_location }}</code> - Location where the event was held<br>
+                    • <code>{{ company_name }}</code> - Name of the organizing company<br>
+                    • <code>{{ attendance_date }}</code> - Date when attendance was marked
+                {% endif %}
+            </div>
+            
+            {% if form.reason.value == 'certificates' %}
+            <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 class="text-gray-800 font-medium text-sm mb-3">📝 Example Certificate Email Template</h4>
+                <div class="bg-white border border-gray-300 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <pre class="whitespace-pre-wrap text-gray-800">Subject: Your Certificate for {{ event_name }}
+
+Dear {{ participant_name }},
+
+Thank you for attending {{ event_name }} on {{ event_date }} at {{ event_location }}. We are pleased to provide you with your certificate of attendance.
+
+You can download your certificate using the following link:
+{{ certificate_url }}
+
+If you have any questions or issues accessing your certificate, please don't hesitate to contact us.
+
+Best regards,
+{{ company_name }} Team</pre>
+                </div>
+            </div>
+            {% endif %}
+            {% if form.reason.value == 'rsvp' %}
+            <div class="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                <h4 class="text-indigo-800 font-medium text-sm mb-2">🔗 RSVP URL Placeholders</h4>
+                <div class="space-y-2 text-xs">
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "I will attend" response</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_decline_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "I can't make it" response</span>
+                    </div>
+                    <div class="flex items-start gap-2">
+                        <span class="font-mono bg-white px-2 py-1 rounded border text-indigo-700">{% templatetag openvariable %} rsvp_maybe_url {% templatetag closevariable %}</span>
+                        <span class="text-indigo-600">- Direct link for "Maybe" response</span>
+                    </div>
+                </div>
+                <p class="text-indigo-600 text-xs mt-2">
+                    💡 <strong>Tip:</strong> You can create HTML buttons like: 
+                    <code class="bg-white px-1 rounded">&lt;a href="{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}" style="background-color: #10b981; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"&gt;Yes, I'll attend&lt;/a&gt;</code>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Form -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <!-- Reason Field (hidden for new templates) -->
+            {% if not is_edit %}
+                <input type="hidden" name="reason" value="{{ form.reason.value }}">
+            {% else %}
+                <div>
+                    <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email Type
+                    </label>
+                    <div class="mt-1">
+                        {{ form.reason|add_class:"form-field bg-gray-100" }}
+                    </div>
+                    {% for error in form.reason.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Subject Field -->
+            <div>
+                <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Subject *
+                </label>
+                <div class="mt-1">
+                    {{ form.subject|add_class:"form-field" }}
+                </div>
+                {% for error in form.subject.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Body Field -->
+            <div>
+                <label for="{{ form.body.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Body *
+                </label>
+                <div class="mt-1">
+                    {{ form.body|add_class:"form-field" }}
+                </div>
+                {% if form.body.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">{{ form.body.help_text }}</p>
+                {% endif %}
+                {% for error in form.body.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            </div>
+
+            <!-- Non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    {% for error in form.non_field_errors %}
+                        <p class="text-red-800 text-sm">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- Form Actions -->
+            <div class="flex justify-end pt-6 border-t border-gray-200">
+                <div class="flex gap-3">
+                    <a href="{% url 'event_email_templates' event.id %}" class="btn btn-outline-gray">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-outline-blue">
+                        {% if is_edit %}Update{% else %}Create{% endif %} Template
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Preview Section -->
+        <div class="mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900 mb-3">Template Preview</h3>
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="mb-2">
+                    <strong class="text-sm text-gray-700">Subject:</strong>
+                    <span class="text-sm text-gray-900" id="subject-preview">{{ form.subject.value|default:"[Subject will appear here]" }}</span>
+                </div>
+                <div>
+                    <strong class="text-sm text-gray-700">Body:</strong>
+                    <div class="text-sm text-gray-900 whitespace-pre-wrap mt-1" id="body-preview">{{ form.body.value|default:"[Email body will appear here]"|safe }}</div>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+                Note: Placeholders like {{ name }}, {{ event_name }}, etc. will be replaced with actual values when the email is sent.
+            </p>
+            
+            {% if form.reason.value == 'rsvp' %}
+            <div class="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 class="text-gray-800 font-medium text-sm mb-3">📋 Ready-to-Use RSVP Button Template</h4>
+                <p class="text-xs text-gray-600 mb-3">Copy and paste this HTML code into your email template:</p>
+                <div class="bg-white border border-gray-300 rounded p-3 font-mono text-xs overflow-x-auto">
+                    <pre class="whitespace-pre-wrap text-gray-800" id="rsvp-template-code">&lt;div style="margin: 20px 0; text-align: center;"&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_accept_url {% templatetag closevariable %}" style="background-color: #22c55e; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ✅ I'll Attend
+    &lt;/a&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_decline_url {% templatetag closevariable %}" style="background-color: #ef4444; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ❌ Can't Make It
+    &lt;/a&gt;
+    &lt;a href="{% templatetag openvariable %} rsvp_maybe_url {% templatetag closevariable %}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;"&gt;
+      ❓ Maybe
+    &lt;/a&gt;
+&lt;/div&gt;</pre>
+                </div>
+                <button onclick="copyRsvpTemplate()" class="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors">
+                    📋 Copy to Clipboard
+                </button>
+            </div>
+            {% endif %}
+            {% comment %}
+            <p class="text-xs text-gray-500 mt-2">
+                <div style="margin: 20px 0; text-align: center;">
+                    <a href="{{ rsvp_accept_url }}" style="background-color: #22c55e; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ✅ I’ll Attend
+                    </a>
+                    <a href="{{ rsvp_decline_url }}" style="background-color: #ef4444; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ❌ Can’t Make It
+                    </a>
+                    <a href="{{ rsvp_maybe_url }}" style="background-color: #f59e0b; color: #ffffff; padding: 12px 25px; text-decoration: none; border-radius: 8px; margin: 5px; display: inline-block; font-weight: bold; font-family: Arial, sans-serif;">
+                      ❓ Maybe
+                    </a>
+                  </div>
+            </p>
+            {% endcomment %}
+        </div>
+    </div>
+</div>
+
+<!-- SweetAlert2 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Email Template Form JavaScript -->
+<script src="{% static 'js/email_template_form.js' %}"></script>
+{% endblock %} 

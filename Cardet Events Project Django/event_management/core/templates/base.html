@@ -1,0 +1,101 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Staff Panel{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen">
+        
+        <!-- Sidebar and Overlay -->
+        {% if request.user.is_authenticated %}
+        <div id="overlay" class="fixed inset-0 bg-black opacity-50 hidden md:hidden z-40"></div>
+
+        <div id="sidebar" class="w-64 bg-gray-800 text-white p-5 fixed md:relative h-full md:flex transition-transform duration-300 ease-in-out transform -translate-x-full md:translate-x-0 z-50 shadow-lg">
+            
+
+            <nav>
+                <h5 class="text-xl md:text-2xl lg:text-3xl font-semibold mb-6 text-center md:text-left">
+                    Staff Panel
+                </h5>
+                <ul class="space-y-3">
+                    <li>
+                        <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "chart-bar" class="h-5 w-5" %}
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'company_list' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "building-office" class="h-5 w-5" %}
+                            <span>Company</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'event_list' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "calendar-days" class="h-5 w-5" %}
+                            <span>Events</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'reports' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "chart-bar-square" class="h-5 w-5" %}
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'logs' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "bug-ant" class="h-5 w-5" %}
+                            <span>System Logs</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{% url 'help' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
+                            {% heroicon_outline "information-circle" class="h-5 w-5" %}
+                              
+                              
+                            <span>Help</span>
+                        </a>
+                    </li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}">
+                            {% csrf_token %}
+                            <button type="submit" class="flex items-center space-x-2 block w-full text-left p-2 rounded hover:bg-red-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m-8-6h16" />
+                                </svg>
+                                <span>Logout</span>
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            <!-- ✅ Show Logged-in User Info -->
+            <div class="p-4 text-center border-b border-gray-600">
+                <p class="text-gray-300 text-sm">Logged in as:</p>
+                <p class="text-white font-semibold text-lg">{{ request.user.get_full_name|default:request.user.username }}</p>
+            </div>
+            </nav>
+        </div>
+        {% endif %}
+
+        <!-- Main Content -->
+        <div class="flex-1 p-5 overflow-y-auto">
+ 
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

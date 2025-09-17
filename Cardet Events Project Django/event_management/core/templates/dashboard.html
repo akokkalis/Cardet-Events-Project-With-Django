@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mx-auto py-6">
+    <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
+    <!-- Timeline Filter -->
+    <div class="flex justify-end mb-4 gap-4">
+        <!-- Year Filter -->
+        <select id="year-filter" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+            <option value="">All Years</option>
+            {% for year in available_years %}
+                <option value="{{ year.year }}" {% if selected_year == year.year|stringformat:"s" %}selected{% endif %}>{{ year.year }}</option>
+            {% endfor %}
+        </select>
+        
+        <!-- Status Filter -->
+        <div class="inline-flex rounded-md shadow-sm" role="group">
+            <a href="?timeline_status=active{% if selected_year %}&year={{ selected_year }}{% endif %}" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-l-md focus:z-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 {% if timeline_status == 'active' %}bg-blue-600 text-white{% else %}bg-white text-gray-700{% endif %}">Planned & Ongoing</a>
+            <a href="?timeline_status=all{% if selected_year %}&year={{ selected_year }}{% endif %}" class="px-4 py-2 border-t border-b border-r border-gray-300 text-sm font-medium rounded-r-md focus:z-10 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 {% if timeline_status == 'all' %}bg-blue-600 text-white{% else %}bg-white text-gray-700{% endif %}">All</a>
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Participant Insights -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Participant Insights</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-blue-100 rounded p-4 text-center">
+                    <div class="text-2xl font-bold">{{ total_participants }}</div>
+                    <div class="text-gray-700">Total Participants</div>
+                </div>
+                <div class="bg-green-100 rounded p-4 text-center">
+                    <div class="text-2xl font-bold">{{ approved_participants }}</div>
+                    <div class="text-gray-700">Approved</div>
+                </div>
+                <div class="bg-yellow-100 rounded p-4 text-center">
+                    <div class="text-2xl font-bold">{{ pending_participants }}</div>
+                    <div class="text-gray-700">Pending</div>
+                </div>
+                <div class="bg-red-100 rounded p-4 text-center">
+                    <div class="text-2xl font-bold">{{ rejected_participants }}</div>
+                    <div class="text-gray-700">Rejected</div>
+                </div>
+            </div>
+            <h3 class="text-lg font-semibold mt-6 mb-2">Participants per Event</h3>
+            <ul class="divide-y divide-gray-200">
+                {% for item in participants_per_event %}
+                <li class="py-2 flex justify-between items-center">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                            <span>{{ item.event__event_name }}</span>
+                            {% if item.is_full %}
+                                <span class="bg-red-100 text-red-800 text-xs font-medium px-2 py-1 rounded-full">FULL</span>
+                            {% endif %}
+                        </div>
+                        {% if item.has_limit and item.capacity_limit %}
+                            <div class="text-xs text-gray-500 mt-1">
+                                {{ item.approved_count }}/{{ item.capacity_limit }} approved
+                                {% if item.available_spots is not None %}
+                                    • {{ item.available_spots }} spots available
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold">{{ item.count }}</span>
+                        {% if item.pending_count > 0 %}
+                            <div class="relative">
+                                <button onclick="openPendingModal('{{ item.event__event_name|escapejs }}', {{ item.pending_count }}, '{{ item.event__event_name|escapejs }}')" class="text-red-800 hover:bg-red-800 hover:text-white transition-colors">
+                                    {% heroicon_outline "bell-alert"  %}
+                                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">{{ item.pending_count }}</span>
+                                </button>
+                            </div>
+                        {% else %}
+                            <button onclick="openPendingModal('{{ item.event__event_name|escapejs }}', 0, '{{ item.event__event_name|escapejs }}')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                                {% heroicon_outline "bell" class="h-5 w-5" %}
+                            </button>
+                        {% endif %}
+                    </div>
+                </li>
+                {% empty %}
+                <li class="py-2 text-gray-500">No data available.</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <!-- Event Timeline -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Event Timeline</h2>
+            <ul class="divide-y divide-gray-200">
+                {% for event in events %}
+                <li class="py-3 flex items-center justify-between">
+                    <div>
+                        <div class="font-semibold">{{ event.event_name }}</div>
+                        <div class="text-gray-500 text-sm">{{ event.event_date }}{% if event.start_time %} {{ event.start_time|time:"H:i" }}{% endif %}</div>
+                        <div class="text-xs" style="color: {{ event.status.color }};">
+                            {{ event.status.name }}
+                        </div>
+                    </div>
+                    <a href="{% url 'event_detail' event.id %}?from_dashboard=1" class="bg-gray-100 rounded px-3 py-1 text-sm font-semibold hover:bg-blue-100 transition">{{ event.participant_count }} participants</a>
+                </li>
+                {% empty %}
+                <li class="py-2 text-gray-500">No events found.</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <!-- Calendar Widget Full Width -->
+    <div class="bg-white rounded-lg shadow p-6 mt-8">
+        <h2 class="text-xl font-semibold mb-4">Event Calendar</h2>
+        <div id="calendar"></div>
+    </div>
+</div>
+
+<!-- Pending Participants Modal -->
+<div id="pendingModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Pending Participants</h3>
+                <button onclick="closePendingModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div id="modalContent" class="max-h-96 overflow-y-auto">
+                <!-- Content will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- FullCalendar CSS & JS -->
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            height: 500,
+            events: {{ calendar_events|safe }},
+            eventClick: function(info) {
+                if (info.event.url) {
+                    window.location.href = info.event.url;
+                    info.jsEvent.preventDefault();
+                }
+            }
+        });
+        calendar.render();
+        
+        // Year filter functionality
+        document.getElementById('year-filter').addEventListener('change', function() {
+            var selectedYear = this.value;
+            var currentStatus = '{{ timeline_status }}';
+            var url = '?timeline_status=' + currentStatus;
+            if (selectedYear) {
+                url += '&year=' + selectedYear;
+            }
+            window.location.href = url;
+        });
+        
+        // Modal functionality
+        window.openPendingModal = function(eventName, pendingCount, eventNameParam) {
+            document.getElementById('modalTitle').textContent = 'Pending Participants - ' + eventName;
+            document.getElementById('modalContent').innerHTML = '<div class="text-center py-8"><div class="spinner"></div><p>Loading...</p></div>';
+            document.getElementById('pendingModal').classList.remove('hidden');
+            
+            // Load pending participants data
+            fetch(`/dashboard/pending-participants/?event_name=${encodeURIComponent(eventNameParam)}`)
+                .then(response => response.json())
+                .then(data => {
+                    let content = '';
+                    if (data.participants && data.participants.length > 0) {
+                        content = '<div class="space-y-3">';
+                        data.participants.forEach(participant => {
+                            content += `
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <p class="font-medium">${participant.name}</p>
+                                        <p class="text-sm text-gray-600">${participant.email}</p>
+                                        <p class="text-xs text-gray-500">Registered: ${participant.registered_at}</p>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        content += '</div>';
+                    } else {
+                        content = '<p class="text-center text-gray-500 py-8">No pending participants for this event.</p>';
+                    }
+                    
+                    // Add capacity statistics
+                    const stats = data.capacity_stats;
+                    const isFull = stats.has_limit && stats.capacity_limit && stats.available_spots <= 0;
+                    const headerText = isFull ? 'Capacity Statistics - FULL' : 'Capacity Statistics';
+                    const headerColor = isFull ? 'text-red-600' : 'text-gray-800';
+                    
+                    content += `
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <h4 class="font-semibold ${headerColor} mb-3">${headerText}</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-600">Total Participants</p>
+                                    <p class="text-lg font-bold text-blue-600">${stats.total_participants}</p>
+                                </div>
+                                <div class="bg-green-50 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-600">Approved</p>
+                                    <p class="text-lg font-bold text-green-600">${stats.approved_participants}</p>
+                                </div>
+                                <div class="bg-yellow-50 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-600">Pending</p>
+                                    <p class="text-lg font-bold text-yellow-600">${stats.pending_count}</p>
+                                </div>
+                                <div class="bg-red-50 p-3 rounded-lg">
+                                    <p class="text-sm text-gray-600">Rejected</p>
+                                    <p class="text-lg font-bold text-red-600">${stats.rejected_participants}</p>
+                                </div>
+                            </div>
+                    `;
+                    
+                    if (stats.has_limit && stats.capacity_limit) {
+                        const availableColor = stats.available_spots > 0 ? 'text-green-600' : 'text-red-600';
+                        content += `
+                            <div class="mt-4 bg-gray-50 p-3 rounded-lg">
+                                <p class="text-sm text-gray-600">Capacity Limit</p>
+                                <p class="text-lg font-bold">${stats.capacity_limit} spots</p>
+                                <p class="text-sm ${availableColor}">${stats.available_spots} spots available</p>
+                            </div>
+                        `;
+                    }
+                    
+                    content += '</div>';
+                    document.getElementById('modalContent').innerHTML = content;
+                })
+                .catch(error => {
+                    document.getElementById('modalContent').innerHTML = '<p class="text-center text-red-500 py-8">Error loading data.</p>';
+                });
+        };
+        
+        window.closePendingModal = function() {
+            document.getElementById('pendingModal').classList.add('hidden');
+        };
+    });
+</script>
+{% endblock %} 

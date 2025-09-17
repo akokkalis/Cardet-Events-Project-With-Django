@@ -1,0 +1,143 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ event.event_name }} - Participants List</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #0174b9;
+            padding-bottom: 20px;
+        }
+        .event-details {
+            margin-bottom: 30px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .event-details p {
+            margin: 5px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #0174b9;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .logo {
+            max-width: 200px;
+            max-height: 100px;
+            object-fit: contain;
+            margin-bottom: 20px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .custom-field {
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        {% if logo_exists %}
+            <img src="company_logo.png" alt="Company Logo" class="logo">
+        {% endif %}
+        <h1>{{ event.event_name }}</h1>
+    </div>
+
+    <div class="event-details">
+        <div style="display: flex; justify-content: space-between;">
+            <div>
+                <p><strong>Total Participants:</strong> {{ participants|length }}
+                {% if event.has_registration_limit %}
+                    / {{ event.registration_limit }} (Limit)
+                    {% if participants|length >= event.registration_limit %}
+                        <span style="color: #dc3545;">⚠️ Full</span>
+                    {% else %}
+                        <span style="color: #28a745;">✓ Available</span>
+                    {% endif %}
+                {% endif %}
+                </p>
+                <p><strong>Approval Status:</strong></p>
+                <ul style="list-style-type: none; padding-left: 0; margin: 5px 0;">
+                    <li>✅ Approved: {{ participants|filter:"approval_status='approved'"|length }}</li>
+                    <li>⏳ Pending: {{ participants|filter:"approval_status='pending'"|length }}</li>
+                    <li>❌ Rejected: {{ participants|filter:"approval_status='rejected'"|length }}</li>
+                </ul>
+            </div>
+            <div>
+                <p><strong>Date:</strong> {{ event.event_date|date:"F j, Y" }}</p>
+                {% if event.start_time and event.end_time %}
+                    <p><strong>Time:</strong> {{ event.start_time|time:"g:i A" }} - {{ event.end_time|time:"g:i A" }}</p>
+                {% endif %}
+                <p><strong>Location:</strong> {{ event.location|default:"Not specified" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Status</th>
+                <th>RSVP</th>
+                {% for field in custom_fields %}
+                    <th>{{ field|title }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for participant in participants %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ participant.name }}</td>
+                    <td>{{ participant.email }}</td>
+                    <td>{{ participant.phone|default:"-" }}</td>
+                    <td>{{ participant.approval_status|title }}</td>
+                    <td>{{ participant.rsvp_response|default:"Not Responded" }}</td>
+                    {% for field in custom_fields %}
+                        <td class="custom-field">
+                            {% with field_value=participant.submitted_data|get_item:field %}
+                                {% if field_value.is_file %}
+                                    📎 {{ field_value.filename }}
+                                {% else %}
+                                    {{ field_value|default:"-" }}
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #666;">
+        Generated on {{ now|date:"F j, Y" }} at {{ now|time:"H:i" }}
+    </div>
+</body>
+</html> 

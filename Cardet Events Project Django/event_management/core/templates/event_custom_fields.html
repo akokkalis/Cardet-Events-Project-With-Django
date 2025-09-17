@@ -1,0 +1,363 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}Add Custom Fields - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/custom_fields.css' %}">
+<style>
+/* Drag and Drop Styling */
+.sortable-ghost {
+    opacity: 0.5;
+    background: #e3f2fd !important;
+    border: 2px dashed #2196f3 !important;
+}
+
+.sortable-chosen {
+    background: #e3f2fd !important;
+    border: 2px solid #2196f3 !important;
+    transform: rotate(2deg);
+}
+
+.sortable-drag {
+    background: #ffffff !important;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2) !important;
+    transform: rotate(5deg) !important;
+}
+
+.drag-handle:hover {
+    background-color: #f3f4f6;
+    border-radius: 4px;
+}
+
+.drag-handle:active {
+    background-color: #e5e7eb;
+}
+
+/* Smooth transitions for reordering */
+#sortable-fields > div {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#sortable-fields > div:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/custom_fields.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sortableContainer = document.getElementById('sortable-fields');
+    if (sortableContainer && sortableContainer.children.length > 0) {
+        new Sortable(sortableContainer, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            handle: '.drag-handle',
+            onEnd: function(evt) {
+                // Get all field elements in their new order
+                const fieldElements = sortableContainer.children;
+                const updates = [];
+                
+                for (let i = 0; i < fieldElements.length; i++) {
+                    const fieldId = fieldElements[i].dataset.fieldId;
+                    const newOrder = i + 1;
+                    updates.push({
+                        id: fieldId,
+                        order: newOrder
+                    });
+                }
+                
+                // Send AJAX request to update order
+                fetch(`/events/{{ event.id }}/update-field-order/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ updates: updates })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Update the order numbers in the UI
+                        for (let i = 0; i < fieldElements.length; i++) {
+                            const orderSpan = fieldElements[i].querySelector('.order-number');
+                            if (orderSpan) {
+                                orderSpan.textContent = i + 1;
+                            }
+                        }
+                        
+                        // Show success message
+                        showMessage('Field order updated successfully!', 'success');
+                    } else {
+                        showMessage('Error updating field order: ' + data.error, 'error');
+                        location.reload(); // Reload to reset order
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage('Error updating field order', 'error');
+                    location.reload(); // Reload to reset order
+                });
+            }
+        });
+    }
+});
+
+function showMessage(message, type) {
+    // Create and show a temporary message
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `fixed top-4 right-4 p-4 rounded-lg z-50 ${type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+    messageDiv.textContent = message;
+    document.body.appendChild(messageDiv);
+    
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 3000);
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="flex gap-6 max-w-7xl mx-auto mt-6">
+    <!-- Main Content: Form -->
+    <div class="flex-1 bg-white p-6 rounded-lg shadow-md">
+        <div class="flex items-center justify-between mb-6">
+            <!-- Back Arrow -->
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            
+            <!-- Title -->
+            <h1 class="text-3xl font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Add Custom Fields for {{ event.event_name }}
+            </h1>
+            
+            <!-- Empty space for balance -->
+            <div class="w-10"></div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'error' %}
+                    <div class="mb-6">
+                        <div class="p-4 rounded-lg bg-red-100 text-red-700">
+                            {{ message }}
+                        </div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+        <!-- Add New Custom Field Form -->
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-yellow-800">Field Name Guidelines</h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <p>Custom field labels cannot use system field names: <strong>Name</strong>, <strong>Email</strong>, or <strong>Phone</strong>.</p>
+                        <p class="mt-1">Each custom field label must be unique within this event.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            {{ form|crispy }}
+
+            <div class="flex justify-between mt-6">
+                <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue  px-6 py-2 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to Event
+                </a>
+                <button type="submit" class="btn btn-outline-blue px-6 py-2 rounded-lg flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Field
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Sidebar: Existing Custom Fields -->
+    <div class="w-96 bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            Existing Fields
+        </h2>
+        
+        <!-- Messages for existing fields section -->
+        {% if messages %}
+            {% for message in messages %}
+                {% if message.tags == 'success' %}
+                    <div class="mb-4 p-3 rounded-lg bg-green-100 text-green-700 text-sm">
+                        {{ message }}
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        <div class="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+            <!-- Default/Hardcoded Fields -->
+            <div class="mb-4">
+                <h3 class="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Default Fields
+                </h3>
+                
+                <!-- Name Field -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-sm text-blue-800">Name</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                Text <span class="text-red-500">• Required</span> <span class="text-gray-500">• System Field</span>
+                            </div>
+                        </div>
+                        <div class="text-blue-400 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Field -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-sm text-blue-800">Email</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                Email <span class="text-red-500">• Required</span> <span class="text-gray-500">• System Field</span>
+                            </div>
+                        </div>
+                        <div class="text-blue-400 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Phone Field -->
+                <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-sm text-blue-800">Phone</div>
+                            <div class="text-xs text-blue-600 mt-1">
+                                Text <span class="text-gray-500">• Optional • System Field</span>
+                            </div>
+                        </div>
+                        <div class="text-blue-400 p-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Custom Fields -->
+            {% if existing_fields %}
+                <div class="mb-2">
+                    <h3 class="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Custom Fields ({{ existing_fields.count }})
+                        <span class="text-xs text-gray-500 ml-2">• Drag to reorder</span>
+                    </h3>
+                </div>
+                
+                <div id="sortable-fields">
+                    {% for field in existing_fields %}
+                        <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-2 transition-all duration-200 hover:shadow-md cursor-move" 
+                             data-field-id="{{ field.id }}">
+                            <div class="flex items-start gap-2">
+                                <!-- Drag Handle -->
+                                <div class="drag-handle flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 cursor-grab active:cursor-grabbing">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                                    </svg>
+                                </div>
+                                
+                                <!-- Field Content -->
+                                <div class="flex-1 min-w-0">
+                                    <div class="font-semibold text-sm truncate">{{ field.label }}</div>
+                                    <div class="text-xs text-gray-600 mt-1">
+                                        {{ field.get_field_type_display }}
+                                        {% if field.required %}
+                                            <span class="text-red-500">• Required</span>
+                                        {% else %}
+                                            <span class="text-gray-500">• Optional</span>
+                                        {% endif %}
+                                        <span class="text-blue-600">• Order: <span class="order-number">{{ field.order }}</span></span>
+                                    </div>
+                                    {% if field.options %}
+                                        <div class="text-xs text-gray-500 mt-1 truncate">
+                                            {% if field.field_type == 'range' %}
+                                                <strong>Range:</strong> {{ field.range_values.0 }} - {{ field.range_values.1 }}
+                                            {% else %}
+                                                <strong>Options:</strong> {{ field.options }}
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    {% if field.help_text %}
+                                        <div class="text-xs text-blue-600 mt-1 italic">
+                                            <strong>Help:</strong> {{ field.help_text|truncatechars:50 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Delete Button -->
+                                <div class="flex-shrink-0">
+                                    <form method="POST" action="{% url 'delete_custom_field' event.id field.id %}" class="inline delete-form-{{ field.id }}" style="display: none;">
+                                        {% csrf_token %}
+                                    </form>
+                                    <button type="button" class="delete-field-btn btn btn-outline-pink p-1" 
+                                            data-field-name="{{ field.label }}"
+                                            data-field-id="{{ field.id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="bg-gray-100 p-4 rounded-lg text-center text-gray-600">
+                    
+                    <p class="text-sm">No custom fields yet.</p>
+                    <p class="text-xs mt-1">Add your first field using the form.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %} 

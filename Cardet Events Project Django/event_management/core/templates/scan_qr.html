@@ -1,0 +1,721 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Scan QR Code{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto bg-white p-6 rounded-lg shadow-md">
+	<div class="flex items-center gap-3">
+        <a href="{% url 'event_detail' event.id %}" 
+		class=" btn btn-outline-blue transition-colors p-2 rounded-lg">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+		
+		</a>
+		<h2 class="text-2xl font-semibold mb-4 text-center">QR Code Scanner for {{ event.event_name }}</h2>
+
+	</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Scanner Section -->
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <div id="reader" class="w-full h-64 bg-gray-300 rounded-lg relative">
+                <!-- QR Code Targeting Overlay -->
+                <div id="qr-target-overlay" class="absolute inset-0 pointer-events-none hidden z-10">
+                    <!-- Square target window -->
+                    <div class="scanner-overlay">
+                        <div class="square-target-window">
+                            <!-- Prominent square border -->
+                            <div class="target-square-border">
+                                <!-- Corner indicators -->
+                                <div class="corner-indicator top-left"></div>
+                                <div class="corner-indicator top-right"></div>
+                                <div class="corner-indicator bottom-left"></div>
+                                <div class="corner-indicator bottom-right"></div>
+                                
+                                <!-- Animated scanning line -->
+                                <div class="scanning-line"></div>
+                                
+                                <!-- Center guide lines -->
+                                <div class="guide-line horizontal"></div>
+                                <div class="guide-line vertical"></div>
+                            </div>
+                            
+                            <!-- Instruction text -->
+                            <div class="scan-instruction">
+                                <span class="instruction-text">📱 Position QR code within square</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="scanner-status" class="mt-4 text-center">
+                <p class="text-gray-600">Initializing camera...</p>
+            </div>
+            <div id="qr-result" class="mt-4 text-green-600 font-bold text-center"></div>
+            <div id="error-message" class="mt-4 text-red-600 text-center hidden"></div>
+            
+            <!-- Manual Input Fallback -->
+            <div id="manual-input" class="mt-4 hidden">
+                <p class="text-gray-600 mb-2">Camera not available? Enter QR code manually:</p>
+                <div class="flex gap-2">
+                    <input type="text" id="manual-qr" placeholder="Enter QR code data" class="flex-1 px-3 py-2 border rounded-lg">
+                    <button onclick="processManualQR()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">Submit</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Section -->
+        <div class="bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-xl font-semibold mb-4 text-center">Attendance Overview</h3>
+            <div class="flex flex-col items-center space-y-4">
+                <button onclick="openModal('presentModal')" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-700 w-3/4 text-center">
+                    Present (<span id="present-count">{{ present_participants|length }}</span>)
+                </button>
+                <button onclick="openModal('notPresentModal')" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-700 w-3/4 text-center">
+                    Not Present (<span id="not-present-count">{{ not_present_participants|length }}</span>)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Present Participants Modal -->
+<div id="presentModal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Present Participants (Approved)</h2>
+        <ul id="present-list">
+            {% for participant in present_participants %}
+                {% if participant.approval_status == "approved" %}
+                    <li class="p-2 border-b">{{ participant.name }}</li>
+                {% endif %}
+            {% empty %}
+                <li class="p-2 text-gray-500">No approved participants checked in yet.</li>
+            {% endfor %}
+        </ul>
+        <button onclick="closeModal('presentModal')" class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Close</button>
+    </div>
+</div>
+
+<!-- Not Present Participants Modal -->
+<div id="notPresentModal" class="hidden fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50">
+    <div class="bg-white p-6 rounded-lg shadow-lg max-w-lg">
+        <h2 class="text-xl font-semibold mb-4">Not Present Participants (Approved)</h2>
+        <ul id="not-present-list">
+            {% for participant in not_present_participants %}
+                {% if participant.approval_status == "approved" %}
+                    <li class="p-2 border-b">{{ participant.name }}</li>
+                {% endif %}
+            {% empty %}
+                <li class="p-2 text-gray-500">All approved participants have checked in.</li>
+            {% endfor %}
+        </ul>
+        <button onclick="closeModal('notPresentModal')" class="mt-4 bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-700">Close</button>
+    </div>
+</div>
+
+<!-- QR Scanner Styles -->
+<style>
+    .scanner-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .square-target-window {
+        position: relative;
+        width: 250px;
+        height: 250px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .target-square-border {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border: 3px solid #00ff00;
+        border-radius: 15px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(2px);
+        box-shadow: 
+            0 0 0 2px rgba(0, 255, 0, 0.3),
+            0 0 20px rgba(0, 255, 0, 0.2),
+            inset 0 0 20px rgba(255, 255, 255, 0.1);
+        animation: square-pulse 2.5s ease-in-out infinite;
+    }
+
+    .corner-indicator {
+        position: absolute;
+        width: 35px;
+        height: 35px;
+        border: 5px solid #00ff00;
+        border-radius: 6px;
+        background: rgba(0, 255, 0, 0.1);
+        box-shadow: 
+            0 0 10px rgba(0, 255, 0, 0.5),
+            inset 0 0 10px rgba(0, 255, 0, 0.2);
+        animation: corner-glow 2s ease-in-out infinite;
+    }
+
+    .corner-indicator.top-left {
+        top: -8px;
+        left: -8px;
+        border-right: none;
+        border-bottom: none;
+    }
+
+    .corner-indicator.top-right {
+        top: -8px;
+        right: -8px;
+        border-left: none;
+        border-bottom: none;
+    }
+
+    .corner-indicator.bottom-left {
+        bottom: -8px;
+        left: -8px;
+        border-right: none;
+        border-top: none;
+    }
+
+    .corner-indicator.bottom-right {
+        bottom: -8px;
+        right: -8px;
+        border-left: none;
+        border-top: none;
+    }
+
+    .scanning-line {
+        position: absolute;
+        top: 0;
+        left: 10px;
+        right: 10px;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #00ff00, transparent);
+        border-radius: 2px;
+        animation: scan-animation 2s ease-in-out infinite;
+        box-shadow: 0 0 10px #00ff00;
+    }
+
+    .guide-line.horizontal {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 2px;
+        background: rgba(0, 255, 0, 0.6);
+        transform: translate(-50%, -50%);
+        border-radius: 1px;
+    }
+
+    .guide-line.vertical {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 2px;
+        height: 40px;
+        background: rgba(0, 255, 0, 0.6);
+        transform: translate(-50%, -50%);
+        border-radius: 1px;
+    }
+
+    .scan-instruction {
+        position: absolute;
+        bottom: -50px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+    }
+
+    .instruction-text {
+        display: inline-block;
+        color: white;
+        font-size: 15px;
+        font-weight: bold;
+        text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.8);
+        background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 200, 0, 0.3));
+        padding: 8px 16px;
+        border-radius: 25px;
+        border: 2px solid rgba(0, 255, 0, 0.4);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    @keyframes square-pulse {
+        0% {
+            border-color: #00ff00;
+            box-shadow: 
+                0 0 0 2px rgba(0, 255, 0, 0.3),
+                0 0 20px rgba(0, 255, 0, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        50% {
+            border-color: #00cc00;
+            box-shadow: 
+                0 0 0 4px rgba(0, 255, 0, 0.5),
+                0 0 30px rgba(0, 255, 0, 0.3),
+                inset 0 0 25px rgba(255, 255, 255, 0.15);
+        }
+        100% {
+            border-color: #00ff00;
+            box-shadow: 
+                0 0 0 2px rgba(0, 255, 0, 0.3),
+                0 0 20px rgba(0, 255, 0, 0.2),
+                inset 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+    }
+
+    @keyframes corner-glow {
+        0% {
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.5),
+                inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+        50% {
+            box-shadow: 
+                0 0 20px rgba(0, 255, 0, 0.8),
+                inset 0 0 15px rgba(0, 255, 0, 0.4);
+        }
+        100% {
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.5),
+                inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+    }
+
+    @keyframes scan-animation {
+        0% {
+            top: 10px;
+            opacity: 0.8;
+        }
+        50% {
+            top: 50%;
+            opacity: 1;
+        }
+        100% {
+            top: calc(100% - 13px);
+            opacity: 0.8;
+        }
+    }
+
+    /* Success animation */
+    .scanner-success .target-square-border {
+        border-color: #00ff00;
+        animation: success-burst 0.8s ease-in-out;
+    }
+
+    .scanner-success .corner-indicator {
+        border-color: #00ff00;
+        animation: success-corners 0.8s ease-in-out;
+    }
+
+    .scanner-success .scanning-line {
+        background: linear-gradient(90deg, transparent, #00ff00, transparent);
+        box-shadow: 0 0 20px #00ff00;
+    }
+
+    .scanner-success .guide-line {
+        background: #00ff00;
+        box-shadow: 0 0 10px #00ff00;
+    }
+
+    @keyframes success-burst {
+        0% {
+            border-color: #00ff00;
+            box-shadow: 
+                0 0 0 2px rgba(0, 255, 0, 0.3),
+                0 0 20px rgba(0, 255, 0, 0.2);
+        }
+        50% {
+            border-color: #00ff00;
+            box-shadow: 
+                0 0 0 10px rgba(0, 255, 0, 0.8),
+                0 0 50px rgba(0, 255, 0, 0.6);
+        }
+        100% {
+            border-color: #00ff00;
+            box-shadow: 
+                0 0 0 2px rgba(0, 255, 0, 0.3),
+                0 0 20px rgba(0, 255, 0, 0.2);
+        }
+    }
+
+    @keyframes success-corners {
+        0% {
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.5),
+                inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+        50% {
+            box-shadow: 
+                0 0 30px rgba(0, 255, 0, 1),
+                inset 0 0 20px rgba(0, 255, 0, 0.6);
+        }
+        100% {
+            box-shadow: 
+                0 0 10px rgba(0, 255, 0, 0.5),
+                inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+    }
+
+    /* Hide default html5-qrcode styling to avoid conflicts */
+    #reader > div {
+        border: none !important;
+    }
+</style>
+
+<!-- QR Scanner -->
+<script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let scanningDisabled = false;
+
+        function onScanSuccess(decodedText) {
+            if (scanningDisabled) return;
+
+            document.getElementById("qr-result").innerHTML = "Scanned: " + decodedText;
+            const parts = decodedText.split("/").filter(Boolean);
+            const event_id = parts[1];
+            const participant_id = parts[2];
+
+            scanningDisabled = true;
+            
+            // Add success animation to targeting overlay
+            const targetWindow = document.querySelector(".square-target-window");
+            if (targetWindow) {
+                targetWindow.classList.add("scanner-success");
+                setTimeout(() => {
+                    targetWindow.classList.remove("scanner-success");
+                }, 800);
+            }
+
+            fetch("{% url 'mark_attendance' %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: `event_id=${event_id}&participant_id=${participant_id}`
+            })
+            .then(response => response.json().then(data => ({status: response.status, body: data})))
+            .then(({status, body}) => {
+                const swalOptions = {
+                    confirmButtonColor: "#3085d6",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false
+                };
+
+                if (status === 400 && body.message.includes("not approved")) {
+                    // Special handling for non-approved participants
+                    swalOptions.icon = "error";
+                    swalOptions.title = "Invalid Ticket";
+                    swalOptions.text = body.message;
+                    swalOptions.footer = "Please contact the event organizer for assistance.";
+                } else if (body.status === "success") {
+                    swalOptions.icon = "success";
+                    swalOptions.title = "Check-In Successful";
+                    swalOptions.text = body.message;
+
+                    // Update counters and lists only for approved participants
+                    document.getElementById("present-count").innerText = body.present_count;
+                    document.getElementById("not-present-count").innerText = body.not_present_count;
+
+                    // Rest of the success handling code...
+                    // ✅ Add to Present List if participant is approved
+                    if (body.participant_approval_status === "approved") {
+                        const presentList = document.getElementById("present-list");
+                        // Remove "No participants checked in yet" message if it exists
+                        const emptyPresentMessage = presentList.querySelector(".text-gray-500");
+                        if (emptyPresentMessage) {
+                            emptyPresentMessage.remove();
+                        }
+                        const newPresent = document.createElement("li");
+                        newPresent.className = "p-2 border-b";
+                        newPresent.textContent = body.participant_name;
+                        presentList.appendChild(newPresent);
+
+                        // ✅ Remove from Not Present List
+                        const notPresentList = document.getElementById("not-present-list");
+                        const notPresentItems = notPresentList.querySelectorAll("li");
+                        let removedFromNotPresent = false;
+                        
+                        notPresentItems.forEach(item => {
+                            if (item.textContent === body.participant_name) {
+                                item.remove();
+                                removedFromNotPresent = true;
+                            }
+                        });
+
+                        // Check if Not Present list is empty after removal
+                        const remainingNotPresentItems = notPresentList.querySelectorAll("li:not(.text-gray-500)");
+                        if (remainingNotPresentItems.length === 0) {
+                            // Remove any existing empty message
+                            const existingEmptyMessage = notPresentList.querySelector(".text-gray-500");
+                            if (existingEmptyMessage) {
+                                existingEmptyMessage.remove();
+                            }
+                            // Add empty message
+                            const emptyMessage = document.createElement("li");
+                            emptyMessage.className = "p-2 text-gray-500";
+                            emptyMessage.innerText = "All approved participants have checked in.";
+                            notPresentList.appendChild(emptyMessage);
+                        }
+                    }
+
+                } else if (body.status === "signature_required") {
+                    window.location.href = body.redirect_url;
+                    return;
+                } else if (body.status === "warning") {
+                    swalOptions.icon = "warning";
+                    swalOptions.title = "Already Checked In";
+                    swalOptions.text = body.message;
+                } else {
+                    swalOptions.icon = "error";
+                    swalOptions.title = "Error";
+                    swalOptions.text = body.message;
+                }
+
+                Swal.fire(swalOptions).then(() => {
+                    setTimeout(() => { scanningDisabled = false; }, 1500);
+                });
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops...",
+                    text: "Something went wrong!",
+                    confirmButtonColor: "#3085d6"
+                }).then(() => {
+                    setTimeout(() => { scanningDisabled = false; }, 1500);
+                });
+            });
+        }
+
+        function onScanError(error) {
+            // Handle scan errors silently - this is normal when no QR code is detected
+            console.log("Scan error:", error);
+        }
+
+        function startScanner() {
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                disableFlip: false
+            };
+            
+            let scanner = new Html5QrcodeScanner("reader", config, false);
+            
+            scanner.render(onScanSuccess, onScanError)
+                .then(() => {
+                    document.getElementById("scanner-status").innerHTML = 
+                        '<p class="text-green-600">Camera ready! Point your camera at the QR code.</p>';
+                    
+                    // Show the targeting overlay
+                    document.getElementById("qr-target-overlay").classList.remove("hidden");
+                })
+                .catch(err => {
+                    console.error("Scanner initialization error:", err);
+                    handleScannerError(err);
+                });
+        }
+
+        function handleScannerError(error) {
+            const errorDiv = document.getElementById("error-message");
+            const statusDiv = document.getElementById("scanner-status");
+            const manualInput = document.getElementById("manual-input");
+            
+            let errorMessage = "Camera access failed. ";
+            
+            if (error.name === 'NotAllowedError') {
+                errorMessage += "Please allow camera access and refresh the page.";
+            } else if (error.name === 'NotFoundError') {
+                errorMessage += "No camera found on this device.";
+            } else if (error.name === 'NotSupportedError') {
+                errorMessage += "Camera not supported on this browser.";
+            } else if (error.name === 'NotReadableError') {
+                errorMessage += "Camera is already in use by another application.";
+            } else if (error.name === 'SecurityError') {
+                errorMessage += "Camera access blocked. Please use HTTPS or allow camera access.";
+            } else {
+                errorMessage += "Please try refreshing the page or use manual input below.";
+            }
+            
+            statusDiv.classList.add("hidden");
+            errorDiv.textContent = errorMessage;
+            errorDiv.classList.remove("hidden");
+            manualInput.classList.remove("hidden");
+            
+            // Hide targeting overlay on error
+            document.getElementById("qr-target-overlay").classList.add("hidden");
+        }
+
+        // Check for camera permissions first
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    // Stop the test stream immediately
+                    stream.getTracks().forEach(track => track.stop());
+                    // Now start the actual scanner
+                    startScanner();
+                })
+                .catch(error => {
+                    console.error("Camera permission error:", error);
+                    handleScannerError(error);
+                });
+        } else {
+            handleScannerError(new Error("Camera API not supported"));
+        }
+    });
+
+    function processManualQR() {
+        const manualQRInput = document.getElementById("manual-qr");
+        const qrData = manualQRInput.value.trim();
+        
+        if (qrData) {
+            // Process the manually entered QR code
+            const parts = qrData.split("/").filter(Boolean);
+            if (parts.length >= 3 && parts[0] === "scan_qr") {
+                                 // Call the same function as the scanner
+                 document.getElementById("qr-result").innerHTML = "Processing: " + qrData;
+                 
+                 // Show brief success animation for manual input
+                 const manualInput = document.getElementById("manual-input");
+                 manualInput.style.backgroundColor = "#dcfce7";
+                 setTimeout(() => {
+                     manualInput.style.backgroundColor = "";
+                 }, 1000);
+                
+                const event_id = parts[1];
+                const participant_id = parts[2];
+                
+                fetch("{% url 'mark_attendance' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: `event_id=${event_id}&participant_id=${participant_id}`
+                })
+                .then(response => response.json().then(data => ({status: response.status, body: data})))
+                .then(({status, body}) => {
+                    manualQRInput.value = ""; // Clear input
+                    
+                    if (status === 400 && body.message.includes("not approved")) {
+                        // Special handling for non-approved participants
+                        Swal.fire({
+                            icon: "error",
+                            title: "Invalid Ticket",
+                            text: body.message,
+                            footer: "Please contact the event organizer for assistance.",
+                            confirmButtonColor: "#3085d6"
+                        });
+                    } else if (body.status === "success") {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Check-In Successful",
+                            text: body.message,
+                            confirmButtonColor: "#3085d6"
+                        });
+                        
+                        // Update counters
+                        document.getElementById("present-count").innerText = body.present_count;
+                        document.getElementById("not-present-count").innerText = body.not_present_count;
+                        
+                        // Update lists if participant is approved
+                        if (body.participant_approval_status === "approved") {
+                            // Add to Present List
+                            const presentList = document.getElementById("present-list");
+                            // Remove "No participants checked in yet" message if it exists
+                            const emptyPresentMessage = presentList.querySelector(".text-gray-500");
+                            if (emptyPresentMessage) {
+                                emptyPresentMessage.remove();
+                            }
+                            const newPresent = document.createElement("li");
+                            newPresent.className = "p-2 border-b";
+                            newPresent.textContent = body.participant_name;
+                            presentList.appendChild(newPresent);
+
+                            // Remove from Not Present List
+                            const notPresentList = document.getElementById("not-present-list");
+                            const notPresentItems = notPresentList.querySelectorAll("li");
+                            let removedFromNotPresent = false;
+                            
+                            notPresentItems.forEach(item => {
+                                if (item.textContent === body.participant_name) {
+                                    item.remove();
+                                    removedFromNotPresent = true;
+                                }
+                            });
+
+                            // Check if Not Present list is empty after removal
+                            const remainingNotPresentItems = notPresentList.querySelectorAll("li:not(.text-gray-500)");
+                            if (remainingNotPresentItems.length === 0) {
+                                // Remove any existing empty message
+                                const existingEmptyMessage = notPresentList.querySelector(".text-gray-500");
+                                if (existingEmptyMessage) {
+                                    existingEmptyMessage.remove();
+                                }
+                                // Add empty message
+                                const emptyMessage = document.createElement("li");
+                                emptyMessage.className = "p-2 text-gray-500";
+                                emptyMessage.innerText = "All approved participants have checked in.";
+                                notPresentList.appendChild(emptyMessage);
+                            }
+                        }
+                        
+                    } else if (body.status === "signature_required") {
+                        window.location.href = body.redirect_url;
+                        return;
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: body.message
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error("Error:", error);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops...",
+                        text: "Something went wrong!"
+                    });
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Invalid QR Code",
+                    text: "Please enter a valid QR code format."
+                });
+            }
+        } else {
+            Swal.fire({
+                icon: "warning",
+                title: "Empty Input",
+                text: "Please enter a QR code."
+            });
+        }
+    }
+
+    function openModal(id) {
+        document.getElementById(id).classList.remove("hidden");
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add("hidden");
+    }
+</script>
+{% endblock %}
