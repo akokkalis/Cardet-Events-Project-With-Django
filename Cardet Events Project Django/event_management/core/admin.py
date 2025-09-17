@@ -153,6 +153,7 @@ class EventAdmin(admin.ModelAdmin):
                     "public_registration_enabled",
                     "auto_approval_enabled",
                     "signatures",
+                    "consent_disclaimer",
                 )
             },
         ),

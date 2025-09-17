@@ -6,6 +6,33 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+    /* Enhanced styling for links in consent disclaimer */
+    .consent-disclaimer a {
+        color: #1d4ed8 !important; /* Blue-700 */
+        text-decoration: underline !important;
+        font-weight: 600 !important;
+        text-decoration-thickness: 2px !important;
+        text-underline-offset: 2px !important;
+        transition: all 0.2s ease-in-out !important;
+    }
+    
+    .consent-disclaimer a:hover {
+        color: #1e40af !important; /* Blue-800 */
+        text-decoration-color: #1e40af !important;
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        padding: 2px 4px !important;
+        border-radius: 4px !important;
+    }
+    
+    .consent-disclaimer a:focus {
+        outline: 2px solid #3b82f6 !important;
+        outline-offset: 2px !important;
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        padding: 2px 4px !important;
+        border-radius: 4px !important;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -193,6 +220,27 @@
                         {% endif %}
                     </div>
                 {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Consent Disclaimer -->
+         
+        {% if event.consent_disclaimer %}
+           
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg my-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-blue-800 mb-2">Important Information</h3>
+                        <div class="text-sm text-gray-900 consent-disclaimer">
+                            {{ event.consent_disclaimer|safe }}
+                        </div>
+                    </div>
+                </div>
             </div>
         {% endif %}
 

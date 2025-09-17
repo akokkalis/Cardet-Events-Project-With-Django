@@ -251,6 +251,11 @@ class Event(models.Model):
         help_text="Upload a PDF certificate template file for this event. Use placeholders like {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}} for personalization.",
     )
     status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
+    consent_disclaimer = RichTextField(
+        blank=True,
+        null=True,
+        help_text="Optional GDPR / consent disclaimer shown on the registration form.",
+    )
 
     def get_event_folder(self):
         """Returns the event folder path inside 'Events/'."""
