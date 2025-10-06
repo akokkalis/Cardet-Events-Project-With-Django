@@ -1,0 +1,381 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Attendance Dashboard - {{ event.event_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .status-present {
+        background-color: #10b981;
+        animation: pulse 2s infinite;
+    }
+    
+    .status-absent {
+        background-color: #ef4444;
+    }
+    
+    @keyframes pulse {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+    
+    .participant-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .participant-card.present {
+        border-left-color: #10b981;
+        background: linear-gradient(to right, #ecfdf5, #ffffff);
+    }
+    
+    .participant-card.absent {
+        border-left-color: #ef4444;
+        background: linear-gradient(to right, #fef2f2, #ffffff);
+    }
+    
+    .participant-card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .refresh-indicator {
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    
+    .refresh-indicator.show {
+        opacity: 1;
+    }
+    
+    .stats-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .count-display {
+        font-size: 2.5rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+    
+    .last-updated {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6 m-10">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+            </a>
+            <h1 class="text-3xl font-bold">Attendance Dashboard</h1>
+            <div class="refresh-indicator" id="refreshIndicator">
+                <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="text-right">
+            <h2 class="text-xl font-semibold text-gray-800">{{ event.event_name }}</h2>
+            <p class="text-sm text-gray-600">{{ event.event_date|date:"F j, Y" }} at {{ event.start_time|time:"g:i a" }}</p>
+            <p class="last-updated" id="lastUpdated">Last updated: <span id="updateTime">{{ "now"|date:"H:i:s" }}</span></p>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="stats-card p-6 rounded-lg shadow-lg">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-blue-100 text-sm font-medium">Total Participants</p>
+                    <p class="count-display" id="totalCount">{{ total_participants }}</p>
+                    <a href="{% url 'export_attendance_csv' event.id %}" class="inline-flex items-center gap-1 mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <span>Export CSV</span>
+                    </a>
+                </div>
+                <div class="text-blue-200">
+                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-green-500 p-6 rounded-lg shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-green-100 text-sm font-medium">Present</p>
+                    <p class="count-display" id="presentCount">{{ present_count }}</p>
+                </div>
+                <div class="text-green-200">
+                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-red-500 p-6 rounded-lg shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-red-100 text-sm font-medium">Not Present</p>
+                    <p class="count-display" id="notPresentCount">{{ not_present_count }}</p>
+                </div>
+                <div class="text-red-200">
+                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-yellow-500 p-6 rounded-lg shadow-lg text-white">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-yellow-100 text-sm font-medium">Attendance Rate</p>
+                    <p class="count-display" id="attendanceRate">{{ attendance_rate }}%</p>
+                </div>
+                <div class="text-yellow-200">
+                    <svg class="h-8 w-8" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Lists -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Present Participants -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="status-indicator status-present"></span>
+                <h3 class="text-xl font-semibold text-green-700">Present Participants</h3>
+                <span class="bg-green-100 text-green-800 px-2 py-1 rounded-full text-sm font-medium" id="presentBadge">{{ present_count }}</span>
+            </div>
+            
+            <div class="space-y-3 max-h-96 overflow-y-auto" id="presentList">
+                {% for participant in present_participants %}
+                <div class="participant-card present p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">{{ participant.name }}</h4>
+                            <p class="text-sm text-gray-600">{{ participant.email }}</p>
+                            {% if participant.phone %}
+                            <p class="text-sm text-gray-500">{{ participant.phone }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            {% if participant.attendance_timestamp %}
+                            <p class="text-xs text-green-600 font-medium">
+                                Checked in: {{ participant.attendance_timestamp|date:"H:i" }}
+                            </p>
+                            {% endif %}
+                            {% if participant.has_signature %}
+                            <p class="text-xs text-blue-600">✓ Signature</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A10.003 10.003 0 0124 26c4.21 0 7.813 2.602 9.288 6.286" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                    <p class="mt-2">No participants have checked in yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Not Present Participants -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="status-indicator status-absent"></span>
+                <h3 class="text-xl font-semibold text-red-700">Not Present Participants</h3>
+                <span class="bg-red-100 text-red-800 px-2 py-1 rounded-full text-sm font-medium" id="notPresentBadge">{{ not_present_count }}</span>
+            </div>
+            
+            <div class="space-y-3 max-h-96 overflow-y-auto" id="notPresentList">
+                {% for participant in not_present_participants %}
+                <div class="participant-card absent p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h4 class="font-semibold text-gray-800">{{ participant.name }}</h4>
+                            <p class="text-sm text-gray-600">{{ participant.email }}</p>
+                            {% if participant.phone %}
+                            <p class="text-sm text-gray-500">{{ participant.phone }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-gray-500">
+                                Registered: {{ participant.registered_at|date:"M j, H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-8 text-gray-500">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                    </svg>
+                    <p class="mt-2">All participants have checked in!</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let refreshInterval;
+let eventId = {{ event.id }};
+
+function updateAttendanceData() {
+    const refreshIndicator = document.getElementById('refreshIndicator');
+    refreshIndicator.classList.add('show');
+    
+    fetch(window.location.href, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update statistics
+        document.getElementById('totalCount').textContent = data.total_participants;
+        document.getElementById('presentCount').textContent = data.present_count;
+        document.getElementById('notPresentCount').textContent = data.not_present_count;
+        document.getElementById('attendanceRate').textContent = data.attendance_rate + '%';
+        document.getElementById('presentBadge').textContent = data.present_count;
+        document.getElementById('notPresentBadge').textContent = data.not_present_count;
+        
+        // Update participant lists
+        updateParticipantList('presentList', data.present_participants, true);
+        updateParticipantList('notPresentList', data.not_present_participants, false);
+        
+        // Update timestamp
+        const now = new Date();
+        document.getElementById('updateTime').textContent = now.toLocaleTimeString();
+        
+        setTimeout(() => {
+            refreshIndicator.classList.remove('show');
+        }, 500);
+    })
+    .catch(error => {
+        console.error('Error updating attendance data:', error);
+        refreshIndicator.classList.remove('show');
+    });
+}
+
+function updateParticipantList(listId, participants, isPresent) {
+    const listElement = document.getElementById(listId);
+    
+    if (participants.length === 0) {
+        const statusClass = isPresent ? 'status-present' : 'status-absent';
+        const message = isPresent ? 'No participants have checked in yet' : 'All participants have checked in!';
+        const iconPath = isPresent ? 
+            'M34 40h10v-4a6 6 0 00-10.712-3.714M34 40H14m20 0v-4a9.971 9.971 0 00-.712-3.714M14 40H4v-4a6 6 0 0110.713-3.714M14 40v-4c0-1.313.253-2.566.713-3.714m0 0A10.003 10.003 0 0124 26c4.21 0 7.813 2.602 9.288 6.286' :
+            'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z';
+        
+        listElement.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                    <path d="${iconPath}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+                </svg>
+                <p class="mt-2">${message}</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const cardClass = isPresent ? 'present' : 'absent';
+    let html = '';
+    
+    participants.forEach(participant => {
+        const timestampInfo = isPresent && participant.attendance_timestamp ? 
+            `<p class="text-xs text-green-600 font-medium">
+                Checked in: ${new Date(participant.attendance_timestamp).toLocaleTimeString('en-US', {hour: '2-digit', minute: '2-digit'})}
+            </p>` :
+            `<p class="text-xs text-gray-500">
+                Registered: ${new Date(participant.registered_at).toLocaleDateString('en-US', {month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'})}
+            </p>`;
+        
+        const signatureInfo = participant.has_signature ? 
+            '<p class="text-xs text-blue-600">✓ Signature</p>' : '';
+        
+        html += `
+            <div class="participant-card ${cardClass} p-4 rounded-lg shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-semibold text-gray-800">${participant.name}</h4>
+                        <p class="text-sm text-gray-600">${participant.email}</p>
+                        ${participant.phone ? `<p class="text-sm text-gray-500">${participant.phone}</p>` : ''}
+                    </div>
+                    <div class="text-right">
+                        ${timestampInfo}
+                        ${signatureInfo}
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    listElement.innerHTML = html;
+}
+
+// Start auto-refresh when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initial update after 5 seconds
+    setTimeout(updateAttendanceData, 5000);
+    
+    // Set up interval for every 10 seconds
+    refreshInterval = setInterval(updateAttendanceData, 10000);
+});
+
+// Clean up interval when page is unloaded
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+    }
+});
+
+// Pause refresh when page is not visible
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    } else {
+        // Resume refresh when page becomes visible again
+        refreshInterval = setInterval(updateAttendanceData, 10000);
+        // Immediate update when returning to page
+        updateAttendanceData();
+    }
+});
+</script>
+{% endblock %}
