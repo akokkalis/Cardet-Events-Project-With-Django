@@ -3407,62 +3407,76 @@ def event_attendance_dashboard(request, event_id):
     Real-time attendance dashboard showing present and not present participants
     """
     event = get_object_or_404(Event, id=event_id)
-    
+
     # Get all participants for this event
-    participants = Participant.objects.filter(event=event, approval_status='approved').order_by('name')
-    
+    participants = Participant.objects.filter(
+        event=event, approval_status="approved"
+    ).order_by("name")
+
     # Get attendance records
-    attendance_records = Attendance.objects.filter(event=event).select_related('participant')
-    
+    attendance_records = Attendance.objects.filter(event=event).select_related(
+        "participant"
+    )
+
     # Create dictionaries for quick lookup
     attendance_dict = {att.participant.id: att for att in attendance_records}
-    
+
     # Categorize participants
     present_participants = []
     not_present_participants = []
-    
+
     for participant in participants:
         attendance = attendance_dict.get(participant.id)
         participant_data = {
-            'id': participant.id,
-            'name': participant.name,
-            'email': participant.email,
-            'phone': participant.phone,
-            'registered_at': participant.registered_at,
-            'attendance_timestamp': attendance.timestamp if attendance and attendance.present else None,
-            'has_signature': bool(attendance and attendance.signature_file) if attendance else False,
+            "id": participant.id,
+            "name": participant.name,
+            "email": participant.email,
+            "phone": participant.phone,
+            "registered_at": participant.registered_at,
+            "attendance_timestamp": (
+                attendance.timestamp if attendance and attendance.present else None
+            ),
+            "has_signature": (
+                bool(attendance and attendance.signature_file) if attendance else False
+            ),
         }
-        
+
         if attendance and attendance.present:
             present_participants.append(participant_data)
         else:
             not_present_participants.append(participant_data)
-    
+
     # Sort by attendance timestamp for present participants, and by name for not present
-    present_participants.sort(key=lambda x: x['attendance_timestamp'], reverse=True)
-    not_present_participants.sort(key=lambda x: x['name'])
-    
+    present_participants.sort(key=lambda x: x["attendance_timestamp"], reverse=True)
+    not_present_participants.sort(key=lambda x: x["name"])
+
     context = {
-        'event': event,
-        'present_participants': present_participants,
-        'not_present_participants': not_present_participants,
-        'total_participants': len(participants),
-        'present_count': len(present_participants),
-        'not_present_count': len(not_present_participants),
-        'attendance_rate': round((len(present_participants) / len(participants)) * 100, 1) if participants else 0,
+        "event": event,
+        "present_participants": present_participants,
+        "not_present_participants": not_present_participants,
+        "total_participants": len(participants),
+        "present_count": len(present_participants),
+        "not_present_count": len(not_present_participants),
+        "attendance_rate": (
+            round((len(present_participants) / len(participants)) * 100, 1)
+            if participants
+            else 0
+        ),
     }
-    
+
     # If it's an AJAX request, return JSON data
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return JsonResponse({
-            'present_participants': present_participants,
-            'not_present_participants': not_present_participants,
-            'present_count': len(present_participants),
-            'not_present_count': len(not_present_participants),
-            'total_participants': len(participants),
-            'attendance_rate': context['attendance_rate'],
-        })
-    
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse(
+            {
+                "present_participants": present_participants,
+                "not_present_participants": not_present_participants,
+                "present_count": len(present_participants),
+                "not_present_count": len(not_present_participants),
+                "total_participants": len(participants),
+                "attendance_rate": context["attendance_rate"],
+            }
+        )
+
     return render(request, "attendance_dashboard.html", context)
 
 
@@ -3473,62 +3487,73 @@ def export_attendance_csv(request, event_id):
     """
     import csv
     from django.utils import timezone
-    
+
     event = get_object_or_404(Event, id=event_id)
-    
+
     # Create filename as "attendance_output" with timestamp
     filename = f"attendance_output_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
-    
+
     # Create the HttpResponse object with CSV header and UTF-8 encoding
-    response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
     # Add UTF-8 BOM for better compatibility with Excel and other applications
-    response.write('\ufeff')
-    
+    response.write("\ufeff")
+
     writer = csv.writer(response)
-    
+
     # Write event name as the first row
-    writer.writerow([f'Event: {event.event_name}'])
+    writer.writerow([f"Event: {event.event_name}"])
     writer.writerow([])  # Empty row for spacing
-    
+
     # Write header row
-    writer.writerow([
-        'Name',
-        'Email', 
-        'Phone',
-        'Attendance Status',
-        'Registration Date',
-        'Check-in Time',
-        'Has Signature'
-    ])
-    
+    writer.writerow(
+        [
+            "Name",
+            "Email",
+            "Phone",
+            "Attendance Status",
+            "Registration Date",
+            "Check-in Time",
+            "Has Signature",
+        ]
+    )
+
     # Get all approved participants for this event
     participants = Participant.objects.filter(
-        event=event, 
-        approval_status='approved'
-    ).order_by('name')
-    
+        event=event, approval_status="approved"
+    ).order_by("name")
+
     # Get attendance records
-    attendance_records = Attendance.objects.filter(event=event).select_related('participant')
+    attendance_records = Attendance.objects.filter(event=event).select_related(
+        "participant"
+    )
     attendance_dict = {att.participant.id: att for att in attendance_records}
-    
+
     # Write participant data
     for participant in participants:
         attendance = attendance_dict.get(participant.id)
-        
-        attendance_status = 'Present' if attendance and attendance.present else 'Not Present'
-        check_in_time = attendance.timestamp.strftime('%Y-%m-%d %H:%M:%S') if attendance and attendance.present else ''
-        has_signature = 'Yes' if attendance and attendance.signature_file else 'No'
-        
-        writer.writerow([
-            participant.name,
-            participant.email,
-            participant.phone or '',
-            attendance_status,
-            participant.registered_at.strftime('%Y-%m-%d %H:%M:%S'),
-            check_in_time,
-            has_signature
-        ])
-    
+
+        attendance_status = (
+            "Present" if attendance and attendance.present else "Not Present"
+        )
+        check_in_time = (
+            attendance.timestamp.strftime("%Y-%m-%d %H:%M:%S")
+            if attendance and attendance.present
+            else ""
+        )
+        has_signature = "Yes" if attendance and attendance.signature_file else "No"
+
+        writer.writerow(
+            [
+                participant.name,
+                participant.email,
+                participant.phone or "",
+                attendance_status,
+                participant.registered_at.strftime("%Y-%m-%d %H:%M:%S"),
+                check_in_time,
+                has_signature,
+            ]
+        )
+
     return response
