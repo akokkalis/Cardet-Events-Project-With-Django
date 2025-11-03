@@ -34,7 +34,7 @@ from .tasks import (
     generate_paidticket_pdf_task,
 )
 
-=======
+
 from .models import Company, Event, Participant
 from .utils import generate_pdf_ticket
 
@@ -142,7 +142,7 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
         )
 
         print(f"🚀 Registration processing started in background for: {instance.name}")
-=======
+
 ## **QR Code & PDF Ticket Generation for Participants**
 @receiver(post_save, sender=Participant)
 def generate_qr_and_pdf(sender, instance, created, **kwargs):
@@ -532,7 +532,7 @@ def generate_paid_tickets_on_order_complete(sender, instance, created, **kwargs)
                     paid_ticket.generate_qr_code()
                     paid_ticket.save()
                     generate_paidticket_pdf_task.delay(paid_ticket.id)
-=======
+
     """Send email with the ticket attached."""
     subject = f"Your Ticket for {participant.event.event_name}"
     body = f"""
