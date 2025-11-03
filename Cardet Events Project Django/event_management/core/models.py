@@ -65,10 +65,8 @@ def company_logo_path(instance, filename):
 
 def event_image_path(instance, filename):
     """Returns the path to store event images inside the event folder."""
-<<<<<<< HEAD
 
-=======
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
+
     if instance.id:  # Ensure the instance has an ID before using it
         return os.path.join(
             f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
