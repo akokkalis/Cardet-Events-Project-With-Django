@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Ticket</title>
     <style>
+<<<<<<< HEAD
         @font-face {
             font-family: 'DejaVu';
             src: url('file://{{ font_path }}');
         }
         body {
             font-family: 'DejaVu', sans-serif;
+=======
+        body {
+            font-family: 'Arial', sans-serif;
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
@@ -20,13 +25,18 @@
             min-height: 100vh;
         }
         .ticket {
+<<<<<<< HEAD
             width: 600px;
+=======
+            width: 400px; /* Slightly smaller for a ticket-like feel */
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             background: #fff;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             position: relative;
         }
+<<<<<<< HEAD
         .header-section {
             padding: 20px;
             background: #fff;
@@ -97,10 +107,56 @@
         .event-details .detail-item a {
             color: #1a73e8;
             text-decoration: none;
+=======
+        .ticket::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                transparent,
+                transparent 10px,
+                #ddd 10px,
+                #ddd 20px
+            );
+            transform: translateX(-50%);
+        }
+        .image-section {
+            text-align: center;
+            background: linear-gradient(135deg, #6a11cb, #2575fc);
+            color: #fff;
+            padding: 20px;
+        }
+        .image-section img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .event-section {
+            padding: 10px;
+            text-align: center;
+        }
+        .event-section h1 {
+            margin: 0 0 10px;
+            font-size: 28px;
+            color: #333;
+            font-weight: bold;
+        }
+        .event-section p {
+            margin: 10px 0;
+            font-size: 16px;
+            color: #555;
+        }
+        .event-section p strong {
+            color: #333;
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         }
         .qrcode-section {
             text-align: center;
             padding: 20px;
+<<<<<<< HEAD
             background: #f0f0f0;
             border-top: 2px dashed #ddd;
         }
@@ -127,11 +183,54 @@
             background: #00bcd4;
             color: #fff;
             font-weight: 500;
+=======
+            background: #f8f8f8;
+            border-top: 2px dashed #ddd;
+            border-bottom: 2px dashed #ddd;
+        }
+        .qrcode-section img {
+            width: 150px;
+            height: 150px;
+            border: 5px solid #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .footer {
+            padding: 5px;
+            text-align: center;
+            font-size: 5px;
+            background: #f8f8f8;
+            color: #555;
+        }
+        .footer a {
+            color: #2575fc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        .top-images {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .top-images td {
+            width: 50%;
+            padding: 10px;
+            text-align: center;
+        }
+        .top-images img {
+            width: 200px; /* Set width to 100px */
+            height: 68px; /* Set height to 100px */
+            border-radius: 8px;
+            object-fit: cover; /* Ensures the image scales properly */
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         }
     </style>
 </head>
 <body>
     <div class="ticket">
+<<<<<<< HEAD
         <!-- Header Section with Logo and Title -->
         <div class="header-section">
             <div class="company-logo">
@@ -190,18 +289,49 @@
                     {% endif %}
                 </div>
             </div>
+=======
+        <!-- Top Images Section -->
+        <table class="top-images">
+            <tr>
+                <td>
+                    <img src="images/cardet_logo.png" alt="Event Banner">
+                </td>
+                <td>
+                    <img src="images/ticket.png" alt="Event Banner">
+                </td>
+            </tr>
+        </table>
+
+        <!-- Event Details Section -->
+        <div class="event-section">
+            <h1><strong>{{ participant.event.event_name }}</strong></h1>
+            <p><strong>Participant:</strong> {{ participant.name }}</p>
+            <p><strong>Email:</strong> {{ participant.email }}</p>
+            <p><strong>Date:</strong> {{ participant.event.event_date }}</p>
+            <p><strong>Time:</strong> {{ participant.event.start_time }} - {{ participant.event.end_time }}</p>
+            <p><strong>Venue:</strong> {{ participant.event.location }}</p>
+            
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         </div>
 
         <!-- QR Code Section -->
         <div class="qrcode-section">
             <img src="{{qr_image_path}}" alt="QR Code">
+<<<<<<< HEAD
             <h2>Name of event</h2>
+=======
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             <p>Scan this QR code for entry</p>
         </div>
 
         <!-- Footer Section -->
         <div class="footer">
+<<<<<<< HEAD
             Thank you for attending our event!
+=======
+            <p>Thank you for attending our event!</p>
+            <p>For more information, visit <a href="https://example.com">our website</a>.</p>
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         </div>
     </div>
 </body>

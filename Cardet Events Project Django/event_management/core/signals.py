@@ -4,6 +4,7 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
+<<<<<<< HEAD
 from .models import (
     Company,
     Event,
@@ -34,6 +35,10 @@ from .tasks import (
     generate_paidticket_pdf_task,
 )
 
+=======
+from .models import Company, Event, Participant
+from .utils import generate_pdf_ticket
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
@@ -112,6 +117,7 @@ def delete_event_folder(sender, instance, **kwargs):
         print(f"🗑 Event folder deleted: {event_folder}")
 
 
+<<<<<<< HEAD
 ### **Paid Tickets Folder Creation**
 @receiver(post_save, sender=Event)
 def create_paid_tickets_folder(sender, instance, **kwargs):
@@ -139,10 +145,24 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
         )
 
         print(f"🚀 Registration processing started in background for: {instance.name}")
+=======
+## **QR Code & PDF Ticket Generation for Participants**
+@receiver(post_save, sender=Participant)
+def generate_qr_and_pdf(sender, instance, created, **kwargs):
+    """Generates a QR code and a PDF ticket when a participant is registered."""
+    if created:
+        qr_path = instance.generate_qr_code()  # Generate and get correct QR path
+        pdf_path = generate_pdf_ticket(instance, qr_path)  # Generate PDF
+
+        if pdf_path:  # Only save if the PDF was generated successfully
+            instance.pdf_ticket = pdf_path
+            instance.save(update_fields=["pdf_ticket"])
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 
 
 ### **Email Ticket to Participant**
 def send_ticket_email(participant):
+<<<<<<< HEAD
     """Send an email with the event ticket attached asynchronously using the company's SMTP settings."""
 
     # ✅ Get company email configuration
@@ -517,3 +537,23 @@ def generate_paid_tickets_on_order_complete(sender, instance, created, **kwargs)
                     paid_ticket.generate_qr_code()
                     paid_ticket.save()
                     generate_paidticket_pdf_task.delay(paid_ticket.id)
+=======
+    """Send email with the ticket attached."""
+    subject = f"Your Ticket for {participant.event.event_name}"
+    body = f"""
+    Dear {participant.name},
+
+    Thank you for registering for {participant.event.event_name} on {participant.event.event_date} at {participant.event.location}.
+    
+    Please find your ticket attached. Show this at the entrance for check-in.
+
+    Regards,
+    {participant.event.company.name}
+    """
+
+    email = EmailMessage(
+        subject, body, settings.DEFAULT_FROM_EMAIL, [participant.email]
+    )
+    email.attach_file(participant.pdf_ticket.path)
+    email.send()
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))

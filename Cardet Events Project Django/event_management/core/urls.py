@@ -10,6 +10,7 @@ from .views import (
     event_delete,
     event_detail,
     scan_qr,
+<<<<<<< HEAD
     mark_attendance,
     sign_signature,
     export_zip,
@@ -79,6 +80,8 @@ from .ticket_views import (
     create_ticket_type,
     edit_ticket_type,
     delete_ticket_type,
+=======
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 )
 
 urlpatterns = [
@@ -151,6 +154,7 @@ urlpatterns = [
     ),
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
+<<<<<<< HEAD
     path(
         "events/<int:event_id>/add_participant/",
         register_participant_api,
@@ -358,6 +362,14 @@ urlpatterns = [
         delete_ticket_type,
         name="delete_ticket_type",
     ),
+=======
+    path("events/", event_list, name="event_list"),
+    path("events/new/", event_create, name="event_create"),
+    path("events/edit/<int:event_id>/", event_edit, name="event_edit"),
+    path("delete/<int:event_id>/", event_delete, name="event_delete"),
+    path("events/<int:event_id>/", event_detail, name="event_detail"),
+    path("scan_qr/<int:event_id>/<int:participant_id>/", scan_qr, name="scan_qr"),
+>>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
