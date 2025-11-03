@@ -61,13 +61,12 @@ from core.tasks import (
     bulk_send_certificates_task,
 )
 import threading
-=======
+
 from .models import Event, Participant, Attendance
 from .forms import EventForm, ParticipantForm
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils.timezone import now
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 
 
 def login_view(request):
@@ -3569,7 +3568,6 @@ def export_attendance_csv(request, event_id):
     return response
 
 
-=======
 def scan_qr(request, event_id, participant_id):
     participant = get_object_or_404(Participant, id=participant_id, event_id=event_id)
 
@@ -3587,4 +3585,3 @@ def scan_qr(request, event_id, participant_id):
 
     else:
         return redirect("https://www.yoursite.com/unauthorized")
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))

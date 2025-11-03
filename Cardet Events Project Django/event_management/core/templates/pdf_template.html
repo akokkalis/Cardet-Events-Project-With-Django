@@ -5,17 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Ticket</title>
     <style>
-<<<<<<< HEAD
         @font-face {
             font-family: 'DejaVu';
             src: url('file://{{ font_path }}');
         }
         body {
             font-family: 'DejaVu', sans-serif;
-=======
+
         body {
             font-family: 'Arial', sans-serif;
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
@@ -25,18 +23,14 @@
             min-height: 100vh;
         }
         .ticket {
-<<<<<<< HEAD
             width: 600px;
-=======
             width: 400px; /* Slightly smaller for a ticket-like feel */
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             background: #fff;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             position: relative;
         }
-<<<<<<< HEAD
         .header-section {
             padding: 20px;
             background: #fff;
@@ -151,12 +145,10 @@
         }
         .event-section p strong {
             color: #333;
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         }
         .qrcode-section {
             text-align: center;
             padding: 20px;
-<<<<<<< HEAD
             background: #f0f0f0;
             border-top: 2px dashed #ddd;
         }
@@ -224,7 +216,6 @@
             height: 68px; /* Set height to 100px */
             border-radius: 8px;
             object-fit: cover; /* Ensures the image scales properly */
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         }
     </style>
 </head>
@@ -311,27 +302,21 @@
             <p><strong>Time:</strong> {{ participant.event.start_time }} - {{ participant.event.end_time }}</p>
             <p><strong>Venue:</strong> {{ participant.event.location }}</p>
             
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         </div>
 
         <!-- QR Code Section -->
         <div class="qrcode-section">
             <img src="{{qr_image_path}}" alt="QR Code">
-<<<<<<< HEAD
             <h2>Name of event</h2>
-=======
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
             <p>Scan this QR code for entry</p>
         </div>
 
         <!-- Footer Section -->
         <div class="footer">
-<<<<<<< HEAD
             Thank you for attending our event!
-=======
+
             <p>Thank you for attending our event!</p>
             <p>For more information, visit <a href="https://example.com">our website</a>.</p>
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
         </div>
     </div>
 </body>

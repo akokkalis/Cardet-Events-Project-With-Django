@@ -38,7 +38,6 @@ from .tasks import (
 =======
 from .models import Company, Event, Participant
 from .utils import generate_pdf_ticket
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
@@ -157,7 +156,6 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
         if pdf_path:  # Only save if the PDF was generated successfully
             instance.pdf_ticket = pdf_path
             instance.save(update_fields=["pdf_ticket"])
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 
 
 ### **Email Ticket to Participant**
@@ -556,4 +554,3 @@ def generate_paid_tickets_on_order_complete(sender, instance, created, **kwargs)
     )
     email.attach_file(participant.pdf_ticket.path)
     email.send()
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))

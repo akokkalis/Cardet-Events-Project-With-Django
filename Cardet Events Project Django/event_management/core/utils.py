@@ -1,14 +1,11 @@
-<<<<<<< HEAD
 # from xhtml2pdf import pisa
-=======
+
 from xhtml2pdf import pisa
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
 from django.core.files.base import ContentFile
 from django.conf import settings
 import os
 from io import BytesIO  # ✅ This is the missing import
 from django.template.loader import render_to_string
-<<<<<<< HEAD
 import re
 from django.core.mail import send_mail, BadHeaderError
 from django.core.mail.backends.smtp import EmailBackend
@@ -1522,4 +1519,3 @@ def generate_pdf_ticket(participant, qr_code_path):
     participant.pdf_ticket.save(relative_pdf_path, pdf_content, save=False)
 
     return relative_pdf_path  # Return relative path so it can be assigned to participant.pdf_ticket
->>>>>>> d159ca2 (File Logic Ready (creating folders for each event , qr codes files and pdf tickets))
