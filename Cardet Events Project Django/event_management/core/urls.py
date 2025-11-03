@@ -365,5 +365,8 @@ urlpatterns = [
     path("events/<int:event_id>/", event_detail, name="event_detail"),
     path("scan_qr/<int:event_id>/<int:participant_id>/", scan_qr, name="scan_qr"),
 ]
+<<<<<<< HEAD
 
+=======
+>>>>>>> d510049 (File Logic Ready)
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

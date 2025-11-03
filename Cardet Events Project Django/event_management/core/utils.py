@@ -45,12 +45,22 @@ def generate_pdf_ticket(participant, qr_code_path):
     # ✔ Sanitize file name
     sanitized_name = re.sub(r"\s+", "_", participant.name.strip())
     sanitized_email = participant.email.replace("@", "_").replace(".", "_")
+<<<<<<< HEAD
     pdf_filename = f"{sanitized_name}_{sanitized_email}_ticket.pdf"
     pdf_path = os.path.join(pdf_folder, pdf_filename)
 
     # Create temporary directory for Gotenberg files
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
+=======
+
+    pdf_filename = f"{participant.name}_{sanitized_email}_ticket.pdf"
+
+    pdf_path = os.path.join(pdf_folder, pdf_filename)
+
+    # ✅ Fix QR Code Path for PDF
+    qr_image_path = participant.qr_code.url  # This should now return a valid media URL
+>>>>>>> d510049 (File Logic Ready)
 
         # ✔ Prepare asset paths
         qr_image_path = participant.qr_code.path if participant.qr_code else None
@@ -256,7 +266,12 @@ def email_body(participant_name, event_info):
 
 
 
+<<<<<<< HEAD
         <p>We look forward to seeing you at the event! 🎉</p>
+=======
+    # ✅ Return correct relative path for saving in the model
+    relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
+>>>>>>> d510049 (File Logic Ready)
 
         <p>Best regards,</p>
         <p>Cardet Team</p>
