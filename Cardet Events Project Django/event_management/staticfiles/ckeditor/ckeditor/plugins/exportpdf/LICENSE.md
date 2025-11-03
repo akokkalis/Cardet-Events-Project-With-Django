@@ -1,5 +1,5 @@
 Software License Agreement
-=====
+
 
 **CKEditor 4 Export to PDF plugin** (https://ckeditor.com/ckeditor-4/)<br>
 Copyright (c) 2003-2022, [CKSource](http://cksource.com) Holding sp. z o.o. All rights reserved.
