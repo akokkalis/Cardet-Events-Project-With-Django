@@ -76,7 +76,7 @@ def event_image_path(instance, filename):
     return f"temp/{filename}"  # Temporary storage before ID is assigned
 
 
-<<<<<<< HEAD
+
 def event_certificate_path(instance, filename):
     """Returns the path to store event certificates inside the event folder."""
 

@@ -10,7 +10,6 @@ from .views import (
     event_delete,
     event_detail,
     scan_qr,
-<<<<<<< HEAD
     mark_attendance,
     sign_signature,
     export_zip,
@@ -152,7 +151,6 @@ urlpatterns = [
     ),
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
-<<<<<<< HEAD
     path(
         "events/<int:event_id>/add_participant/",
         register_participant_api,

@@ -4,7 +4,6 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.conf import settings
 from django.core.mail import EmailMessage
-<<<<<<< HEAD
 from .models import (
     Company,
     Event,
@@ -116,7 +115,6 @@ def delete_event_folder(sender, instance, **kwargs):
         print(f"🗑 Event folder deleted: {event_folder}")
 
 
-<<<<<<< HEAD
 ### **Paid Tickets Folder Creation**
 @receiver(post_save, sender=Event)
 def create_paid_tickets_folder(sender, instance, **kwargs):
@@ -160,7 +158,6 @@ def generate_qr_and_pdf(sender, instance, created, **kwargs):
 
 ### **Email Ticket to Participant**
 def send_ticket_email(participant):
-<<<<<<< HEAD
     """Send an email with the event ticket attached asynchronously using the company's SMTP settings."""
 
     # ✅ Get company email configuration

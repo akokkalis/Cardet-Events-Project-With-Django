@@ -2,7 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-<<<<<<< HEAD
 from django.db import IntegrityError
 from .models import (
     Event,
@@ -933,7 +932,6 @@ def public_register(request, event_uuid):
     )
 
 
-<<<<<<< HEAD
 def download_ics_file(request, event_uuid):
     """Download the .ics file for an event identified by UUID."""
     event = Event.objects.get(uuid=event_uuid)
