@@ -1465,7 +1465,7 @@ def generate_paidticket_pdf(paid_ticket):
         except Exception as e:
             print(f"Error generating PDF with Gotenberg: {str(e)}")
             raise
-=======
+
 
 
 def generate_pdf_ticket(participant, qr_code_path):

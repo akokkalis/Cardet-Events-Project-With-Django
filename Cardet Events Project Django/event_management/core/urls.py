@@ -358,7 +358,6 @@ urlpatterns = [
         delete_ticket_type,
         name="delete_ticket_type",
     ),
-=======
     path("events/", event_list, name="event_list"),
     path("events/new/", event_create, name="event_create"),
     path("events/edit/<int:event_id>/", event_edit, name="event_edit"),
