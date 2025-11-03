@@ -17,6 +17,8 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     curl \
     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
+
 
 # Install Python dependencies
 COPY requirements.txt ./requirements.txt
@@ -25,6 +27,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project code
 COPY . .
+COPY core/static/fonts/DejaVuSans.ttf /app/core/static/fonts/DejaVuSans.ttf
 
 # Default run command (can be overridden in docker-compose)
 CMD ["gunicorn", "event_management.wsgi:application", "--bind", "0.0.0.0:8000"]

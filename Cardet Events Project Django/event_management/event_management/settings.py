@@ -210,3 +210,9 @@ STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
 
 # Stripe API Version
 STRIPE_API_VERSION = "2024-06-20"
+
+
+PDF_REPLACEMENT_FONT = os.getenv(
+    "PDF_REPLACEMENT_FONT",
+    os.path.join(BASE_DIR, "core", "static", "fonts", "DejaVuSans.ttf"),
+)
