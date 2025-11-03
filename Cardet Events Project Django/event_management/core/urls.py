@@ -60,8 +60,11 @@ from .views import (
     participant_detail,
     logs_view,
     log_details_ajax,
+<<<<<<< HEAD
     event_attendance_dashboard,
     export_attendance_csv,
+=======
+>>>>>>> main
 )
 
 # Import ticket views
@@ -97,6 +100,7 @@ urlpatterns = [
     ),
     path("events/create/", event_create, name="event_create"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),
+<<<<<<< HEAD
     path(
         "events/<int:event_id>/attendance-dashboard/",
         event_attendance_dashboard,
@@ -107,6 +111,8 @@ urlpatterns = [
         export_attendance_csv,
         name="export_attendance_csv",
     ),
+=======
+>>>>>>> main
     path("events/<int:event_id>/edit/", event_edit, name="event_edit"),
     path(
         "events/<int:event_id>/custom-fields/",

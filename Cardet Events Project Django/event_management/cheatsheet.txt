@@ -1,0 +1,39 @@
+Admin
+admin, admin
+
+staff
+staff1, password987
+
+
+
+mysql database
+name: events_qr_database
+username: admin
+password: u%jc3f+tF-7dHO0v
+
+superuser on linux
+admin
+T@#ot6cXKkYt7JgR
+
+heroicons
+https://www.youtube.com/watch?v=S2VlzDqlAsQ&t=186s
+
+
+
+email settings
+smtp.gmail.com
+587
+cardetngo@gmail.com
+sovh crot apeo pgsf
+tls= true
+
+events@cardet.org
+rnlb tssa uqzc lfen
+
+
+
+admin
+admin
+
+user1
+password98765

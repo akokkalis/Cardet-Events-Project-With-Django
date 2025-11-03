@@ -1,0 +1,28 @@
+docker-compose build
+docker-compose up
+docker-compose restart
+docker-compose down
+docker-compose up celery
+
+docker-compose config --services
+
+
+
+
+
+docker-compose exec django python manage.py migrate
+docker-compose exec django python manage.py createsuperuser
+docker-compose exec django python manage.py shell
+
+docker-compose restart django
+
+python manage.py runserver 0.0.0.0:8000
+gunicorn event_management.wsgi:application --bind 0.0.0.0:8000 --reload
+
+
+docker-compose logs -f django
+
+pgadmin
+http://localhost:5050/browser/
+Email: admin@example.com
+Password: admin
