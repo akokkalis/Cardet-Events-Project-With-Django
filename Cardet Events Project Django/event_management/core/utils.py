@@ -1,6 +1,6 @@
 # from xhtml2pdf import pisa
 
-from xhtml2pdf import pisa
+# from xhtml2pdf import pisa
 from django.core.files.base import ContentFile
 from django.conf import settings
 import os
