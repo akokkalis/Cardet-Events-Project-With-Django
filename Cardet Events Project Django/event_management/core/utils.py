@@ -45,14 +45,14 @@ def generate_pdf_ticket(participant, qr_code_path):
     # ✔ Sanitize file name
     sanitized_name = re.sub(r"\s+", "_", participant.name.strip())
     sanitized_email = participant.email.replace("@", "_").replace(".", "_")
-<<<<<<< HEAD
+
     pdf_filename = f"{sanitized_name}_{sanitized_email}_ticket.pdf"
     pdf_path = os.path.join(pdf_folder, pdf_filename)
 
     # Create temporary directory for Gotenberg files
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-=======
+
 
     pdf_filename = f"{participant.name}_{sanitized_email}_ticket.pdf"
 
@@ -60,109 +60,109 @@ def generate_pdf_ticket(participant, qr_code_path):
 
     # ✅ Fix QR Code Path for PDF
     qr_image_path = participant.qr_code.url  # This should now return a valid media URL
->>>>>>> d510049 (File Logic Ready)
+
 
         # ✔ Prepare asset paths
-        qr_image_path = participant.qr_code.path if participant.qr_code else None
-        logo_path = (
-            participant.event.company.logo.path
-            if participant.event.company.logo
-            else None
-        )
-        event_img_path = (
-            participant.event.image.path if participant.event.image else None
-        )
+    qr_image_path = participant.qr_code.path if participant.qr_code else None
+    logo_path = (
+        participant.event.company.logo.path
+        if participant.event.company.logo
+        else None
+    )
+    event_img_path = (
+        participant.event.image.path if participant.event.image else None
+    )
 
-        # Copy assets to temporary directory with simple names
-        assets_to_copy = []
+    # Copy assets to temporary directory with simple names
+    assets_to_copy = []
 
-        if qr_image_path and os.path.exists(qr_image_path):
-            qr_temp_path = temp_path / "qr_code.png"
-            shutil.copy2(qr_image_path, qr_temp_path)
-            assets_to_copy.append(qr_temp_path)
+    if qr_image_path and os.path.exists(qr_image_path):
+        qr_temp_path = temp_path / "qr_code.png"
+        shutil.copy2(qr_image_path, qr_temp_path)
+        assets_to_copy.append(qr_temp_path)
 
-        if logo_path and os.path.exists(logo_path):
-            logo_temp_path = temp_path / "company_logo.png"
-            shutil.copy2(logo_path, logo_temp_path)
-            assets_to_copy.append(logo_temp_path)
+    if logo_path and os.path.exists(logo_path):
+        logo_temp_path = temp_path / "company_logo.png"
+        shutil.copy2(logo_path, logo_temp_path)
+        assets_to_copy.append(logo_temp_path)
 
-        if event_img_path and os.path.exists(event_img_path):
-            event_temp_path = temp_path / "event_image.png"
-            shutil.copy2(event_img_path, event_temp_path)
-            assets_to_copy.append(event_temp_path)
+    if event_img_path and os.path.exists(event_img_path):
+        event_temp_path = temp_path / "event_image.png"
+        shutil.copy2(event_img_path, event_temp_path)
+        assets_to_copy.append(event_temp_path)
 
-        # Copy CSS file
-        css_source = os.path.join(
-            settings.BASE_DIR, "core", "static", "css", "ticket_style.css"
-        )
-        css_temp_path = temp_path / "ticket_style.css"
-        if os.path.exists(css_source):
-            shutil.copy2(css_source, css_temp_path)
-            assets_to_copy.append(css_temp_path)
+    # Copy CSS file
+    css_source = os.path.join(
+        settings.BASE_DIR, "core", "static", "css", "ticket_style.css"
+    )
+    css_temp_path = temp_path / "ticket_style.css"
+    if os.path.exists(css_source):
+        shutil.copy2(css_source, css_temp_path)
+        assets_to_copy.append(css_temp_path)
 
-        # Format date and time
-        event_date = (
-            participant.event.event_date.strftime("%B %d, %Y")
-            if participant.event.event_date
-            else "TBD"
-        )
+    # Format date and time
+    event_date = (
+        participant.event.event_date.strftime("%B %d, %Y")
+        if participant.event.event_date
+        else "TBD"
+    )
 
-        #Format time range using start_time and end_time
-        if participant.event.start_time and participant.event.end_time:
-            start_time_str = participant.event.start_time.strftime("%I %p").lower()
-            end_time_str = participant.event.end_time.strftime("%I %p").lower()
-            event_time = f"{start_time_str} - {end_time_str}"
-        elif participant.event.start_time:
-            event_time = participant.event.start_time.strftime("%I %p").lower()
-        else:
-            event_time = "TBD"
+    #Format time range using start_time and end_time
+    if participant.event.start_time and participant.event.end_time:
+        start_time_str = participant.event.start_time.strftime("%I %p").lower()
+        end_time_str = participant.event.end_time.strftime("%I %p").lower()
+        event_time = f"{start_time_str} - {end_time_str}"
+    elif participant.event.start_time:
+        event_time = participant.event.start_time.strftime("%I %p").lower()
+    else:
+        event_time = "TBD"
 
-        # ✔ Render HTML with dynamic content
-        html_content = render_to_string(
-            "ticket_gotenberg.html",
-            {
-                "participant": participant,
-                "event_date": event_date,
-                "event_time": event_time,
-                "qr_image_exists": qr_image_path and os.path.exists(qr_image_path),
-                "logo_exists": logo_path and os.path.exists(logo_path),
-                "event_image_exists": event_img_path and os.path.exists(event_img_path),
-            },
-        )
+    # ✔ Render HTML with dynamic content
+    html_content = render_to_string(
+        "ticket_gotenberg.html",
+        {
+            "participant": participant,
+            "event_date": event_date,
+            "event_time": event_time,
+            "qr_image_exists": qr_image_path and os.path.exists(qr_image_path),
+            "logo_exists": logo_path and os.path.exists(logo_path),
+            "event_image_exists": event_img_path and os.path.exists(event_img_path),
+        },
+    )
 
-        # Save HTML to temporary file
-        html_temp_path = temp_path / "ticket.html"
-        with open(html_temp_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
+    # Save HTML to temporary file
+    html_temp_path = temp_path / "ticket.html"
+    with open(html_temp_path, "w", encoding="utf-8") as f:
+        f.write(html_content)
 
-        # ✔ Generate PDF with Gotenberg
-        try:
-            with GotenbergClient("http://gotenberg:3000") as client:
-                print("Gotenberg client initialized")
-                with client.chromium.html_to_pdf() as route:
-                    response = (
-                        route.index(html_temp_path)
-                        .resources(assets_to_copy)
-                        .pdf_format(PdfAFormat.A2b)
-                        .run()
+    # ✔ Generate PDF with Gotenberg
+    try:
+        with GotenbergClient("http://gotenberg:3000") as client:
+            print("Gotenberg client initialized")
+            with client.chromium.html_to_pdf() as route:
+                response = (
+                    route.index(html_temp_path)
+                    .resources(assets_to_copy)
+                    .pdf_format(PdfAFormat.A2b)
+                    .run()
+                )
+                # Save to temporary file first
+                temp_pdf_path = temp_path / "output.pdf"
+                response.to_file(temp_pdf_path)
+
+                # Read the PDF content and save as Django File
+                with open(temp_pdf_path, "rb") as pdf_file:
+                    pdf_content = ContentFile(pdf_file.read())
+                    relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
+                    participant.pdf_ticket.save(
+                        relative_pdf_path, pdf_content, save=False
                     )
-                    # Save to temporary file first
-                    temp_pdf_path = temp_path / "output.pdf"
-                    response.to_file(temp_pdf_path)
 
-                    # Read the PDF content and save as Django File
-                    with open(temp_pdf_path, "rb") as pdf_file:
-                        pdf_content = ContentFile(pdf_file.read())
-                        relative_pdf_path = f"Events/{participant.event.id}_{participant.event.event_name.replace(' ', '_')}/pdf_tickets/{pdf_filename}"
-                        participant.pdf_ticket.save(
-                            relative_pdf_path, pdf_content, save=False
-                        )
+                return relative_pdf_path
 
-                    return relative_pdf_path
-
-        except Exception as e:
-            print(f"Error generating PDF with Gotenberg: {str(e)}")
-            raise
+    except Exception as e:
+        print(f"Error generating PDF with Gotenberg: {str(e)}")
+        raise
 
 
 # def generate_pdf_ticket(participant, qr_code_path):
