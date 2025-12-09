@@ -196,8 +196,10 @@ def send_ticket_email(participant):
     # ✅ Attach PDF Ticket
     pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
 
+    print(f"📧 Preparing to send ticket email to {participant.email}")
     # ✅ Generate .ics file for the event
     ics_file_path = generate_ics_file(participant.event)
+    print(f"📅 .ics file generated at: {ics_file_path}")
 
     # ✅ Create the SMTP connection separately (No `backend` argument)
     connection = get_connection(

@@ -3569,6 +3569,83 @@ def export_attendance_csv(request, event_id):
 def scan_qr(request, event_id, participant_id):
     participant = get_object_or_404(Participant, id=participant_id, event_id=event_id)
 
+
+
+@login_required
+def export_event_rsvps_csv(request, event_id):
+    """
+    Export RSVP responses as CSV for an event. Includes all registered participants and their RSVP status (or 'No response').
+    Optional querystring: ?filter=nonresponders to export only participants who have not replied.
+    """
+    import csv
+    from django.utils import timezone
+
+    event = get_object_or_404(Event, id=event_id)
+
+    # Create filename with timestamp
+    filter_param = request.GET.get("filter")
+    filename_suffix = "nonresponders" if filter_param == "nonresponders" else "all_rsvps"
+    filename = f"rsvp_responses_{filename_suffix}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
+    response = HttpResponse(content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    # Add BOM for Excel compatibility
+    response.write("\ufeff")
+
+    writer = csv.writer(response)
+
+    # Header rows
+    writer.writerow([f"Event: {event.event_name}"])
+    writer.writerow([])
+    writer.writerow([
+        "Participant Name",
+        "Email",
+        "Phone",
+        "Registered At",
+        "RSVP Response",
+        "RSVP Notes",
+        "RSVP Date",
+    ])
+
+    # Get participants and RSVP responses for the event
+    participants = Participant.objects.filter(event=event).order_by("name")
+    rsvp_records = RSVPResponse.objects.filter(event=event).select_related("participant")
+    rsvp_map = {r.participant_id: r for r in rsvp_records}
+
+    for participant in participants:
+        rsvp = rsvp_map.get(participant.id)
+
+        if filter_param == "nonresponders" and rsvp:
+            # skip those who responded
+            continue
+
+        response_val = rsvp.response if rsvp else "No response"
+        notes_val = rsvp.notes if rsvp and rsvp.notes else ""
+        rsvp_date_val = rsvp.response_date if rsvp else None
+
+        # Format datetimes if present
+        def _format_dt(v):
+            if not v:
+                return ""
+            try:
+                return v.strftime("%Y-%m-%d %H:%M:%S")
+            except Exception:
+                return str(v)
+
+        registered_at = participant.registered_at.strftime("%Y-%m-%d %H:%M:%S") if participant.registered_at else ""
+
+        writer.writerow([
+            participant.name,
+            participant.email,
+            participant.phone or "",
+            registered_at,
+            response_val,
+            notes_val,
+            _format_dt(rsvp_date_val),
+        ])
+
+    return response
+
     if request.user.is_authenticated:
         # Mark participant as present
         attendance, created = Attendance.objects.get_or_create(

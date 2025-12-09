@@ -5,7 +5,7 @@ from django.core.mail import EmailMessage, get_connection
 from django.utils.html import strip_tags
 from django.template import Template, Context
 from .models import Participant, EventEmail, PaidTicket
-from .utils import email_body, generate_rsvp_urls, generate_paidticket_pdf
+from .utils import email_body, generate_ics_file, generate_rsvp_urls, generate_paidticket_pdf
 from datetime import date, timedelta
 
 
@@ -89,6 +89,9 @@ def send_ticket_email_task(participant_id):
             emails_sent=0,
             emails_failed=0,
         )
+        ics_file_path = generate_ics_file(participant.event)
+        print("WE ARE HERE!!!!!!!!!!!")
+        print(f"📅 .ics file generated at: {ics_file_path}")
 
         # Ensure event requires tickets and participant has a ticket
         if not participant.event.tickets or not participant.pdf_ticket:
@@ -139,7 +142,8 @@ def send_ticket_email_task(participant_id):
 
         # Get PDF Ticket Path
         pdf_path = participant.pdf_ticket.path if participant.pdf_ticket else None
-
+        
+        
         # Create SMTP connection
         connection = get_connection(
             host=email_config.smtp_server,
@@ -163,6 +167,8 @@ def send_ticket_email_task(participant_id):
         # Attach the ticket if available
         if pdf_path and os.path.exists(pdf_path):
             email.attach_file(pdf_path)
+        if ics_file_path and os.path.exists(ics_file_path):
+            email.attach_file(ics_file_path, mimetype="text/calendar")
 
         email.send()
         print(f"✅ Ticket email sent to {participant.email} via Celery task")
@@ -312,6 +318,7 @@ def send_approval_email_task(participant_id):
             use_tls=email_config.use_tls,
             use_ssl=email_config.use_ssl,
         )
+        ics_file_path = generate_ics_file(participant.event)
 
         # Send the email
         email = EmailMessage(
@@ -322,6 +329,8 @@ def send_approval_email_task(participant_id):
             connection=connection,
         )
         email.content_subtype = "html"  # Support HTML in email templates
+        if ics_file_path and os.path.exists(ics_file_path):
+            email.attach_file(ics_file_path, mimetype="text/calendar")
         email.send()
 
         print(
@@ -576,6 +585,9 @@ def send_registration_email_task(participant_id):
             connection=connection,
         )
         email.content_subtype = "html"  # Support HTML in email templates
+        ics_file_path = generate_ics_file(participant.event)
+        if ics_file_path and os.path.exists(ics_file_path):
+            email.attach_file(ics_file_path, mimetype="text/calendar")
         email.send()
 
         print(

@@ -495,43 +495,57 @@ def export_participants_pdf(event_id):
 
 
 def generate_ics_file(event):
-    """Generate .ics file for the event."""
+    """Generate .ics file for the event and save it inside the event folder."""
 
-    # Get the domain dynamically
+    # Ensure event folder exists (use model helper if available)
+    try:
+        event_folder = event.get_event_folder()
+    except Exception:
+        # Fallback to Events/<id>_<name>
+        event_folder = os.path.join(
+            settings.MEDIA_ROOT, f"Events/{event.id}_{event.event_name.replace(' ', '_')}"
+        )
+    os.makedirs(event_folder, exist_ok=True)
 
-    # Prepare event details
-    event_name = event.event_name
+    # Prepare event details (fallbacks if missing)
+    event_name = event.event_name or "Event"
+    start_time = event.start_time or datetime.min.time()
+    end_time = event.end_time or datetime.max.time()
     event_start = (
-        event.event_date.strftime("%Y%m%d") + "T" + event.start_time.strftime("%H%M%S")
+        event.event_date.strftime("%Y%m%d") + "T" + start_time.strftime("%H%M%S")
     )
     event_end = (
-        event.event_date.strftime("%Y%m%d") + "T" + event.end_time.strftime("%H%M%S")
+        event.event_date.strftime("%Y%m%d") + "T" + end_time.strftime("%H%M%S")
     )
     event_location = event.location or "Location Not Provided"
-    event_description = event.description or "No description available"
+    event_description = (event.description or "No description available")
 
-    # Create .ics file content
-    ics_content = f"""BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Your App//Event Management//EN
-BEGIN:VEVENT
-UID:{event.uuid}@yourdomain.com
-DTSTAMP:{datetime.now().strftime('%Y%m%dT%H%M%S')}
-DTSTART:{event_start}
-DTEND:{event_end}
-SUMMARY:{event_name}
-DESCRIPTION:{event_description}
-LOCATION:{event_location}
-ORGANIZER;CN={event.company.name}:MAILTO:{event.company.email}
-END:VEVENT
-END:VCALENDAR
-"""
+    # ICS content with METHOD:REQUEST so many email clients treat it as an invite
+    ics_content = (
+        "BEGIN:VCALENDAR\r\n"
+        "METHOD:REQUEST\r\n"
+        "VERSION:2.0\r\n"
+        "PRODID:-//Your App//Event Management//EN\r\n"
+        "BEGIN:VEVENT\r\n"
+        f"UID:{getattr(event, 'uuid', event.id)}@yourdomain.com\r\n"
+        f"DTSTAMP:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}\r\n"
+        f"DTSTART:{event_start}\r\n"
+        f"DTEND:{event_end}\r\n"
+        f"SUMMARY:{event_name}\r\n"
+        f"DESCRIPTION:{event_description}"
+        f"LOCATION:{event_location}\r\n"
+        f"ORGANIZER;CN={event.company.name}:MAILTO:{event.company.email}\r\n"
+        "END:VEVENT\r\n"
+        "END:VCALENDAR\r\n"
+    )
 
-    # Save to a file or return as content
-    file_path = os.path.join(settings.MEDIA_ROOT, f"Events/{event.id}_event.ics")
-    with open(file_path, "w") as f:
+    # Save to event folder
+    safe_name = f"{event_name}_{event.id}_event.ics"
+    file_path = os.path.join(event_folder, safe_name)
+    with open(file_path, "w", encoding="utf-8", newline="\r\n") as f:
         f.write(ics_content)
 
+    print(f".ics file generated at: {file_path}")
     return file_path
 
 
@@ -1089,14 +1103,17 @@ def generate_certificate_for_participant(event, participant):
         "event_date": [
             "{{event_date}}", "{{ event_date }}",
             "{event_date}", "{ event_date }",
-            "[event_date]", "[ event_date ]",
-            "__EVENT_DATE__", "_EVENT_DATE_",
+            "[event_date]",
+            "[ event_date ]",
+            "__EVENT_DATE__",
+            "_EVENT_DATE_",
         ],
         "company_name": [
             "{{company_name}}", "{{ company_name }}",
             "{company_name}", "{ company_name }",
             "[company_name]", "[ company_name ]",
-            "__COMPANY_NAME__", "_COMPANY_NAME_",
+            "__COMPANY_NAME__",
+            "_COMPANY_NAME_",
         ],
     }
 

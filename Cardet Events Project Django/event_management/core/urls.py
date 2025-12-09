@@ -18,6 +18,7 @@ from .views import (
     send_ticket_email_view,
     export_participants_csv_view,
     export_participants_pdf_view,
+    export_event_rsvps_csv,
     public_register,
     download_ics_file,
     event_custom_fields,
@@ -110,6 +111,11 @@ urlpatterns = [
         "events/<int:event_id>/export-attendance-csv/",
         export_attendance_csv,
         name="export_attendance_csv",
+    ),
+    path(
+        "events/<int:event_id>/export-rsvps-csv/",
+        export_event_rsvps_csv,
+        name="export_event_rsvps_csv",
     ),
 
 
@@ -232,7 +238,7 @@ urlpatterns = [
         check_participant_status,
         name="check_participant_status",
     ),
-    # RSVP URLs
+    # RSVP URLs Responses
     path(
         "rsvp/<uuid:event_uuid>/<int:participant_id>/<str:response>/",
         rsvp_response,

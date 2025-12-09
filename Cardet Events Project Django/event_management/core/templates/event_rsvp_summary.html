@@ -179,12 +179,28 @@
                     </svg>
                     Back to Event
                 </a>
-                <a href="{% url 'event_email_templates' event.id %}" 
-                   class="btn btn-outline-blue flex items-center gap-2">
+                     <a href="{% url 'event_email_templates' event.id %}" 
+                         class="btn btn-outline-blue flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                     </svg>
                     Email Templates
+                </a>
+                <!-- Export RSVP CSV (All) -->
+                <a href="{% url 'export_event_rsvps_csv' event.id %}" 
+                   class="btn btn-outline-blue flex items-center gap-2" title="Export all RSVPs">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4h10v12m-5 4v-6m-5 6h10a2 2 0 002-2V8H5v10a2 2 0 002 2z" />
+                    </svg>
+                    Export RSVPs (All)
+                </a>
+                <!-- Export Non-responders -->
+                <a href="{% url 'export_event_rsvps_csv' event.id %}?filter=nonresponders" 
+                   class="btn btn-outline-blue flex items-center gap-2" title="Export participants who did not respond">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5v14" />
+                    </svg>
+                    Export Non-responders
                 </a>
             </div>
         </div>
