@@ -169,6 +169,32 @@
                                 <p class="mt-2 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
+                        <!-- RSVP Cutoff Hours -->
+                        <div class="mt-4">
+                            <label for="{{ form.rsvp_cutoff_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 flex items-center">
+                                {{ form.rsvp_cutoff_hours.label }}
+                                <div class="tooltip-container ml-2">
+                                    <span class="tooltip-icon">?</span>
+                                    <div class="tooltip-content">
+                                        <strong>RSVP Cutoff (hours)</strong><br>
+                                        How many hours before the event start RSVPs are locked. For example:<br>
+                                        <ul class="mt-2 ml-4 list-disc">
+                                            <li>2 = 2 hours before the event</li>
+                                            <li>24 = 1 day before the event</li>
+                                        </ul>
+                                        <div class="mt-2 text-xs opacity-75">
+                                            🔒 Default: {{ form.rsvp_cutoff_hours.value|default:"24" }} hours
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.rsvp_cutoff_hours|add_class:"form-field w-32" }}
+                            </div>
+                            {% for error in form.rsvp_cutoff_hours.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
 

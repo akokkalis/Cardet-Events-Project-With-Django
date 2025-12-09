@@ -11,6 +11,8 @@ import qrcode
 from io import BytesIO
 from django.core.validators import MinValueValidator, MaxValueValidator
 import uuid
+from datetime import datetime, timedelta
+from django.utils import timezone
 
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(
@@ -256,6 +258,12 @@ class Event(models.Model):
         null=True,
         help_text="Optional GDPR / consent disclaimer shown on the registration form.",
     )
+    rsvp_cutoff_hours = models.PositiveIntegerField(
+    default=48,
+    help_text=(
+        "How many hours before the event start RSVPs are locked. "
+        "For example: 2 = 2 hours before, 24 = 1 day before."
+    ),)
 
     def get_event_folder(self):
         """Returns the event folder path inside 'Events/'."""
@@ -267,6 +275,25 @@ class Event(models.Model):
         return (
             f"{self.event_name} ({self.event_date} {self.start_time} - {self.end_time})"
         )
+    @property
+    def start_datetime(self):
+        """Combine event_date and start_time into an aware datetime."""
+        if self.start_time is None:
+            return None
+        naive = datetime.combine(self.event_date, self.start_time)
+        return timezone.make_aware(naive, timezone.get_current_timezone())
+
+    @property
+    def rsvp_deadline(self):
+        if not self.start_datetime:
+            return None
+        return self.start_datetime - timedelta(hours=self.rsvp_cutoff_hours)
+
+    @property
+    def rsvp_is_open(self):
+        if not self.rsvp_deadline:
+            return False
+        return timezone.now() < self.rsvp_deadline
 
 
 class EventCustomField(models.Model):

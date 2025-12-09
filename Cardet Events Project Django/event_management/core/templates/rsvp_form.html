@@ -57,6 +57,7 @@
                 </div>
             {% endif %}
             
+            {% if event.rsvp_is_open %}
             <form id="rsvpForm" method="post">
                 {% csrf_token %}
                 <div class="mb-4">
@@ -79,6 +80,17 @@
                     Confirm RSVP: {{ response_display }}
                 </button>
             </form>
+            {% else %}
+                <div class="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-gray-700 text-center">
+                    <strong>RSVP is closed</strong>
+                    {% if event.rsvp_deadline %}
+                        <p class="mt-2 text-sm">RSVPs were locked on {{ event.rsvp_deadline|date:"F j, Y, g:i A" }}.</p>
+                    {% else %}
+                        <p class="mt-2 text-sm">RSVPs are closed for this event.</p>
+                    {% endif %}
+                    <p class="mt-2 text-xs text-gray-500">If you need to change your RSVP, contact the event organizer.</p>
+                </div>
+            {% endif %}
             
             <div id="responseMessage" class="mt-4 hidden"></div>
             

@@ -107,6 +107,7 @@ class EventAdmin(admin.ModelAdmin):
         "tickets",
         "paid_tickets",
         "has_registration_limit",
+        "rsvp_cutoff_hours",
         "registration_limit",
         "public_registration_enabled",
         "auto_approval_enabled",
@@ -118,6 +119,7 @@ class EventAdmin(admin.ModelAdmin):
         "tickets",
         "paid_tickets",
         "has_registration_limit",
+        "rsvp_cutoff_hours",
         "public_registration_enabled",
         "auto_approval_enabled",
     ]
@@ -150,6 +152,7 @@ class EventAdmin(admin.ModelAdmin):
                     "tickets",
                     "has_registration_limit",
                     "registration_limit",
+                    "rsvp_cutoff_hours",
                     "public_registration_enabled",
                     "auto_approval_enabled",
                     "signatures",

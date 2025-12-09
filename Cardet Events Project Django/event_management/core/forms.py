@@ -95,6 +95,7 @@ class EventForm(forms.ModelForm):
             "paid_tickets",
             "has_registration_limit",
             "registration_limit",
+            "rsvp_cutoff_hours",
             "signatures",
             "public_registration_enabled",
             "auto_approval_enabled",
@@ -172,6 +173,13 @@ class EventForm(forms.ModelForm):
                     "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
                     "min": "1",
                     "title": "Maximum number of participants allowed to register (only applies if registration limit is enabled).",
+                }
+            ),
+            "rsvp_cutoff_hours": forms.NumberInput(
+                attrs={
+                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
+                    "min": "1",
+                    "title": "Number of hours before the event when RSVP cutoff occurs.",
                 }
             ),
             "signatures": forms.CheckboxInput(

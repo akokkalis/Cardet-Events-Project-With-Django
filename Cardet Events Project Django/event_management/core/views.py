@@ -1560,6 +1560,11 @@ def rsvp_response(request, event_uuid, participant_id, response):
         event = get_object_or_404(Event, uuid=event_uuid)
         participant = get_object_or_404(Participant, id=participant_id, event=event)
 
+        # Enforce RSVP cutoff
+        if hasattr(event, "rsvp_is_open") and not event.rsvp_is_open:
+            messages.error(request, "RSVP for this event is closed and no longer accepts responses.")
+            return render(request, "rsvp_error.html", {"event": event, "error": "RSVP for this event is closed."})
+
         # Validate response
         valid_responses = ["attend", "cant_make_it", "maybe"]
         if response not in valid_responses:
@@ -1610,6 +1615,10 @@ def rsvp_response_with_notes(request, event_uuid, participant_id, response):
             event = get_object_or_404(Event, uuid=event_uuid)
             participant = get_object_or_404(Participant, id=participant_id, event=event)
 
+            # Enforce RSVP cutoff
+            if hasattr(event, "rsvp_is_open") and not event.rsvp_is_open:
+                return JsonResponse({"error": "RSVP for this event is closed."}, status=403)
+
             # Validate response
             valid_responses = ["attend", "cant_make_it", "maybe"]
             if response not in valid_responses:
@@ -1652,6 +1661,10 @@ def rsvp_response_with_notes(request, event_uuid, participant_id, response):
     try:
         event = get_object_or_404(Event, uuid=event_uuid)
         participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+        # Enforce RSVP cutoff for GET (form display)
+        if hasattr(event, "rsvp_is_open") and not event.rsvp_is_open:
+            return render(request, "rsvp_error.html", {"event": event, "error": "RSVP for this event is closed."})
 
         # Get existing RSVP if it exists
         existing_rsvp = RSVPResponse.objects.filter(
