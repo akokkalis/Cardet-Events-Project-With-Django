@@ -54,7 +54,7 @@ services:
   flower:
     build: .
     container_name: flower
-    command: celery -A event_management flower --port=5555
+    command: celery -A event_management flower --port=5555 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}
     ports:
       - "5555:5555"
     env_file:

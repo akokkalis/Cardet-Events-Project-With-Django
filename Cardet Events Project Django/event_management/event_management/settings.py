@@ -132,14 +132,24 @@ DEBUG = os.getenv("DJANGO_DEBUG")
 # }
 # print("🌍 Running in PRODUCTION mode with MySQL")
 # 🌍 PRODUCTION: Use PostgreSQL (Docker)
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.postgresql",
+#         "NAME": os.getenv("POSTGRES_DB"),
+#         "USER": os.getenv("POSTGRES_USER"),
+#         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+#         "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
+#         "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
+#     }
+# }
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB"),
-        "USER": os.getenv("POSTGRES_USER"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-        "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
-        "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
+        "NAME": os.getenv("db_name"),
+        "USER": os.getenv("db_username"),
+        "PASSWORD": os.getenv("db_password"),
+        "HOST": os.getenv("db_host"),  # should be 'db'
+        "PORT": os.getenv("db_port"),  # usually 5432
     }
 }
 print("🌍 Running in PRODUCTION mode with PostgreSQL")
