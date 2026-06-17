@@ -11,6 +11,7 @@ from .models import (
     Company,
     Staff,
     EventCustomField,
+    EventSystemFieldConfig,
     EventEmail,
     RSVPResponse,
     EmailConfiguration,
@@ -775,10 +776,13 @@ def public_register(request, event_uuid):
             )
 
     if request.method == "POST":
-        form = ParticipantForm(request.POST, request.FILES)
+        form = ParticipantForm(request.POST, request.FILES, event=event)
 
-        # Collect custom field data
+        # Collect phone + custom field data
         custom_data = {}
+        phone_value = request.POST.get("phone", "").strip()
+        if phone_value:
+            custom_data["Phone"] = phone_value
         for field in custom_fields:
             if field.field_type == "multiselect":
                 # Handle multiple values for multiselect
@@ -896,15 +900,7 @@ def public_register(request, event_uuid):
             # Save participant
             participant = form.save(commit=False)
             participant.event = event
-
-            # Save custom field data in participant's submitted_data field
-            if custom_fields.exists():
-                # Add participant data to custom data
-                registration_data = {
-                    **custom_data,
-                }
-                participant.submitted_data = registration_data
-
+            participant.submitted_data = custom_data if custom_data else None
             participant.save()
 
             # Save uploaded files for custom fields
@@ -923,12 +919,19 @@ def public_register(request, event_uuid):
             messages.success(request, "✅ Registered successfully!")
             return redirect("public_register", event_uuid=event.uuid)
     else:
-        form = ParticipantForm()
+        form = ParticipantForm(event=event)
+
+    custom_field_map = {f"custom_field_{f.id}": f for f in custom_fields}
 
     return render(
         request,
         "public_register.html",
-        {"form": form, "event": event, "custom_fields": custom_fields},
+        {
+            "form": form,
+            "event": event,
+            "custom_fields": custom_fields,
+            "custom_field_map": custom_field_map,
+        },
     )
 
 
@@ -955,15 +958,19 @@ def register_participant_view(request, event_id):
                 participant = form.save(commit=False)
                 participant.event = event
 
-                # Handling custom fields
+                # Handling system phone field + custom fields
                 custom_data = {}
+
+                phone_value = form.cleaned_data.get("phone", "")
+                if phone_value:
+                    custom_data["Phone"] = phone_value
+
                 for key, value in form.cleaned_data.items():
                     if key.startswith("custom_field_"):
                         field_id = int(key.split("_")[-1])
                         field_model = EventCustomField.objects.get(id=field_id)
 
                         if field_model.field_type == "file" and value:
-                            # For file fields, store the filename in custom_data
                             custom_data[field_model.label] = value.name
                         else:
                             custom_data[field_model.label] = value
@@ -1021,10 +1028,37 @@ def event_custom_fields(request, event_id):
     else:
         form = EventCustomFieldForm(event=event)
 
+    # Build active + inactive field lists separately
+    system_configs = EventSystemFieldConfig.objects.filter(event=event).order_by("order")
+
+    active_fields = []
+    inactive_fields = []
+    for sc in system_configs:
+        item = {
+            "type": "system",
+            "field_name": sc.field_name,
+            "label": sc.get_field_name_display(),
+            "order": sc.order,
+            "active": sc.active,
+        }
+        if sc.active:
+            active_fields.append(item)
+        else:
+            inactive_fields.append(item)
+    for cf in fields:
+        active_fields.append({"type": "custom", "field": cf, "order": cf.order, "active": True})
+    active_fields.sort(key=lambda x: x["order"])
+
     return render(
         request,
         "event_custom_fields.html",
-        {"event": event, "form": form, "existing_fields": fields},
+        {
+            "event": event,
+            "form": form,
+            "existing_fields": fields,
+            "active_fields": active_fields,
+            "inactive_fields": inactive_fields,
+        },
     )
 
 
@@ -1037,8 +1071,25 @@ def delete_custom_field(request, event_id, field_id):
 
 
 @login_required
+def toggle_system_field(request, event_id, field_name):
+    """Toggle the active state of the phone system field (name/email cannot be toggled)."""
+    if request.method == "POST":
+        if field_name not in ("phone",):
+            messages.error(request, "Only the phone field can be toggled.")
+            return redirect("event_custom_fields", event_id=event_id)
+        config = get_object_or_404(
+            EventSystemFieldConfig, event_id=event_id, field_name=field_name
+        )
+        config.active = not config.active
+        config.save(update_fields=["active"])
+        state = "enabled" if config.active else "disabled"
+        messages.success(request, f"{config.get_field_name_display()} field {state}.")
+    return redirect("event_custom_fields", event_id=event_id)
+
+
+@login_required
 def update_field_order(request, event_id):
-    """AJAX endpoint to update custom field order via drag and drop."""
+    """AJAX endpoint to update field order (system + custom) via drag and drop."""
     if request.method == "POST":
         try:
             import json
@@ -1049,29 +1100,29 @@ def update_field_order(request, event_id):
 
             event = get_object_or_404(Event, id=event_id)
 
-            # Use database transaction to ensure consistency
             with transaction.atomic():
-                from django.db.models import F
-
-                # Simply update all fields to their new positions
-                # This is much simpler and avoids complex logic
+                # Pass 1: move custom fields to temp values to avoid unique_together conflicts
                 for update in updates:
-                    field_id = int(update["id"])
-                    new_order = int(update["order"])
+                    field_type = update.get("type", "custom")
+                    if field_type == "custom":
+                        field_id = int(update["id"])
+                        EventCustomField.objects.filter(
+                            id=field_id, event=event
+                        ).update(order=9999 + field_id)
 
-                    # First, temporarily set all fields to a high number to avoid conflicts
-                    EventCustomField.objects.filter(id=field_id, event=event).update(
-                        order=9999 + field_id
-                    )
-
-                # Now set all fields to their final positions
+                # Pass 2: apply final order values
                 for update in updates:
-                    field_id = int(update["id"])
                     new_order = int(update["order"])
-
-                    EventCustomField.objects.filter(id=field_id, event=event).update(
-                        order=new_order
-                    )
+                    field_type = update.get("type", "custom")
+                    if field_type == "custom":
+                        field_id = int(update["id"])
+                        EventCustomField.objects.filter(
+                            id=field_id, event=event
+                        ).update(order=new_order)
+                    elif field_type == "system":
+                        EventSystemFieldConfig.objects.filter(
+                            event=event, field_name=update["field_name"]
+                        ).update(order=new_order)
 
             return JsonResponse({"success": True})
 
@@ -2297,8 +2348,12 @@ def import_participants_csv(request, event_id):
                                 f"📋 CSV Import - setting {row_data['name']} to pending status (requires manual approval)"
                             )
 
-                            # Process custom fields
+                            # Process phone + custom fields into submitted_data
                             submitted_data = {}
+                            phone_csv = row_data.get("phone", "").strip()
+                            if phone_csv:
+                                submitted_data["Phone"] = phone_csv
+
                             for field in custom_fields:
                                 if (
                                     field.label in row_data
@@ -2341,7 +2396,6 @@ def import_participants_csv(request, event_id):
                                 event=event,
                                 name=row_data["name"].strip(),
                                 email=email,
-                                phone=row_data.get("phone", "").strip(),
                                 approval_status=approval_status,
                                 submitted_data=(
                                     submitted_data if submitted_data else None
@@ -2712,15 +2766,22 @@ def edit_participant_view(request, event_id, participant_id):
             try:
                 participant = form.save(commit=False)
 
-                # Handling custom fields
-                custom_data = {}
+                # Preserve existing submitted_data and update phone + custom fields
+                custom_data = dict(participant.submitted_data or {})
+
+                phone_value = form.cleaned_data.get("phone", "")
+                if phone_value:
+                    custom_data["Phone"] = phone_value
+                else:
+                    custom_data.pop("Phone", None)
+                    custom_data.pop("phone", None)
+
                 for key, value in form.cleaned_data.items():
                     if key.startswith("custom_field_"):
                         field_id = int(key.split("_")[-1])
                         field_model = EventCustomField.objects.get(id=field_id)
 
                         if field_model.field_type == "file" and value:
-                            # For file fields, store the filename in custom_data
                             custom_data[field_model.label] = value.name
                         else:
                             custom_data[field_model.label] = value
@@ -2765,7 +2826,7 @@ def edit_participant_view(request, event_id, participant_id):
         # Initialize form with participant's data
         initial_data = {}
 
-        # Add custom field data
+        # Add custom field data from submitted_data
         if participant.submitted_data:
             custom_fields = EventCustomField.objects.filter(event=event)
             for field in custom_fields:
@@ -3217,26 +3278,62 @@ def reports(request):
 @login_required
 def logs_view(request):
     """Display all system logs in a tabbed interface"""
-    from .models import RSVPEmailLog, CertificateGenerationLog, CSVImportLog
+    from .models import RSVPEmailLog, CertificateGenerationLog, CSVImportLog, TaskLog
 
-    # Get logs for each type, ordered by most recent first
-    rsvp_logs = RSVPEmailLog.objects.select_related("event", "user").order_by(
-        "-started_at"
-    )[:50]
-    certificate_logs = CertificateGenerationLog.objects.select_related(
-        "event", "user"
-    ).order_by("-started_at")[:50]
-    import_logs = CSVImportLog.objects.select_related("event", "user").order_by(
-        "-started_at"
-    )[:50]
+    rsvp_logs = RSVPEmailLog.objects.select_related("event", "user").order_by("-started_at")[:50]
+    certificate_logs = CertificateGenerationLog.objects.select_related("event", "user").order_by("-started_at")[:50]
+    import_logs = CSVImportLog.objects.select_related("event", "user").order_by("-started_at")[:50]
+    task_logs = TaskLog.objects.select_related("event").order_by("-created_at")[:100]
 
     context = {
         "rsvp_logs": rsvp_logs,
         "certificate_logs": certificate_logs,
         "import_logs": import_logs,
+        "task_logs": task_logs,
     }
 
     return render(request, "logs.html", context)
+
+
+@login_required
+def check_task_log_status(request, task_id):
+    """AJAX: re-check a TaskLog against Redis and return its current status."""
+    from django.http import JsonResponse
+    from .models import TaskLog
+    from celery.result import AsyncResult
+    from django.utils import timezone
+
+    try:
+        log = TaskLog.objects.get(task_id=task_id)
+    except TaskLog.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Log not found"}, status=404)
+
+    # If still pending/in_progress, query Redis for the real result
+    if log.status in ("pending", "in_progress"):
+        result = AsyncResult(task_id)
+        celery_state = result.state  # PENDING / STARTED / SUCCESS / FAILURE
+        if celery_state == "SUCCESS":
+            retval = result.result or {}
+            msg = retval.get("message", "") if isinstance(retval, dict) else str(retval)
+            log.status = "success"
+            log.message = msg
+            log.completed_at = timezone.now()
+            log.save(update_fields=["status", "message", "completed_at"])
+        elif celery_state == "FAILURE":
+            log.status = "failure"
+            log.message = str(result.result)
+            log.completed_at = timezone.now()
+            log.save(update_fields=["status", "message", "completed_at"])
+        elif celery_state == "STARTED":
+            log.status = "in_progress"
+            log.save(update_fields=["status"])
+
+    return JsonResponse({
+        "success": True,
+        "status": log.status,
+        "message": log.message,
+        "completed_at": log.completed_at.isoformat() if log.completed_at else None,
+    })
 
 
 @login_required

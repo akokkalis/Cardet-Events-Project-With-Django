@@ -252,7 +252,7 @@ class Event(models.Model):
         validators=[validate_pdf_file],
         help_text="Upload a PDF certificate template file for this event. Use placeholders like {{participant_name}}, {{event_name}}, {{event_date}}, {{company_name}} for personalization.",
     )
-    status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=True)
+    status = models.ForeignKey(Status, on_delete=models.SET_NULL, null=True, blank=False)
     consent_disclaimer = RichTextField(
         blank=True,
         null=True,
@@ -384,6 +384,28 @@ class EventCustomField(models.Model):
         return f"{self.label} ({self.event.event_name})"
 
 
+class EventSystemFieldConfig(models.Model):
+    SYSTEM_FIELD_CHOICES = [
+        ("name", "Name"),
+        ("email", "Email"),
+        ("phone", "Phone"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="system_field_configs"
+    )
+    field_name = models.CharField(max_length=20, choices=SYSTEM_FIELD_CHOICES)
+    order = models.PositiveIntegerField(default=1)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ["event", "field_name"]
+        ordering = ["order"]
+
+    def __str__(self):
+        return f"{self.get_field_name_display()} (order={self.order}) — {self.event.event_name}"
+
+
 class Participant(models.Model):
     APPROVAL_CHOICES = [
         ("approved", "Approved"),
@@ -394,7 +416,6 @@ class Participant(models.Model):
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     email = models.EmailField()
-    phone = models.CharField(max_length=50, blank=True, null=True)
     approval_status = models.CharField(
         max_length=20,
         choices=APPROVAL_CHOICES,
@@ -421,6 +442,12 @@ class Participant(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def phone(self):
+        if self.submitted_data:
+            return self.submitted_data.get("Phone") or self.submitted_data.get("phone") or ""
+        return ""
 
     def generate_qr_code(self):
         """Generate a QR Code linking to the participant's check-in URL."""
@@ -863,6 +890,40 @@ class CertificateGenerationLog(models.Model):
         )
 
 
+class TaskLog(models.Model):
+    """Track individual Celery task execution for registration / approval / rejection."""
+
+    TASK_TYPE_CHOICES = [
+        ("registration", "Registration"),
+        ("approval", "Approval"),
+        ("rejection", "Rejection"),
+    ]
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("in_progress", "In Progress"),
+        ("success", "Success"),
+        ("failure", "Failure"),
+    ]
+
+    task_id = models.CharField(max_length=255, unique=True, db_index=True)
+    task_type = models.CharField(max_length=20, choices=TASK_TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    message = models.TextField(blank=True, default="")
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, null=True, blank=True, related_name="task_logs"
+    )
+    participant_name = models.CharField(max_length=255, blank=True)
+    participant_email = models.EmailField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_task_type_display()} — {self.participant_name} [{self.status}]"
+
+
 class PaidTicket(models.Model):
     order = models.ForeignKey(
         "Order", on_delete=models.CASCADE, related_name="paid_tickets"
@@ -931,3 +992,14 @@ def create_company_folder(sender, instance, created, **kwargs):
         os.makedirs(company_folder, exist_ok=True)
 
         print(f"✅ Folder created: {company_folder}")  # Debugging info
+
+
+@receiver(post_save, sender=Event)
+def create_default_system_field_configs(sender, instance, created, **kwargs):
+    """Creates default system field ordering records when a new event is created."""
+    if created:
+        EventSystemFieldConfig.objects.bulk_create([
+            EventSystemFieldConfig(event=instance, field_name="name",  order=1),
+            EventSystemFieldConfig(event=instance, field_name="email", order=2),
+            EventSystemFieldConfig(event=instance, field_name="phone", order=3),
+        ])
