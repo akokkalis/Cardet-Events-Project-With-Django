@@ -228,16 +228,33 @@ class EventForm(forms.ModelForm):
         )  # Allow selection from all companies
 
     def clean(self):
+        from datetime import timedelta
+        from django.core.exceptions import ValidationError
+
         cleaned_data = super().clean()
+
+        # Tickets conflict
         tickets = cleaned_data.get("tickets")
         paid_tickets = cleaned_data.get("paid_tickets")
         if tickets and paid_tickets:
-            from django.core.exceptions import ValidationError
-
             raise ValidationError(
                 "You cannot enable both 'Automatic Ticket Generation' and 'Paid Tickets' at the same time. Please select only one.",
                 code="tickets_paid_conflict",
             )
+
+        # Time validations
+        start_time = cleaned_data.get("start_time")
+        end_time = cleaned_data.get("end_time")
+
+        if start_time and end_time:
+            if end_time <= start_time:
+                self.add_error("end_time", "End time must be after start time.")
+            else:
+                start_dt = timedelta(hours=start_time.hour, minutes=start_time.minute)
+                end_dt = timedelta(hours=end_time.hour, minutes=end_time.minute)
+                if (end_dt - start_dt) < timedelta(minutes=30):
+                    self.add_error("end_time", "Event duration must be at least 30 minutes.")
+
         return cleaned_data
 
 
@@ -496,10 +513,10 @@ class EventEmailForm(forms.ModelForm):
             self.fields["reason"].widget.attrs["readonly"] = True
 
         # Add help text for placeholders
-        self.fields["body"].help_text = (
-            "Available placeholders: {{ name }}, {{ event_name }}, {{ event_date }}, "
-            "{{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}"
-        )
+        # self.fields["body"].help_text = (
+        #     "Available placeholders: {{ name }}, {{ event_name }}, {{ event_date }}, "
+        #     "{{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}"
+        # )
 
     def clean(self):
         cleaned_data = super().clean()

@@ -75,20 +75,17 @@ def login_view(request):
         username = request.POST["username"]
         password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
-        print(user)
+        # print(user)
         if user:
-            # ✅ Check if the user is a Staff member
-            if Staff.objects.filter(user=user).exists():
+            if user.is_superuser or Staff.objects.filter(user=user).exists():
                 login(request, user)
-                return redirect("event_list")  # Redirect to event list after login
+                return redirect("event_list")
             else:
                 messages.error(request, "Access Denied! You are not a staff member.")
-                return redirect("login")  # Redirect back to login page
+                return redirect("login")
         else:
             messages.error(request, "Invalid username or password.")
-
-        messages.error(request, "Invalid username or password.")
-        return redirect("login")  # Redirect if authentication fails
+            return redirect("login")
 
     return render(request, "login.html")
 
@@ -152,7 +149,9 @@ def filter_events(request):
     event_date = request.GET.get("date")
     event_month = request.GET.get("month")
     event_year = request.GET.get("year")
-    print("asjdjasdhj")
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+
     statuses = Status.objects.all()
 
     # Priority Mapping (Admin Configurable)
@@ -175,6 +174,12 @@ def filter_events(request):
 
     if event_month:
         events = events.filter(event_date__month=event_month)
+
+    if date_from:
+        events = events.filter(event_date__gte=date_from)
+
+    if date_to:
+        events = events.filter(event_date__lte=date_to)
 
     # Apply Sorting (Priority First, Then Date)
     events = events.annotate(
@@ -215,9 +220,16 @@ def event_create(request):
         form = EventForm(request.POST, request.FILES)
         if form.is_valid():
             event = form.save()
-            return redirect(
-                "event_custom_fields", event_id=event.id
-            )  # Redirect to custom fields page
+            messages.success(request, f"Event '{event.event_name}' created successfully!")
+            if event.event_date < date.today():
+                completed_status = Status.objects.filter(name__icontains="completed").first()
+                if completed_status:
+                    event.status = completed_status
+                    event.save(update_fields=["status"])
+                    messages.info(request, f"Event date is in the past — status automatically set to '{completed_status.name}'.")
+                else:
+                    messages.warning(request, "Event date is in the past. Consider updating its status.")
+            return redirect("event_custom_fields", event_id=event.id)
     else:
         form = EventForm()
 
@@ -234,11 +246,19 @@ def event_edit(request, event_id):
     if request.method == "POST":
         form = EventForm(request.POST, request.FILES, instance=event)
         if form.is_valid():
-            form.save()
-            # Redirect back to where user came from, if provided
+            event = form.save()
+            messages.success(request, f"Event '{event.event_name}' updated successfully!")
+            if event.event_date < date.today():
+                completed_status = Status.objects.filter(name__icontains="completed").first()
+                if completed_status and event.status != completed_status:
+                    event.status = completed_status
+                    event.save(update_fields=["status"])
+                    messages.info(request, f"Event date is in the past — status automatically set to '{completed_status.name}'.")
+                elif not completed_status:
+                    messages.warning(request, "Event date is in the past. Consider updating its status.")
             if next_url:
                 return redirect(next_url)
-            return redirect("event_list")  # Fallback to event list
+            return redirect("event_list")
     else:
         form = EventForm(instance=event)
 
@@ -1112,13 +1132,25 @@ def download_custom_field_file(request, file_id):
 @login_required
 def company_list(request):
     """Display list of companies"""
-    companies = Company.objects.all().order_by("name")
+    today = date.today()
+    companies = Company.objects.annotate(
+        upcoming_event_count=Count("event", filter=Q(event__event_date__gte=today))
+    ).order_by("name")
 
     context = {
         "companies": companies,
     }
 
     return render(request, "companies.html", context)
+
+
+@login_required
+def company_delete(request, company_id):
+    company = get_object_or_404(Company, id=company_id)
+    company_name = company.name
+    company.delete()
+    messages.success(request, f"Company '{company_name}' deleted successfully!")
+    return redirect("company_list")
 
 
 @login_required
@@ -1134,7 +1166,7 @@ def company_create(request):
         form = CompanyForm()
 
     return render(
-        request, "company_form.html", {"form": form, "title": "Add New Company"}
+        request, "company_form.html", {"form": form, "title": "Add Company"}
     )
 
 

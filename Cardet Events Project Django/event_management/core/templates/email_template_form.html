@@ -60,12 +60,15 @@
                 {% endif %}
             </p>
             <div class="text-blue-600 text-xs">
+                {% verbatim %}
                 <strong>Available placeholders:</strong> {{ name }}, {{ event_name }}, {{ event_date }}, {{ event_location }}, {{ start_time }}, {{ end_time }}, {{ email }}, {{ phone }}
+                {% endverbatim %}
                 {% if form.reason.value == 'rsvp' %}
-                    , {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}
+                    {% verbatim %}, {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}{% endverbatim %}
                 {% endif %}
                 {% if form.reason.value == 'certificates' %}
                     <br><br>
+                    {% verbatim %}
                     <strong>Certificate-specific placeholders:</strong><br>
                     • <code>{{ certificate_url }}</code> - Direct link to download the certificate<br>
                     • <code>{{ participant_name }}</code> - Full name of the participant<br>
@@ -74,6 +77,7 @@
                     • <code>{{ event_location }}</code> - Location where the event was held<br>
                     • <code>{{ company_name }}</code> - Name of the organizing company<br>
                     • <code>{{ attendance_date }}</code> - Date when attendance was marked
+                    {% endverbatim %}
                 {% endif %}
             </div>
             

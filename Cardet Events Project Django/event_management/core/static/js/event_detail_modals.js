@@ -1,6 +1,18 @@
 // Event Detail Modals and Participant Management JavaScript
 // Handles SweetAlert2 modals, participant approval/rejection, PDF generation monitoring, and ticket sending
 
+function copyToClipboard(text, btn) {
+    navigator.clipboard.writeText(text).then(function() {
+        const original = btn.innerHTML;
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
+        btn.title = 'Copied!';
+        setTimeout(function() {
+            btn.innerHTML = original;
+            btn.title = 'Copy link';
+        }, 2000);
+    });
+}
+
 $(document).ready(function() {
     const participantsBeingChecked = new Set();
     let currentProcessingAlert = null;
@@ -207,8 +219,8 @@ $(document).ready(function() {
 
     // Intercept approval button clicks
     $(document).on('click', 'a[href*="/approve/"]', function(e) {
-        e.preventDefault(); // Prevent default navigation
-        
+        e.preventDefault();
+
         const href = $(this).attr('href');
         const matches = href.match(/\/events\/(\d+)\/participants\/(\d+)\/approve\//);
 
@@ -216,40 +228,44 @@ $(document).ready(function() {
             const eventId = matches[1];
             const participantId = matches[2];
             const participantName = $(this).closest('tr').data('participant-name');
-            
-            // Check if event requires tickets
             const requiresTickets = window.EVENT_REQUIRES_TICKETS;
-            
-            // Only show processing alert if tickets are required
-            if (requiresTickets) {
-                showProcessingAlert(
-                    'Approving Participant', 
-                    `Approving <strong>${participantName}</strong> and generating PDF ticket...`
-                );
-            }
 
-            // Make the approval request
-            $.ajax({
-                url: href,
-                method: 'GET',
-                success: function(response) {
-                    if (requiresTickets) {
-                        // Start monitoring PDF generation only if tickets are required
-                        monitorPDFGeneration(participantId, eventId, participantName);
-                    } else {
-                        // Show immediate success for events without tickets (no processing message)
-                        showSuccessAlert(
-                            'Success!',
-                            `<strong>${participantName}</strong> has been approved successfully!<br><br>Page will reload in 3 seconds...`
-                        );
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showErrorAlert(
-                        'Approval Failed',
-                        'Failed to approve participant. Please try again.'
+            Swal.fire({
+                title: 'Approve participant?',
+                text: `${participantName} will be marked as approved.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, approve',
+                cancelButtonText: 'Cancel'
+            }).then(function(result) {
+                if (!result.isConfirmed) return;
+
+                if (requiresTickets) {
+                    showProcessingAlert(
+                        'Approving Participant',
+                        `Approving <strong>${participantName}</strong> and generating PDF ticket...`
                     );
                 }
+
+                $.ajax({
+                    url: href,
+                    method: 'GET',
+                    success: function(response) {
+                        if (requiresTickets) {
+                            monitorPDFGeneration(participantId, eventId, participantName);
+                        } else {
+                            showSuccessAlert(
+                                'Success!',
+                                `<strong>${participantName}</strong> has been approved successfully!<br><br>Page will reload in 3 seconds...`
+                            );
+                        }
+                    },
+                    error: function() {
+                        showErrorAlert('Approval Failed', 'Failed to approve participant. Please try again.');
+                    }
+                });
             });
         }
     });
@@ -257,60 +273,74 @@ $(document).ready(function() {
     // Intercept reject button clicks
     $(document).on('click', 'a[href*="/reject/"]', function(e) {
         e.preventDefault();
-        
+
         const href = $(this).attr('href');
         const participantName = $(this).closest('tr').data('participant-name');
-        
-        showProcessingAlert(
-            'Rejecting Participant',
-            `Rejecting <strong>${participantName}</strong>...`
-        );
 
-        $.ajax({
-            url: href,
-            method: 'GET',
-            success: function(response) {
-                showSuccessAlert(
-                    'Participant Rejected',
-                    `<strong>${participantName}</strong> has been rejected.<br><br>Page will reload in 3 seconds...`
-                );
-            },
-            error: function() {
-                showErrorAlert(
-                    'Rejection Failed',
-                    'Failed to reject participant. Please try again.'
-                );
-            }
+        Swal.fire({
+            title: 'Reject participant?',
+            text: `${participantName} will be marked as rejected.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, reject',
+            cancelButtonText: 'Cancel'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            showProcessingAlert('Rejecting Participant', `Rejecting <strong>${participantName}</strong>...`);
+
+            $.ajax({
+                url: href,
+                method: 'GET',
+                success: function() {
+                    showSuccessAlert(
+                        'Participant Rejected',
+                        `<strong>${participantName}</strong> has been rejected.<br><br>Page will reload in 3 seconds...`
+                    );
+                },
+                error: function() {
+                    showErrorAlert('Rejection Failed', 'Failed to reject participant. Please try again.');
+                }
+            });
         });
     });
 
     // Intercept pending button clicks
     $(document).on('click', 'a[href*="/pending/"]', function(e) {
         e.preventDefault();
-        
+
         const href = $(this).attr('href');
         const participantName = $(this).closest('tr').data('participant-name');
-        
-        showProcessingAlert(
-            'Setting Participant to Pending',
-            `Setting <strong>${participantName}</strong> to pending status...`
-        );
 
-        $.ajax({
-            url: href,
-            method: 'GET',
-            success: function(response) {
-                showSuccessAlert(
-                    'Status Updated',
-                    `<strong>${participantName}</strong> has been set to pending.<br><br>Page will reload in 3 seconds...`
-                );
-            },
-            error: function() {
-                showErrorAlert(
-                    'Update Failed',
-                    'Failed to update participant status. Please try again.'
-                );
-            }
+        Swal.fire({
+            title: 'Set to pending?',
+            text: `${participantName} will be moved back to pending.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, set pending',
+            cancelButtonText: 'Cancel'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            showProcessingAlert('Setting to Pending', `Setting <strong>${participantName}</strong> to pending...`);
+
+            $.ajax({
+                url: href,
+                method: 'GET',
+                success: function() {
+                    showSuccessAlert(
+                        'Status Updated',
+                        `<strong>${participantName}</strong> has been set to pending.<br><br>Page will reload in 3 seconds...`
+                    );
+                },
+                error: function() {
+                    showErrorAlert('Update Failed', 'Failed to update participant status. Please try again.');
+                }
+            });
         });
     });
 
@@ -441,7 +471,7 @@ $(document).ready(function() {
         tooltip.className = 'custom-tooltip';
         tooltip.innerHTML = tooltipContent;
         tooltip.style.cssText = `
-            position: absolute;
+            position: fixed;
             background: #1f2937;
             color: white;
             padding: 8px 12px;
@@ -454,6 +484,8 @@ $(document).ready(function() {
             transition: opacity 0.2s ease;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             max-width: 200px;
+            top: -9999px;
+            left: -9999px;
         `;
         document.body.appendChild(tooltip);
         

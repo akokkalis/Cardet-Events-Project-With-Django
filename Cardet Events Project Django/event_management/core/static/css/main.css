@@ -212,7 +212,7 @@ input[type="text"].filter-select {
 .event-card {
     transition: all 0.3s ease-in-out;
     width: 400px;
-    height: 445px;
+    min-height: 445px;
     border-radius: 1rem;
 }
 

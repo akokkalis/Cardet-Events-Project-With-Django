@@ -3,185 +3,201 @@
 {% block title %}Events{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-semibold flex items-center space-x-2">
-        <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-        </button>
-        <span class="hidden md:inline">Events</span>
-    </h1>
 
-    <!-- Add Event Button (Aligned Right) -->
-    <a href="{% url 'event_create' %}" class="btn btn-outline-blue">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+<!-- ── Page Header ─────────────────────────────────────────────── -->
+<div class="flex flex-wrap items-start justify-between gap-3 mb-5">
+    <div>
+        <h1 class="text-3xl font-semibold">Events</h1>
+        <p class="text-sm text-gray-500 mt-0.5" id="events-count">{{ events|length }} event{{ events|length|pluralize }} total</p>
+    </div>
+    <a href="{% url 'event_create' %}"
+       class="shrink-0 inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
-        <span>Add New Event</span>
+        Add New Event
     </a>
 </div>
 
+<!-- ── Primary Filter Toolbar ──────────────────────────────────── -->
+<div class="flex flex-wrap items-center gap-2 mb-2">
 
-<!-- Filters Section -->
-<div class="flex flex-wrap gap-4 mb-6">
-    <!-- Status Filter -->
-    <select id="filter-status" class="filter-select">
-        <option value="">Filter by Status</option>
+    <!-- Search -->
+    <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z"/>
+        </svg>
+        <input type="text" id="filter-search" placeholder="Search events…"
+               class="pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-44">
+    </div>
+
+    <!-- Status -->
+    <select id="filter-status"
+            class="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+        <option value="">All Statuses</option>
         {% for status in statuses %}
             <option value="{{ status.id }}">{{ status.name }}</option>
         {% endfor %}
     </select>
 
-    <!-- Company Filter -->
-    <select id="filter-company" class="filter-select">
-        <option value="">Filter by Company</option>
+    <!-- Company -->
+    <select id="filter-company"
+            class="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+        <option value="">All Companies</option>
         {% for company in companies %}
             <option value="{{ company.id }}">{{ company.name }}</option>
         {% endfor %}
     </select>
 
-    <!-- Date Filter -->
-    <input type="text" id="filter-date" class="filter-select" placeholder="Filter by Date">
+    <!-- Date Range -->
+    <div class="relative">
+        <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+        <input type="text" id="filter-date-range" placeholder="Date range…"
+               class="pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 w-48 bg-white cursor-pointer">
+    </div>
 
-    <!-- Month Filter -->
-    <select id="filter-month" class="filter-select">
-        <option value="">Filter by Month</option>
-        <option value="1">January</option>
-        <option value="2">February</option>
-        <option value="3">March</option>
-        <option value="4">April</option>
-        <option value="5">May</option>
-        <option value="6">June</option>
-        <option value="7">July</option>
-        <option value="8">August</option>
-        <option value="9">September</option>
-        <option value="10">October</option>
-        <option value="11">November</option>
-        <option value="12">December</option>
+    <!-- More Filters toggle -->
+    <button id="btn-more-filters" type="button"
+            class="inline-flex items-center gap-1.5 py-2 px-3 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-600">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 4h18M7 12h10m-6 8h2"/>
+        </svg>
+        More Filters
+        <span id="more-filters-badge" class="hidden ml-1 bg-indigo-600 text-white text-xs font-bold w-4 h-4 flex items-center justify-center rounded-full">!</span>
+    </button>
+
+    <!-- Clear (only shown when a filter is active) -->
+    <button id="clear-filters" type="button"
+            class="hidden py-2 px-3 text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+        Clear all
+    </button>
+
+</div>
+
+<!-- ── Active filter badges ─────────────────────────────────────── -->
+<div id="filter-badges" class="flex flex-wrap gap-2 mb-3"></div>
+
+<!-- ── More Filters panel ──────────────────────────────────────── -->
+<div id="more-filters-panel" class="hidden bg-white border border-gray-100 rounded-xl px-4 py-3 mb-4 flex flex-wrap gap-3 items-center shadow-sm">
+    <span class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Additional filters</span>
+
+    <select id="filter-month"
+            class="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+        <option value="">Month</option>
+        <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+        <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+        <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+        <option value="10">October</option><option value="11">November</option><option value="12">December</option>
     </select>
 
-    <!-- Year Filter -->
-    <select id="filter-year" class="filter-select">
-        <option value="">Filter by Year</option>
+    <select id="filter-year"
+            class="py-2 px-3 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 bg-white">
+        <option value="">Year</option>
         {% for year in event_years %}
             <option value="{{ year.year }}">{{ year.year }}</option>
         {% endfor %}
     </select>
-
-    <!-- Clear Filters -->
-    <button id="clear-filters" class="btn btn-outline-blue">
-        Clear Filters
-    </button>
 </div>
 
-
-
-<!-- Events Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {% for event in events %}
-    <div class="event-card bg-white p-6 rounded-md shadow-md flex flex-col items-center relative">
-        
-        <!-- Full Badge -->
-        {% if event.has_registration_limit and event.registration_limit and event.valid_participant_count >= event.registration_limit %}
-        <div class="absolute top-2 right-2 z-10">
-            <span class="bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Full</span>
-        </div>
-        {% endif %}
-        
-        <!-- Event Image and Status Badge -->
-        <div class="mb-3">
-            <div class="relative inline-block my-2.5"> <!-- Positioning context with vertical margin -->
-                {% if event.image %}
-                    <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="block">
-                {% else %}
-                    <div class="bg-[#e6f0f6] img-placeholder flex items-center justify-center">
-                        <!-- Placeholder for image --><span class="text-gray-500 ">No Image</span>
-                    </div>
-                {% endif %}
-
-                {% if event.status %}
-                <div class="absolute top-1/2 -translate-y-1/2 right-[-0px] mt-10">
-                    <span class="status-badge-shape bg-[#00b8c4] text-white text-sm font-semibold pl-4 pr-6 py-2 shadow-lg">
-                        {{ event.status.name }}
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Event Details -->
-        <div class="text-left" style="width: 361px;">
-            <h2 class="text-xl font-semibold mb-1">{{ event.event_name }}</h2>
-            <p class="text-brand-blue text-sm inline-block px-3 py-1 rounded-full -ml-3">{{ event.event_date|date:"F j, Y" }} | {{ event.start_time|time:"g:i a" }} - {{ event.end_time|time:"g:i a" }}</p>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="mt-5 flex justify-start space-x-3" style="width: 361px;">
-            <a href="{% url 'event_detail' event.id %}" class="btn btn-outline-blue" style="width: 109px; height: 44.5px; border-radius: 6px;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
-                </svg>
-                <span>View</span>
-            </a>
-            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="btn btn-outline-blue" style="width: 93px; height: 44.5px; border-radius: 6px;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                    <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd" />
-                </svg>
-                <span>Edit</span>
-            </a>
-
-            <button data-event-id="{{ event.id }}" class="btn btn-outline-pink delete-event-btn" style="width: 109px; height: 44.5px; border-radius: 6px;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
-                </svg>
-                <span>Delete</span>
-            </button>
-        </div>
-        <!-- ✅ Registration Count Badge with Tooltip -->
-        <div class="absolute bottom-2 right-2 group">
-            <div class="bg-brand-blue text-white text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full shadow-lg cursor-pointer">
-                {{ event.valid_participant_count }}
-            </div>
-            <!-- Tooltip -->
-            <div class="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 w-max bg-gray-800 text-white text-xs rounded py-1 px-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                Total Registrations (excluding rejected)
-            </div>
-        </div>
+<!-- ── Events Table ─────────────────────────────────────────────── -->
+<div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-100 bg-gray-50/60">
+                    <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3 w-10">#</th>
+                    <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Event</th>
+                    <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Date</th>
+                    <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Time</th>
+                    <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Status</th>
+                    <th class="text-center text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Registrations</th>
+                    <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="events-tbody" class="divide-y divide-gray-100">
+                {% for event in events %}
+                <tr class="hover:bg-gray-50/50 transition-colors" data-event-name="{{ event.event_name }}">
+                    <td class="px-4 py-3 text-gray-400 text-xs">{{ forloop.counter }}</td>
+                    <td class="px-4 py-3">
+                        <span class="font-medium text-gray-900">{{ event.event_name }}</span>
+                        {% if event.has_registration_limit and event.registration_limit and event.valid_participant_count >= event.registration_limit %}
+                            <span class="ml-2 bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Full</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-600">{{ event.event_date|date:"M j, Y" }}</td>
+                    <td class="px-4 py-3 text-gray-600 whitespace-nowrap">{{ event.start_time|time:"g:i a" }} – {{ event.end_time|time:"g:i a" }}</td>
+                    <td class="px-4 py-3">
+                        {% if event.status %}
+                            {% with s=event.status.name|lower %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+                                {% if 'complet' in s %}bg-green-100 text-green-700
+                                {% elif 'pending' in s %}bg-orange-100 text-orange-700
+                                {% elif 'on-going' in s or 'ongoing' in s or 'active' in s or 'on going' in s %}bg-blue-100 text-blue-700
+                                {% elif 'cancel' in s %}bg-red-100 text-red-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if 'complet' in s %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                {% elif 'cancel' in s %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                                {% else %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>{% endif %}
+                                {{ event.status.name }}
+                            </span>
+                            {% endwith %}
+                        {% else %}
+                            <span class="text-gray-400 text-xs">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-center">
+                        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold"
+                              title="Total Registrations (excluding rejected)">
+                            {{ event.valid_participant_count }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center justify-end gap-3">
+                            <a href="{% url 'event_detail' event.id %}"
+                               class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                View
+                            </a>
+                            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}"
+                               class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 font-medium transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>
+                                Edit
+                            </a>
+                            <button data-event-id="{{ event.id }}"
+                                    class="delete-event-btn inline-flex items-center gap-1 text-red-500 hover:text-red-700 font-medium transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                Delete
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr id="empty-row">
+                    <td colspan="7" class="px-4 py-12 text-center text-gray-400 text-sm">No events found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-    {% endfor %}
+    <!-- Footer -->
+    <div class="px-4 py-3 border-t border-gray-100">
+        <p class="text-xs text-gray-400" id="events-footer-count">
+            Showing {{ events|length }} of {{ events|length }} event{{ events|length|pluralize }}
+        </p>
+    </div>
 </div>
 
-
-
+<!-- ── Scripts ──────────────────────────────────────────────────── -->
 <script>
-    // Add CSRF token for AJAX requests
-    window.csrfToken = '{{ csrf_token }}';
-    // Add filter URL
-    window.filterUrl = '{% url "filter_events" %}';
-    // Base URLs for dynamic links
+    window.csrfToken       = '{{ csrf_token }}';
+    window.filterUrl       = '{% url "filter_events" %}';
     window.eventDetailUrlBase = '/events/';
-    window.eventEditUrlBase = '/events/edit/';
+    window.eventEditUrlBase   = '/events/edit/';
+    window.totalEvents     = {{ events|length }};
 </script>
 <script src="{% static 'js/confirm_on_delete.js' %}"></script>
 <script src="{% static 'js/filter_events.js' %}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        flatpickr("#filter-date", {
-            dateFormat: "d/m/Y",
-            altInput: true,
-            altFormat: "d/m/Y",
-            placeholder: "dd/mm/yyyy"
-        });
 
-        // Clear Filters functionality
-        document.getElementById('clear-filters').addEventListener('click', function() {
-            // Reload the page to clear all filters
-            window.location.reload();
-        });
-    });
-</script>
-    
 {% endblock %}
