@@ -795,6 +795,10 @@ def public_register(request, event_uuid):
             )
 
     if request.method == "POST":
+        # Honeypot check — bots fill this in, real users leave it blank
+        if request.POST.get("honeypot"):
+            return redirect("public_register", event_uuid=event.uuid)
+
         form = ParticipantForm(request.POST, request.FILES)
 
         # Collect custom field data
@@ -1137,8 +1141,13 @@ def company_list(request):
         upcoming_event_count=Count("event", filter=Q(event__event_date__gte=today))
     ).order_by("name")
 
+    is_admin = request.user.is_superuser or (
+        getattr(getattr(request.user, "staff", None), "role", None) == "admin"
+    )
+
     context = {
         "companies": companies,
+        "is_admin": is_admin,
     }
 
     return render(request, "companies.html", context)
@@ -1146,6 +1155,14 @@ def company_list(request):
 
 @login_required
 def company_delete(request, company_id):
+
+    if not (
+        request.user.is_superuser
+        or getattr(getattr(request.user, "staff", None), "role", None) == "admin"
+    ):
+        messages.error(request, "You do not have permission to delete companies.")
+        return redirect("company_list")
+        
     company = get_object_or_404(Company, id=company_id)
     company_name = company.name
     company.delete()

@@ -50,34 +50,30 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label for="{{ form.smtp_server.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.smtp_server.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.smtp_server.label }}
                             <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1">
-                            {{ form.smtp_server|add_class:"form-field" }}
-                        </div>
+                        {{ form.smtp_server|add_class:"form-field" }}
                         {% if form.smtp_server.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.smtp_server.help_text }}</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ form.smtp_server.help_text }}</p>
                         {% endif %}
                         {% for error in form.smtp_server.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.smtp_port.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.smtp_port.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.smtp_port.label }}
                             <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1">
-                            {{ form.smtp_port|add_class:"form-field" }}
-                        </div>
+                        {{ form.smtp_port|add_class:"form-field" }}
                         {% if form.smtp_port.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.smtp_port.help_text }}</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ form.smtp_port.help_text }}</p>
                         {% endif %}
                         {% for error in form.smtp_port.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
                 </div>
@@ -89,27 +85,25 @@
                 
                 <div class="space-y-6">
                     <div>
-                        <label for="{{ form.email_address.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.email_address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.email_address.label }}
                             <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1">
-                            {{ form.email_address|add_class:"form-field" }}
-                        </div>
+                        {{ form.email_address|add_class:"form-field" }}
                         {% if form.email_address.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.email_address.help_text }}</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ form.email_address.help_text }}</p>
                         {% endif %}
                         {% for error in form.email_address.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.email_password.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.email_password.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.email_password.label }}
                             <span class="text-red-500">*</span>
                         </label>
-                        <div class="mt-1 relative">
+                        <div class="relative">
                             {{ form.email_password|add_class:"form-field pr-10" }}
                             <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3 flex items-center">
                                 <svg id="eye-icon" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -119,11 +113,11 @@
                             </button>
                         </div>
                         {% if form.email_password.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.email_password.help_text }}</p>
+                            <p class="mt-1 text-sm text-gray-500">{{ form.email_password.help_text }}</p>
                         {% endif %}
-                        <p class="mt-2 text-sm text-blue-600">💡 Tip: For Gmail, use an app-specific password instead of your regular password.</p>
+                        <p class="mt-1 text-sm text-blue-600">💡 Tip: For Gmail, use an app-specific password instead of your regular password.</p>
                         {% for error in form.email_password.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
                 </div>

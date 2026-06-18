@@ -10,12 +10,12 @@
         <form method="post">
             {% csrf_token %}
             <div class="mb-4">
-                <label class="block text-gray-700">Username</label>
-                <input type="text" name="username" class="w-full p-2 border border-gray-300 rounded mt-1" required>
+                <label class="block text-gray-700 mb-1">Username</label>
+                <input type="text" name="username" class="w-full p-2 border border-gray-300 rounded" required>
             </div>
             <div class="mb-4">
-                <label class="block text-gray-700">Password</label>
-                <input type="password" name="password" class="w-full p-2 border border-gray-300 rounded mt-1" required>
+                <label class="block text-gray-700 mb-1">Password</label>
+                <input type="password" name="password" class="w-full p-2 border border-gray-300 rounded" required>
             </div>
             <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
                 Login

@@ -135,44 +135,38 @@ Best regards,
                 <input type="hidden" name="reason" value="{{ form.reason.value }}">
             {% else %}
                 <div>
-                    <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                    <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                         Email Type
                     </label>
-                    <div class="mt-1">
-                        {{ form.reason|add_class:"form-field bg-gray-100" }}
-                    </div>
+                    {{ form.reason|add_class:"form-field bg-gray-100" }}
                     {% for error in form.reason.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                        <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                     {% endfor %}
                 </div>
             {% endif %}
 
             <!-- Subject Field -->
             <div>
-                <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="{{ form.subject.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                     Email Subject *
                 </label>
-                <div class="mt-1">
-                    {{ form.subject|add_class:"form-field" }}
-                </div>
+                {{ form.subject|add_class:"form-field" }}
                 {% for error in form.subject.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                 {% endfor %}
             </div>
 
             <!-- Body Field -->
             <div>
-                <label for="{{ form.body.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                <label for="{{ form.body.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                     Email Body *
                 </label>
-                <div class="mt-1">
-                    {{ form.body|add_class:"form-field" }}
-                </div>
+                {{ form.body|add_class:"form-field" }}
                 {% if form.body.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.body.help_text }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ form.body.help_text }}</p>
                 {% endif %}
                 {% for error in form.body.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                 {% endfor %}
             </div>
 

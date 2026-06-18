@@ -225,8 +225,8 @@ input[type="text"].filter-select {
 /* Event Card Image Styling */
 .event-card img,
 .event-card .img-placeholder {
-    width: 361px;
-    height: 237px;
+    /* width: 361px;
+    height: 237px; */
     object-fit: cover;
     border-radius: 12px;
 }
@@ -243,8 +243,8 @@ input[type="text"].filter-select {
 }
 
 .event-detail-image {
-    width: 361px;
-    height: 237px;
+    /* width: 361px;
+    height: 237px; */
     object-fit: cover;
     border-radius: 12px;
 }

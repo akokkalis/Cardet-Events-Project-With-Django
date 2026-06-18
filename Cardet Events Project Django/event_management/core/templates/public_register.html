@@ -61,6 +61,12 @@
     <form method="POST" enctype="multipart/form-data" class="space-y-4">
         {% csrf_token %}
 
+        <!-- Honeypot field — hidden from real users, bots will fill it in -->
+        <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;width:0;height:0;overflow:hidden;">
+            <label for="honeypot">Honey Pot</label>
+            <input type="text" name="honeypot" id="honeypot" value="" autocomplete="off" tabindex="-1">
+        </div>
+
         <!-- Standard Fields -->
         <div>
             <label for="id_name" class="block text-gray-700 font-semibold">Full Name <span class="text-red-500">*</span></label>
