@@ -17,6 +17,7 @@ from .models import (
     Status,
     EmailConfiguration,
     EventCustomField,
+    EventSystemFieldConfig,
     EventEmail,
     RSVPResponse,
     RSVPEmailLog,
@@ -326,6 +327,13 @@ admin.site.register(Attendance, AttendanceAdmin)
 admin.site.register(EmailConfiguration)
 admin.site.register(EventCustomField, EventCustomFieldAdmin)
 admin.site.register(EventEmail, EventEmailAdmin)
+
+
+@admin.register(EventSystemFieldConfig)
+class EventSystemFieldConfigAdmin(admin.ModelAdmin):
+    list_display = ("event", "field_name", "order")
+    list_filter = ("event", "field_name")
+    ordering = ("event", "order")
 
 
 class RSVPResponseAdmin(admin.ModelAdmin):

@@ -957,22 +957,21 @@ def check_bulk_rsvp_completion(log_id):
         print(f"❌ Error checking bulk RSVP completion for log {log_id}: {e}")
 
 
-@shared_task
-def process_registration_task(participant_id):
-    """
-    Celery task to process participant registration.
-    This replaces the threading approach in signals.py.
-    """
-    try:
-        from .models import Participant
-        from .utils import generate_pdf_ticket
+@shared_task(bind=True)
+def process_registration_task(self, participant_id):
+    """Celery task to process participant registration."""
+    from .models import Participant, TaskLog
+    from .utils import generate_pdf_ticket
+    from django.utils import timezone
 
+    task_id = self.request.id
+    TaskLog.objects.filter(task_id=task_id).update(status="in_progress")
+
+    try:
         participant = Participant.objects.get(id=participant_id)
 
-        # Send registration email
         send_registration_email_task.delay(participant.id)
 
-        # Handle auto approval
         if (
             participant.event.auto_approval_enabled
             and participant.approval_status == "pending"
@@ -980,136 +979,122 @@ def process_registration_task(participant_id):
             participant.approval_status = "approved"
             participant.save(update_fields=["approval_status"])
 
-            # If auto approval AND tickets are enabled: generate tickets and send ticket email
             if participant.event.tickets:
-                qr_path = participant.generate_qr_code()  # Generate QR code
-                pdf_path = generate_pdf_ticket(participant, qr_path)  # Generate PDF
-
-                if pdf_path:  # Only save if the PDF was generated successfully
-                    participant.pdf_ticket = pdf_path
-                    participant.save(update_fields=["pdf_ticket"])
-                    # Send ticket email with PDF attachment
-                    send_ticket_email_task.delay(participant.id)
-                    print(
-                        f"✅ Auto-approved with tickets: {participant.name} for {participant.event.event_name}"
-                    )
-                else:
-                    print(f"❌ Failed to generate PDF ticket for {participant.name}")
-            else:
-                print(
-                    f"✅ Auto-approved without tickets: {participant.name} for {participant.event.event_name}"
-                )
-        else:
-            # Auto approval disabled: participant remains in "pending" status
-            print(
-                f"📋 Registration pending approval: {participant.name} for {participant.event.event_name}"
-            )
-            if participant.event.tickets:
-                print(
-                    f"🎫 Tickets will be generated upon manual approval: {participant.name}"
-                )
-            else:
-                print(
-                    f"📋 No tickets needed: {participant.name} for {participant.event.event_name}"
-                )
-
-        return {
-            "status": "success",
-            "message": f"Registration processing completed for {participant.name}",
-        }
-
-    except Participant.DoesNotExist:
-        print(f"❌ Participant with ID {participant_id} not found")
-        return {"status": "error", "message": "Participant not found."}
-    except Exception as e:
-        print(f"❌ Error processing registration for participant {participant_id}: {e}")
-        return {
-            "status": "error",
-            "message": f"Error processing registration: {str(e)}",
-        }
-
-
-@shared_task
-def process_approval_task(participant_id):
-    """
-    Celery task to process participant approval.
-    This replaces the threading approach in signals.py.
-    """
-    try:
-        from .models import Participant
-        from .utils import generate_pdf_ticket
-
-        participant = Participant.objects.get(id=participant_id)
-
-        # Send approval email
-        send_approval_email_task.delay(participant.id)
-
-        # If tickets are enabled, generate tickets and send ticket email
-        if participant.event.tickets:
-            print(f"🎫 Tickets are enabled for {participant.event.event_name}")
-            # Generate tickets if they don't exist yet (for manual approval cases)
-            if not participant.pdf_ticket:
-                qr_path = participant.generate_qr_code()  # Generate QR code
-                pdf_path = generate_pdf_ticket(participant, qr_path)  # Generate PDF
-
+                qr_path = participant.generate_qr_code()
+                pdf_path = generate_pdf_ticket(participant, qr_path)
                 if pdf_path:
                     participant.pdf_ticket = pdf_path
                     participant.save(update_fields=["pdf_ticket"])
-                    print(
-                        f"🎫 Tickets generated for manual approval: {participant.name}"
-                    )
+                    send_ticket_email_task.delay(participant.id)
+                    msg = f"Auto-approved with ticket: {participant.name}"
                 else:
-                    print(f"❌ Failed to generate PDF ticket for {participant.name}")
-                    return {
-                        "status": "error",
-                        "message": f"Failed to generate PDF ticket for {participant.name}",
-                    }
-
-            # Send ticket email
-            send_ticket_email_task.delay(participant.id)
-            print(f"🎫 Ticket email sent after manual approval: {participant.name}")
+                    msg = f"Auto-approved but PDF generation failed: {participant.name}"
+            else:
+                msg = f"Auto-approved (no tickets): {participant.name}"
         else:
-            print(f"✅ Participant approved without tickets: {participant.name}")
+            msg = f"Registration pending approval: {participant.name}"
 
-        return {
-            "status": "success",
-            "message": f"Approval processing completed for {participant.name}",
-        }
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="success", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "success", "message": msg}
 
     except Participant.DoesNotExist:
-        print(f"❌ Participant with ID {participant_id} not found")
-        return {"status": "error", "message": "Participant not found."}
+        msg = f"Participant ID {participant_id} not found."
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
     except Exception as e:
-        print(f"❌ Error processing approval for participant {participant_id}: {e}")
-        return {"status": "error", "message": f"Error processing approval: {str(e)}"}
+        msg = f"Error processing registration: {str(e)}"
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
 
 
-@shared_task
-def process_rejection_task(participant_id):
-    """
-    Celery task to process participant rejection.
-    This replaces the threading approach in signals.py.
-    """
+@shared_task(bind=True)
+def process_approval_task(self, participant_id):
+    """Celery task to process participant approval."""
+    from .models import Participant, TaskLog
+    from .utils import generate_pdf_ticket
+    from django.utils import timezone
+
+    task_id = self.request.id
+    TaskLog.objects.filter(task_id=task_id).update(status="in_progress")
+
     try:
-        from .models import Participant
-
         participant = Participant.objects.get(id=participant_id)
 
-        # Send rejection email
-        send_rejection_email_task.delay(participant.id)
-        print(f"❌ Participant rejected: {participant.name}")
+        send_approval_email_task.delay(participant.id)
 
-        return {
-            "status": "success",
-            "message": f"Rejection processing completed for {participant.name}",
-        }
+        if participant.event.tickets:
+            if not participant.pdf_ticket:
+                qr_path = participant.generate_qr_code()
+                pdf_path = generate_pdf_ticket(participant, qr_path)
+                if pdf_path:
+                    participant.pdf_ticket = pdf_path
+                    participant.save(update_fields=["pdf_ticket"])
+                else:
+                    msg = f"Failed to generate PDF ticket for {participant.name}"
+                    TaskLog.objects.filter(task_id=task_id).update(
+                        status="failure", message=msg, completed_at=timezone.now()
+                    )
+                    return {"status": "error", "message": msg}
+            send_ticket_email_task.delay(participant.id)
+            msg = f"Approved with ticket: {participant.name}"
+        else:
+            msg = f"Approved (no tickets): {participant.name}"
+
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="success", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "success", "message": msg}
 
     except Participant.DoesNotExist:
-        print(f"❌ Participant with ID {participant_id} not found")
-        return {"status": "error", "message": "Participant not found."}
+        msg = f"Participant ID {participant_id} not found."
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
     except Exception as e:
-        print(f"❌ Error processing rejection for participant {participant_id}: {e}")
-        return {"status": "error", "message": f"Error processing rejection: {str(e)}"}
+        msg = f"Error processing approval: {str(e)}"
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
+
+
+@shared_task(bind=True)
+def process_rejection_task(self, participant_id):
+    """Celery task to process participant rejection."""
+    from .models import Participant, TaskLog
+    from django.utils import timezone
+
+    task_id = self.request.id
+    TaskLog.objects.filter(task_id=task_id).update(status="in_progress")
+
+    try:
+        participant = Participant.objects.get(id=participant_id)
+        send_rejection_email_task.delay(participant.id)
+        msg = f"Rejected: {participant.name}"
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="success", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "success", "message": msg}
+
+    except Participant.DoesNotExist:
+        msg = f"Participant ID {participant_id} not found."
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
+    except Exception as e:
+        msg = f"Error processing rejection: {str(e)}"
+        TaskLog.objects.filter(task_id=task_id).update(
+            status="failure", message=msg, completed_at=timezone.now()
+        )
+        return {"status": "error", "message": msg}
 
 
 @shared_task

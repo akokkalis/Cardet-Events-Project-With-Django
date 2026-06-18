@@ -12,9 +12,9 @@ from .models import (
     Order,
     OrderItem,
     PaidTicket,
+    TaskLog,
 )
 from .utils import (
-    generate_pdf_ticket,
     generate_rsvp_urls,
     email_body,
     generate_ics_file,
@@ -33,11 +33,6 @@ from .tasks import (
     process_rejection_task,
     generate_paidticket_pdf_task,
 )
-
-
-from .models import Company, Event, Participant
-from .utils import generate_pdf_ticket
-
 COMPANY_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Companies")
 EVENTS_MASTER_FOLDER = os.path.join(settings.MEDIA_ROOT, "Events")
 
@@ -134,27 +129,16 @@ def create_paid_tickets_folder(sender, instance, **kwargs):
 def generate_qr_and_pdf(sender, instance, created, **kwargs):
     """Handles participant registration logic based on auto_approval and tickets settings."""
     if created:
-
-        # ✅ Run registration processing using Celery task
         task = process_registration_task.delay(instance.id)
-        print(
-            f"✅ Celery task {task.id} queued for registration processing: {instance.name}"
+        TaskLog.objects.create(
+            task_id=task.id,
+            task_type="registration",
+            status="pending",
+            event=instance.event,
+            participant_name=instance.name,
+            participant_email=instance.email,
         )
-
-        print(f"🚀 Registration processing started in background for: {instance.name}")
-
-## **QR Code & PDF Ticket Generation for Participants**
-@receiver(post_save, sender=Participant)
-def generate_qr_and_pdf(sender, instance, created, **kwargs):
-    """Generates a QR code and a PDF ticket when a participant is registered."""
-    if created:
-        qr_path = instance.generate_qr_code()  # Generate and get correct QR path
-        pdf_path = generate_pdf_ticket(instance, qr_path)  # Generate PDF
-
-        if pdf_path:  # Only save if the PDF was generated successfully
-            instance.pdf_ticket = pdf_path
-            instance.save(update_fields=["pdf_ticket"])
-
+        print(f"✅ Celery task {task.id} queued for registration: {instance.name}")
 
 ### **Email Ticket to Participant**
 def send_ticket_email(participant):
@@ -354,26 +338,30 @@ def send_rejection_email(participant):
 
 def handle_participant_approval(participant):
     """Handle the approval process for a participant."""
-
-    # ✅ Run approval processing using Celery task
     task = process_approval_task.delay(participant.id)
-    print(
-        f"✅ Celery task {task.id} queued for approval processing: {participant.name}"
+    TaskLog.objects.create(
+        task_id=task.id,
+        task_type="approval",
+        status="pending",
+        event=participant.event,
+        participant_name=participant.name,
+        participant_email=participant.email,
     )
-
-    print(f"🚀 Approval processing started in background for: {participant.name}")
+    print(f"✅ Celery task {task.id} queued for approval: {participant.name}")
 
 
 def handle_participant_rejection(participant):
     """Handle the rejection process for a participant."""
-
-    # ✅ Run rejection processing using Celery task
     task = process_rejection_task.delay(participant.id)
-    print(
-        f"✅ Celery task {task.id} queued for rejection processing: {participant.name}"
+    TaskLog.objects.create(
+        task_id=task.id,
+        task_type="rejection",
+        status="pending",
+        event=participant.event,
+        participant_name=participant.name,
+        participant_email=participant.email,
     )
-
-    print(f"🚀 Rejection processing started in background for: {participant.name}")
+    print(f"✅ Celery task {task.id} queued for rejection: {participant.name}")
 
 
 # ✅ We'll handle manual approval/rejection through views or admin actions

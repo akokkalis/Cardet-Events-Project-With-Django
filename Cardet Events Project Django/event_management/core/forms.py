@@ -6,6 +6,7 @@ from .models import (
     Status,
     Participant,
     EventCustomField,
+    EventSystemFieldConfig,
     EventEmail,
     EmailConfiguration,
     TicketType,
@@ -263,71 +264,126 @@ class ParticipantForm(forms.ModelForm):
         self.event = kwargs.pop("event", None)
         super().__init__(*args, **kwargs)
 
-        if self.event:
-            custom_fields = EventCustomField.objects.filter(event=self.event).order_by(
-                "order"
-            )
-            for field_model in custom_fields:
-                field_name = f"custom_field_{field_model.id}"
-                field_kwargs = {
-                    "label": field_model.label,
-                    "required": field_model.required,
-                    "help_text": field_model.help_text,
-                }
+        if not self.event:
+            return
 
-                if field_model.field_type == "text":
-                    self.fields[field_name] = forms.CharField(**field_kwargs)
-                elif field_model.field_type == "textarea":
-                    self.fields[field_name] = forms.CharField(
-                        widget=forms.Textarea, **field_kwargs
+        from collections import OrderedDict
+
+        # Determine ordering for system fields
+        system_configs = EventSystemFieldConfig.objects.filter(
+            event=self.event, active=True
+        ).order_by("order")
+        system_order = {cfg.field_name: cfg.order for cfg in system_configs}
+        system_order.setdefault("name", 1)
+        system_order.setdefault("email", 2)
+        # phone is only included if its config exists and is active
+
+        custom_fields_qs = EventCustomField.objects.filter(
+            event=self.event
+        ).order_by("order")
+
+        # Build phone as a dynamic form field (no longer a model column)
+        phone_initial = ""
+        if self.instance and self.instance.pk and self.instance.submitted_data:
+            phone_initial = (
+                self.instance.submitted_data.get("Phone")
+                or self.instance.submitted_data.get("phone")
+                or ""
+            )
+        phone_field = forms.CharField(
+            max_length=50,
+            required=False,
+            label="Phone",
+            initial=phone_initial,
+            widget=forms.TextInput(attrs={"placeholder": "Phone number"}),
+        )
+
+        # Build custom field objects
+        custom_field_objects = {}
+        for field_model in custom_fields_qs:
+            field_name = f"custom_field_{field_model.id}"
+            field_kwargs = {
+                "label": field_model.label,
+                "required": field_model.required,
+                "help_text": field_model.help_text,
+            }
+
+            if field_model.field_type == "text":
+                custom_field_objects[field_name] = forms.CharField(**field_kwargs)
+            elif field_model.field_type == "textarea":
+                custom_field_objects[field_name] = forms.CharField(
+                    widget=forms.Textarea, **field_kwargs
+                )
+            elif field_model.field_type == "number":
+                custom_field_objects[field_name] = forms.IntegerField(**field_kwargs)
+            elif field_model.field_type == "email":
+                custom_field_objects[field_name] = forms.EmailField(**field_kwargs)
+            elif field_model.field_type == "checkbox":
+                custom_field_objects[field_name] = forms.BooleanField(**field_kwargs)
+            elif field_model.field_type == "date":
+                custom_field_objects[field_name] = forms.DateField(
+                    widget=forms.DateInput(attrs={"type": "date"}), **field_kwargs
+                )
+            elif field_model.field_type == "time":
+                custom_field_objects[field_name] = forms.TimeField(
+                    widget=forms.TimeInput(attrs={"type": "time"}), **field_kwargs
+                )
+            elif field_model.field_type == "datetime":
+                custom_field_objects[field_name] = forms.DateTimeField(
+                    widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                    **field_kwargs,
+                )
+            elif field_model.field_type in ["select", "multiselect"]:
+                choices = [(option, option) for option in field_model.options_list]
+                if field_model.field_type == "select":
+                    custom_field_objects[field_name] = forms.ChoiceField(
+                        choices=choices, **field_kwargs
                     )
-                elif field_model.field_type == "number":
-                    self.fields[field_name] = forms.IntegerField(**field_kwargs)
-                elif field_model.field_type == "email":
-                    self.fields[field_name] = forms.EmailField(**field_kwargs)
-                elif field_model.field_type == "checkbox":
-                    self.fields[field_name] = forms.BooleanField(**field_kwargs)
-                elif field_model.field_type == "date":
-                    self.fields[field_name] = forms.DateField(
-                        widget=forms.DateInput(attrs={"type": "date"}), **field_kwargs
-                    )
-                elif field_model.field_type == "time":
-                    self.fields[field_name] = forms.TimeField(
-                        widget=forms.TimeInput(attrs={"type": "time"}), **field_kwargs
-                    )
-                elif field_model.field_type == "datetime":
-                    self.fields[field_name] = forms.DateTimeField(
-                        widget=forms.DateTimeInput(attrs={"type": "datetime-local"}),
+                else:
+                    custom_field_objects[field_name] = forms.MultipleChoiceField(
+                        choices=choices,
+                        widget=forms.CheckboxSelectMultiple,
                         **field_kwargs,
                     )
-                elif field_model.field_type in ["select", "multiselect"]:
-                    choices = [(option, option) for option in field_model.options_list]
-                    if field_model.field_type == "select":
-                        self.fields[field_name] = forms.ChoiceField(
-                            choices=choices, **field_kwargs
-                        )
-                    else:
-                        self.fields[field_name] = forms.MultipleChoiceField(
-                            choices=choices,
-                            widget=forms.CheckboxSelectMultiple,
-                            **field_kwargs,
-                        )
-                elif field_model.field_type == "range":
-                    min_val, max_val = field_model.range_values
-                    self.fields[field_name] = forms.IntegerField(
-                        min_value=min_val,
-                        max_value=max_val,
-                        widget=forms.NumberInput(
-                            attrs={"type": "range", "min": min_val, "max": max_val}
-                        ),
-                        **field_kwargs,
-                    )
-                elif field_model.field_type == "file":
-                    self.fields[field_name] = forms.FileField(**field_kwargs)
+            elif field_model.field_type == "range":
+                min_val, max_val = field_model.range_values
+                custom_field_objects[field_name] = forms.IntegerField(
+                    min_value=min_val,
+                    max_value=max_val,
+                    widget=forms.NumberInput(
+                        attrs={"type": "range", "min": min_val, "max": max_val}
+                    ),
+                    **field_kwargs,
+                )
+            elif field_model.field_type == "file":
+                custom_field_objects[field_name] = forms.FileField(**field_kwargs)
+
+        # Merge system fields and custom fields, sorted by order
+        # Name and email are always present; phone only if its config exists
+        merged = [
+            (system_order["name"], "name"),
+            (system_order["email"], "email"),
+        ]
+        if "phone" in system_order:
+            merged.append((system_order["phone"], "phone"))
+        for cf in custom_fields_qs:
+            merged.append((cf.order, f"custom_field_{cf.id}"))
+        merged.sort(key=lambda x: x[0])
+
+        # Rebuild self.fields in merged order
+        new_fields = OrderedDict()
+        for _, fname in merged:
+            if fname == "phone":
+                new_fields["phone"] = phone_field
+            elif fname in self.fields:
+                new_fields[fname] = self.fields[fname]
+            elif fname in custom_field_objects:
+                new_fields[fname] = custom_field_objects[fname]
+        self.fields = new_fields
 
     class Meta:
         model = Participant
-        fields = ["name", "email", "phone"]
+        fields = ["name", "email"]
 
 
 class EventCustomFieldForm(forms.ModelForm):

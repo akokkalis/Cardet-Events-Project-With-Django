@@ -73,7 +73,10 @@ MIDDLEWARE = [
 
 # Celery Beat Scheduler
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", CELERY_BROKER_URL)
+CELERY_RESULT_EXPIRES = 60 * 60 * 24  # keep results 24 h
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_TIMEZONE = "Asia/Nicosia"
 
 ROOT_URLCONF = "event_management.urls"
 
@@ -178,7 +181,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Nicosia"
 
 USE_I18N = True
 

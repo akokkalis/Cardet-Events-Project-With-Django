@@ -274,7 +274,8 @@ def export_participants_csv(event_id):
     os.makedirs(csv_folder, exist_ok=True)  # ✅ Ensure folder exists
     csv_path = os.path.join(csv_folder, f"{event.event_name}_participants.csv")
 
-    with open(csv_path, "w", newline="", encoding="utf-8") as csvfile:
+    # Use UTF-8 with BOM so Excel and similar tools detect Greek/non-English text correctly.
+    with open(csv_path, "w", newline="", encoding="utf-8-sig") as csvfile:
         writer = csv.writer(csvfile)
 
         # ✅ Write Event Details
@@ -282,7 +283,7 @@ def export_participants_csv(event_id):
         writer.writerow(["Date", event.event_date])
         writer.writerow(["Location", event.location])
         writer.writerow(["Description", event.description])
-        writer.writerow(["Status", event.status.name])
+        writer.writerow(["Status", event.status])
         writer.writerow([])  # Empty row for spacing
 
         # ✅ Get custom fields for headers
@@ -377,7 +378,7 @@ def export_participants_csv(event_id):
 
     # ✅ Return CSV as Response
     with open(csv_path, "rb") as f:
-        response = HttpResponse(f, content_type="text/csv")
+        response = HttpResponse(f, content_type="text/csv; charset=utf-8")
         response["Content-Disposition"] = (
             f'attachment; filename="{event.event_name}_participants.csv"'
         )

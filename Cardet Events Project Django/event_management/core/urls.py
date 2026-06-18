@@ -23,6 +23,7 @@ from .views import (
     download_ics_file,
     event_custom_fields,
     delete_custom_field,
+    toggle_system_field,
     update_field_order,
     register_participant_view,
     edit_participant_view,
@@ -62,6 +63,7 @@ from .views import (
     participant_detail,
     logs_view,
     log_details_ajax,
+    check_task_log_status,
 
     event_attendance_dashboard,
     export_attendance_csv,
@@ -151,6 +153,11 @@ urlpatterns = [
         "events/<int:event_id>/custom-fields/delete/<int:field_id>/",
         delete_custom_field,
         name="delete_custom_field",
+    ),
+    path(
+        "events/<int:event_id>/custom-fields/toggle-system/<str:field_name>/",
+        toggle_system_field,
+        name="toggle_system_field",
     ),
     path(
         "events/<int:event_id>/update-field-order/",
@@ -322,6 +329,11 @@ urlpatterns = [
         "logs/<str:log_type>/<int:log_id>/details/",
         log_details_ajax,
         name="log_details_ajax",
+    ),
+    path(
+        "logs/task/<str:task_id>/status/",
+        check_task_log_status,
+        name="check_task_log_status",
     ),
     path(
         "participant/<str:participant_email>/",
