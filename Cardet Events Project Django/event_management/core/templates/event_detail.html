@@ -5,6 +5,14 @@
 
 {% block extra_css %}
 <style>
+/* Small button variant */
+.btn-sm {
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+    gap: 0.3rem;
+}
+
 /* Loading spinner styles */
 .loading-overlay {
     position: fixed;
@@ -66,77 +74,170 @@
     </div>
 </div>
 
-
-<div class="space-y-6 m-10">
+<div class="space-y-5 mx-8 my-6">
     {% include "include/_messages.html" %}
 
-    <!-- Header: Event Details + Edit Button -->
-    <div class="flex justify-between items-center">
-        
-        
-        <div class="flex items-center gap-3">
-            <a href="{% if from_dashboard %}{% url 'dashboard' %}{% else %}{% url 'event_list' %}{% endif %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-            </a>
-            <h1 class="text-3xl font-bold">Event Details</h1>
+    <!-- Row 1: Back link -->
+    <div>
+        <a href="{% if from_dashboard %}{% url 'dashboard' %}{% else %}{% url 'event_list' %}{% endif %}"
+           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-blue transition-colors w-fit">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Events
+        </a>
+    </div>
+
+    <!-- Row 2: Title + status badge (left) | All action buttons incl. Edit Event (right) -->
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <div class="flex items-center gap-3 flex-wrap">
+                <h1 class="text-2xl font-bold text-gray-900">{{ event.event_name }}</h1>
+                {% if event.status %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e6f0f6] text-[#0174b9]">
+                    {{ event.status.name }}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-sm text-gray-500 mt-0.5">Event Details &amp; Participant Management</p>
         </div>
-        <div class="flex items-center gap-2">
+        <!-- All header actions: Custom Fields, Email Templates, RSVP Summary, Manage Tickets, Edit Event -->
+        <div class="flex items-center gap-2 flex-wrap justify-end shrink-0">
             <a href="{% url 'event_custom_fields' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                 </svg>
-                <span>Custom Fields</span>
+                Custom Fields
             </a>
             <a href="{% url 'event_email_templates' event.id %}" id="emailTemplatesBtn" class="btn btn-outline-blue flex items-center gap-2 relative">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                <span>Email Templates</span>
+                Email Templates
                 {% if missing_email_templates %}
-                    <span class="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full animate-pulse" id="emailTemplatesWarning"></span>
+                    <span class="absolute -top-1 -right-1 h-2.5 w-2.5 bg-red-500 rounded-full animate-pulse" id="emailTemplatesWarning"></span>
                 {% endif %}
             </a>
             {% if rsvp_template_missing %}
-            <span class="btn btn-outline-blue flex items-center opacity-50 gap-2 cursor-not-allowed" title="RSVP template is required">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <span class="btn btn-outline-blue flex items-center gap-2 opacity-50 cursor-not-allowed" title="RSVP template is required">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
-                <span>RSVP Summary</span>
+                RSVP Summary
             </span>
             {% else %}
-                <a href="{% url 'event_rsvp_summary' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                    </svg>
-                    <span>RSVP Summary</span>
-                </a>
+            <a href="{% url 'event_rsvp_summary' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                RSVP Summary
+            </a>
             {% endif %}
             {% if event.paid_tickets %}
             <a href="{% url 'manage_ticket_types' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                 </svg>
-                <span>Manage Tickets</span>
+                Manage Tickets
             </a>
             {% endif %}
-            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <a href="{% url 'event_edit' event.id %}?next={{ request.get_full_path }}"
+               class="btn btn-outline-blue flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.586a2 2 0 112.828 2.828L7 16H4v-3L14.586 3.414z" />
                 </svg>
-                <span>Edit</span>
+                Edit Event
             </a>
         </div>
     </div>
 
-    <!-- Main Info Card -->
-    <div class="bg-white p-10 rounded-lg shadow-md ">
-        <div class="flex flex-col md:flex-row gap-6">
-            <!-- Left Side: Details -->
-            <div class="w-full md:w-2/3 space-y-3">
-                <h2 class="text-2xl font-bold">{{ event.event_name }}</h2>
-                <div class="prose max-w-none text-gray-600">
+    <!-- Main content: Event info card (left) + Stats cards (right) -->
+    <div class="flex flex-col lg:flex-row gap-4">
+
+        <!-- Event Information Card -->
+        <div class="bg-white rounded-lg shadow-sm p-6 flex-1">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Event Information</p>
+
+            {% if event.image %}
+            <img src="{{ event.image.url }}" alt="{{ event.event_name }}"
+                 class="h-24 w-auto object-cover rounded-lg mb-5">
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
+                <div>
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Date
+                    </p>
+                    <p class="font-semibold text-gray-800">{{ event.event_date|date:"F j, Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Time
+                    </p>
+                    <p class="font-semibold text-gray-800">{{ event.start_time|time:"g:i a" }} – {{ event.end_time|time:"g:i a" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Location
+                    </p>
+                    <p class="font-semibold text-gray-800">
+                        {{ event.location }}
+                        {% if event.map_link %}
+                        <a href="{{ event.map_link }}" target="_blank" class="text-brand-blue hover:underline ml-1 text-sm font-normal">View map ↗</a>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        {% heroicon_outline "building-office" class="h-4 w-4 text-brand-blue" %}
+                        Company
+                    </p>
+                    <p class="font-semibold text-gray-800 break-all">{{ event.company.name }}</p>
+                </div>
+                {% if event.public_registration_enabled %}
+                <div class="sm:col-span-2">
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Public Registration Link
+                    </p>
+                    <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}" target="_blank"
+                       class="text-brand-blue underline break-all">
+                        {{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}
+                    </a>
+                </div>
+                {% endif %}
+                {% if event.paid_tickets %}
+                <div class="sm:col-span-2">
+                    <p class="text-sm text-gray-500 mb-1 flex items-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Public Ticket Purchase
+                    </p>
+                    <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}" target="_blank"
+                       class="text-brand-blue underline break-all">
+                        {{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if event.description %}
+            <div class="mt-5 pt-4 border-t border-gray-100">
+                <p class="text-sm text-gray-500 mb-2">Description</p>
+                <div class="text-sm text-gray-600 leading-relaxed">
                     {% if event.description|striptags|length > 250 %}
                         <div id="short-desc">
                             {{ event.description|striptags|truncatechars:250|safe }}
@@ -150,324 +251,220 @@
                         {{ event.description|safe }}
                     {% endif %}
                 </div>
-                <div class="space-y-2 pt-2">
-                    <div class="flex items-center gap-6">
-                        <p class="flex items-center gap-3 text-gray-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            <strong>Date:</strong> {{ event.event_date|date:"F j, Y" }}
-                        
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                            <strong>Location:</strong> {{ event.location }}
-                            {% if event.map_link %}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                            <strong>Map:</strong> <a href="{{ event.map_link }}" target="_blank" class="text-brand-blue hover:text-blue-800 underline">View on Google Maps</a>
-                            {% endif %}
-                        </p>
-                     
-                    </div>
-                    <p class="flex items-center gap-3 text-gray-700">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-brand-blue" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <strong>Time:</strong> {{ event.start_time|time:"g:i a" }} - {{ event.end_time|time:"g:i a" }}
-                    </p>
-                    <p class="flex items-center gap-3 text-gray-700">
-                        {% heroicon_outline "building-office" class="mr-2h-5 w-5 text-brand-blue " %}
-                        <strong>Company:</strong> <span class="break-all">{{ event.company.name }}</span>
-                    </p>
-
-                   
-                </div>
             </div>
-            <!-- Right Side: Image & Status -->
-            <div class="w-full md:w-1/3 flex justify-end items-center">
-                <div class="relative">
-                    {% if event.image %}
-                        <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="event-detail-image">
+            {% endif %}
+        </div>
+
+        <!-- Stat mini-cards -->
+        <div class="flex flex-row lg:flex-col gap-3 lg:w-64">
+            <div class="bg-white rounded-lg shadow-sm p-4 flex-1 lg:flex-none">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Registrations</p>
+                <p class="text-3xl font-bold text-gray-900 mt-1">
+                    {{ valid_participant_count }}
+                    {% if event.has_registration_limit and event.registration_limit %}
+                    <span class="text-sm font-normal text-gray-400">/ {{ event.registration_limit }}</span>
+                    {% endif %}
+                </p>
+                {% if event.has_registration_limit and event.registration_limit %}
+                    {% if valid_participant_count >= event.registration_limit %}
+                    <p class="text-xs text-red-500 mt-0.5">⚠ Full</p>
                     {% else %}
-                        <div class="event-detail-image flex items-center bg-[#e6f0f6] flex items-center justify-center  ">
-                            <span class="text-gray-500 ">No Image</span>
-                        </div>
+                    <p class="text-xs text-green-600 mt-0.5">✓ Available</p>
                     {% endif %}
-                    {% if event.status %}
-                     <div class="absolute top-1/2 -translate-y-1/2 right-[-0px] mt-10">
-                         
-                             <span class="status-badge-shape bg-[#00b8c4] text-white text-sm font-semibold pl-4 pr-6 py-2 shadow-lg">
-                                  {{ event.status.name }}
-                              </span>
-                         </div>
-                    {% endif %}
-                </div>
+                {% endif %}
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4 flex-1 lg:flex-none">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Present</p>
+                <p class="text-3xl font-bold text-green-600 mt-1">{{ present_participants|length }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm p-4 flex-1 lg:flex-none">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Not Present</p>
+                <p class="text-3xl font-bold text-orange-500 mt-1">{{ not_present_participants|length }}</p>
             </div>
         </div>
     </div>
 
-    <!-- Stats & Actions Card -->
-    <div class="bg-white p-8 rounded-lg shadow-md space-y-5">
-
-        {% if event.public_registration_enabled or event.paid_tickets %}
-            <div class="public-link-card p-4 rounded-lg shadow-md">
-                {% if event.public_registration_enabled %}
-                    <!-- Public Registration Link Card -->
-                    <h3 class="font-semibold text-gray-800 mb-1">Public Registration Link:</h3>
-                    <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}" target="_blank" class="text-brand-blue underline break-all">
-                        {{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}
-                    </a>
-                {% endif %}
-                
-                {% if event.paid_tickets %}
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                        <h3 class="font-semibold text-gray-800 mb-1">Public Ticket Purchase:</h3>
-                        <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}" target="_blank" class="text-brand-blue underline break-all">
-                            {{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}
-                        </a>
-                    </div>
-                {% endif %}
-            </div>
-        {% endif %}
-
-        <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
-
-
-            
-            <p class="flex items-center gap-2 font-medium">Registrations: <span class="font-bold text-lg">{{ valid_participant_count }}
-            {% if event.has_registration_limit and event.registration_limit %}
-                / {{ event.registration_limit }}
-                {% if valid_participant_count >= event.registration_limit %}
-                    <span class="text-red-600 ml-2">⚠️ Full</span>
-                {% else %}
-                    <span class="text-green-600 ml-2">✓ Available</span>
-                {% endif %}
-            {% endif %}
-            </span></p>
-            <p class="flex items-center gap-2 text-green-600 font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-                Present: <span class="font-bold text-lg">{{ present_participants|length }}</span>
-            </p>
-            <p class="flex items-center gap-2 text-red-600 font-medium">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                Not Present: <span class="font-bold text-lg">{{ not_present_participants|length }}</span>
-            </p>
-        </div>
-        <div class="flex flex-wrap gap-4 justify-start items-center">
-
-            <a href="{% url 'event_attendance_dashboard' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+    <!-- Actions Card -->
+    <div class="bg-white rounded-lg shadow-sm p-5">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Actions</p>
+        <div class="flex flex-wrap gap-2">
+            <a href="{% url 'event_attendance_dashboard' event.id %}" class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
-                <span>Attendance Dashboard</span>
+                Attendance Dashboard
             </a>
-
-
-            {% if event.tickets and event.signatures %}
-                <a href="{% url 'scan_qr' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                    {% heroicon_outline "qr-code" size=30 class="mr-4" %}
-                    Scan & Collect Signatures
-                </a>
-            {% elif event.tickets %}
-                 <a href="{% url 'scan_qr' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                    {% heroicon_outline "qr-code" size=30 class="mr-1" %}
-                    Scan Tickets
-                </a>
-            {% endif %}
-            <a href="{% url 'export_zip' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Export ZIP
-            </a>
-            <a href="{% url 'export_participants_csv' event.id %}" class="btn btn-outline-blue flex items-center gap-2">
-                {% heroicon_outline "table-cells" size=30 class="mr-1" %}
+            <a href="{% url 'export_participants_csv' event.id %}" class="btn btn-outline-blue flex items-center gap-1.5">
+                {% heroicon_outline "table-cells" class="h-3.5 w-3.5" %}
                 Export CSV
             </a>
             <!-- Export PDF Button -->
-            <button id="exportPdfBtn" onclick="handleExportPdf()" class="btn btn-outline-blue flex items-center gap-2">
-                {% heroicon_outline "clipboard-document-list" class="h-5 w-5" %}
-                
+            <button id="exportPdfBtn" onclick="handleExportPdf()" class="btn btn-outline-blue flex items-center gap-1.5">
+                {% heroicon_outline "clipboard-document-list" class="h-3.5 w-3.5" %}
                 <span class="normal-state">Export PDF</span>
                 <div class="loading-state hidden">
-                    <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-3.5 w-3.5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="ml-2">Generating PDF...</span>
+                    <span class="ml-1">Generating...</span>
                 </div>
             </button>
-
-            <!-- Add this script section near the end of the file, before the closing body tag -->
-            <script>
-                function handleExportPdf() {
-                    const btn = document.getElementById('exportPdfBtn');
-                    const normalState = btn.querySelector('.normal-state');
-                    const loadingState = btn.querySelector('.loading-state');
-                    
-                    // Disable button and show loading state
-                    btn.disabled = true;
-                    normalState.classList.add('hidden');
-                    loadingState.classList.remove('hidden');
-
-                    // Show loading message with SweetAlert2
-                    Swal.fire({
-                        title: 'Generating PDF',
-                        html: 'Please wait while we generate your PDF...',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-
-                    // Make an AJAX request first to generate the PDF
-                    fetch("{% url 'export_participants_pdf' event.id %}", {
-                        method: 'GET',
-                        headers: {
-                            'Accept': 'application/pdf'
-                        }
-                    })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response.blob();
-                    })
-                    .then(blob => {
-                        // Create a URL for the blob
-                        const url = window.URL.createObjectURL(blob);
-                        
-                        // Create a temporary link and click it to download
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = '{{ event.event_name }}_participants.pdf';
-                        document.body.appendChild(a);
-                        a.click();
-                        
-                        // Clean up
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
-
-                        // Reset button state
-                        btn.disabled = false;
-                        normalState.classList.remove('hidden');
-                        loadingState.classList.add('hidden');
-                        
-                        // Show success message
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success!',
-                            text: 'PDF has been generated and downloaded.',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        
-                        // Reset button state
-                        btn.disabled = false;
-                        normalState.classList.remove('hidden');
-                        loadingState.classList.add('hidden');
-                        
-                        // Show error message
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: 'Failed to generate PDF. Please try again.',
-                        });
-                    });
-                }
-            </script>
+            <a href="{% url 'export_zip' event.id %}" class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export ZIP
+            </a>
+            {% if event.tickets and event.signatures %}
+            <a href="{% url 'scan_qr' event.id %}" class="btn btn-blue flex items-center gap-1.5">
+                {% heroicon_outline "qr-code" class="h-3.5 w-3.5" %}
+                Scan Tickets &amp; Collect Signatures
+            </a>
+            {% elif event.tickets %}
+            <a href="{% url 'scan_qr' event.id %}" class="btn btn-blue flex items-center gap-1.5">
+                {% heroicon_outline "qr-code" class="h-3.5 w-3.5" %}
+                Scan Tickets
+            </a>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Participants Table Card -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex gap-3 mb-4 flex-wrap">
-            <a href="{% url 'register_participant' event.id %}" id="addParticipantBtn" class="btn btn-outline-blue">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
-               <span>Add Participant</span>
-           </a>
-           
-           <!-- Import/Export Buttons -->
-           <a href="{% url 'export_participant_template' event.id %}" class="btn btn-outline-blue">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                   <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-               </svg>
-               <span>Download CSV Template</span>
-           </a>
-           
-           <button id="importParticipantsBtn" class="btn btn-outline-blue">
-               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                   <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-               </svg>
-               <span>Import from CSV</span>
-           </button>
-           {% if rsvp_template_missing %}
-               <button class="btn btn-outline-gray opacity-50 cursor-not-allowed" disabled title="RSVP template is required">
-                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                   </svg>
-                   <span>Send RSVP Notification</span>
-               </button>
-           {% else %}
-               <button id="sendRsvpBtn" class="btn btn-outline-purple" data-event-id="{{ event.id }}">
-                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                       <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                   </svg>
-                   <span>Send RSVP Notification</span>
-               </button>
-           {% endif %}
-           
-           <!-- Bulk Certificate Generation Button -->
-           {% if event.certificate %}
-               <button id="bulkGenerateCertificatesBtn" 
-                       class="btn btn-outline-blue" 
-                       data-event-id="{{ event.id }}"
-                       title="Generate certificates only for participants who attended this event">
-                   {% heroicon_outline "academic-cap" class="h-5 w-5" %}
-                   <span>Generate All Certificates</span>
-               </button>
-               <button id="bulkSendCertificatesBtn" 
-                       class="btn btn-outline-blue" 
-                       data-event-id="{{ event.id }}"
-                       title="Send certificates via email to all participants who have certificates generated">
-                   {% heroicon_outline "envelope" class="h-5 w-5" %}
-                   <span>Send All Certificates</span>
-               </button>
-           {% else %}
-               <button class="btn btn-outline-blue opacity-50 cursor-not-allowed" 
-                       disabled 
-                       title="No certificate template uploaded">
-                   {% heroicon_outline "academic-cap" class="h-5 w-5" %}
-                   <span>Generate All Certificates</span>
-               </button>
-               <button class="btn btn-outline-blue opacity-50 cursor-not-allowed" 
-                       disabled 
-                       title="No certificate template uploaded">
-                   {% heroicon_outline "envelope" class="h-5 w-5" %}
-                   <span>Send All Certificates</span>
-               </button>
-           {% endif %}
-        </div>
-        <div class="flex justify-between items-center mb-4">
-            <h2 class="text-xl font-semibold">Registered Participants</h2>
+    <!-- Export PDF script (logic unchanged) -->
+    <script>
+        function handleExportPdf() {
+            const btn = document.getElementById('exportPdfBtn');
+            const normalState = btn.querySelector('.normal-state');
+            const loadingState = btn.querySelector('.loading-state');
             
-            <!-- Bulk Actions Controls -->
-            <div id="bulkActionsContainer" class="hidden flex items-center gap-2">
-                <span id="selectedCount" class="text-sm text-gray-600">0 selected</span>
-                <button id="bulkApproveBtn" class="btn btn-outline-blue">
-                    ✅ Approve Selected
-                </button>
-                <button id="bulkRejectBtn" class="btn btn-outline-blue">
-                    ❌ Reject Selected
-                </button>
-                <button id="bulkPendingBtn" class="btn btn-outline-blue">
-                    🔄 Set Pending
-                </button>
-                <button id="clearSelectionBtn" class="btn btn-outline-blue">
-                    Clear Selection
-                </button>
+            btn.disabled = true;
+            normalState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            Swal.fire({
+                title: 'Generating PDF',
+                html: 'Please wait while we generate your PDF...',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            fetch("{% url 'export_participants_pdf' event.id %}", {
+                method: 'GET',
+                headers: { 'Accept': 'application/pdf' }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = '{{ event.event_name }}_participants.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                btn.disabled = false;
+                normalState.classList.remove('hidden');
+                loadingState.classList.add('hidden');
+                Swal.fire({ icon: 'success', title: 'Success!', text: 'PDF has been generated and downloaded.', timer: 2000, showConfirmButton: false });
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                btn.disabled = false;
+                normalState.classList.remove('hidden');
+                loadingState.classList.add('hidden');
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to generate PDF. Please try again.' });
+            });
+        }
+    </script>
+
+    <!-- Participants Table Card -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+
+        <!-- Card header: title + add participant -->
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Registered Participants</h2>
+                <p class="text-sm text-gray-500">{{ participants|length }} total registrations</p>
             </div>
+            <a href="{% url 'register_participant' event.id %}" id="addParticipantBtn"
+               class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Participant
+            </a>
+        </div>
+
+        <!-- Participant action buttons -->
+        <div class="flex gap-2 mb-4 flex-wrap">
+            <a href="{% url 'export_participant_template' event.id %}" class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download CSV Template
+            </a>
+            <button id="importParticipantsBtn" class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Import from CSV
+            </button>
+            {% if rsvp_template_missing %}
+            <button class="btn btn-outline-gray flex items-center gap-1.5 opacity-50 cursor-not-allowed" disabled title="RSVP template is required">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Send RSVP Notification
+            </button>
+            {% else %}
+            <button id="sendRsvpBtn" class="btn btn-outline-purple flex items-center gap-1.5" data-event-id="{{ event.id }}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Send RSVP Notification
+            </button>
+            {% endif %}
+            {% if event.certificate %}
+            <button id="bulkGenerateCertificatesBtn" class="btn btn-outline-blue flex items-center gap-1.5"
+                    data-event-id="{{ event.id }}"
+                    title="Generate certificates only for participants who attended this event">
+                {% heroicon_outline "academic-cap" class="h-3.5 w-3.5" %}
+                Generate All Certificates
+            </button>
+            <button id="bulkSendCertificatesBtn" class="btn btn-outline-blue flex items-center gap-1.5"
+                    data-event-id="{{ event.id }}"
+                    title="Send certificates via email to all participants who have certificates generated">
+                {% heroicon_outline "envelope" class="h-3.5 w-3.5" %}
+                Send All Certificates
+            </button>
+            {% else %}
+            <button class="btn btn-outline-blue flex items-center gap-1.5 opacity-50 cursor-not-allowed" disabled title="No certificate template uploaded">
+                {% heroicon_outline "academic-cap" class="h-3.5 w-3.5" %}
+                Generate All Certificates
+            </button>
+            <button class="btn btn-outline-blue flex items-center gap-1.5 opacity-50 cursor-not-allowed" disabled title="No certificate template uploaded">
+                {% heroicon_outline "envelope" class="h-3.5 w-3.5" %}
+                Send All Certificates
+            </button>
+            {% endif %}
+        </div>
+
+        <!-- Bulk Actions Controls -->
+        <div id="bulkActionsContainer" class="hidden flex items-center gap-2 mb-3">
+            <span id="selectedCount" class="text-sm text-gray-600">0 selected</span>
+            <button id="bulkApproveBtn" class="btn btn-outline-blue">✅ Approve Selected</button>
+            <button id="bulkRejectBtn" class="btn btn-outline-blue">❌ Reject Selected</button>
+            <button id="bulkPendingBtn" class="btn btn-outline-blue">🔄 Set Pending</button>
+            <button id="clearSelectionBtn" class="btn btn-outline-blue">Clear Selection</button>
         </div>
 
         <div class="overflow-x-auto">
-            <table id="participantsTable" 
-                   class="w-full border-collapse border border-gray-300 stripe hover row-border" 
+            <table id="participantsTable"
+                   class="w-full border-collapse border border-gray-300 stripe hover row-border"
                    data-participant-count="{{ participants|length }}"
                    data-send-ticket-url="{% url 'send_ticket_email' %}"
                    data-csrf-token="{{ csrf_token }}">
@@ -494,8 +491,8 @@
                     {% for participant in participants %}
                     <tr class="text-center" data-participant-id="{{ participant.id }}" data-event-id="{{ event.id }}" data-participant-name="{{ participant.name }}">
                         <td class="border border-gray-300 px-4 py-2">
-                            <input type="checkbox" class="participant-checkbox form-checkbox h-4 w-4 text-blue-600" 
-                                   data-participant-id="{{ participant.id }}" 
+                            <input type="checkbox" class="participant-checkbox form-checkbox h-4 w-4 text-blue-600"
+                                   data-participant-id="{{ participant.id }}"
                                    data-participant-status="{{ participant.approval_status }}">
                         </td>
                         <td class="border border-gray-300 px-4 py-2">{{ forloop.counter }}</td>
@@ -509,17 +506,11 @@
                                 </span>
                             {% else %}
                                 {% if participant.approval_status == 'approved' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        ✅ Approved
-                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">✅ Approved</span>
                                 {% elif participant.approval_status == 'rejected' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                        ❌ Rejected
-                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">❌ Rejected</span>
                                 {% else %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        🟡 Pending
-                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">🟡 Pending</span>
                                 {% endif %}
                             {% endif %}
                         </td>
@@ -538,78 +529,65 @@
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
                             {% if participant.submitted_data %}
-                                <button class="view-custom-data-btn btn btn-outline-blue  py-1 rounded  flex items-center gap-1 mx-auto" 
+                                <button class="view-custom-data-btn btn btn-outline-blue flex items-center gap-1 mx-auto"
                                         data-participant-name="{{ participant.name }}"
                                         data-participant-id="{{ participant.id }}"
                                         data-custom-data='{{ participant.custom_data_json|safe }}'>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
                                     View Data
                                 </button>
                             {% else %}
-                                <span class="text-gray-500">No Data</span>    
+                                <span class="text-gray-500 text-xs">No Data</span>
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="pdf-ticket-cell-{{ participant.id }}">
                             {% if not event.tickets %}
                                 <span class="text-gray-400 text-xs" title="Tickets not enabled for this event">—</span>
                             {% elif participant.pdf_ticket %}
-                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="btn btn-outline-blue text-xs">Download</a>
+                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="btn btn-outline-blue">Download</a>
                             {% else %}
-                                <span class="text-gray-500">No Ticket</span>
+                                <span class="text-gray-500 text-xs">No Ticket</span>
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="send-ticket-cell-{{ participant.id }}">
                             {% if not event.tickets %}
                                 <span class="text-gray-400 text-xs" title="Tickets not enabled for this event">—</span>
                             {% elif participant.pdf_ticket %}
-                                <button class="send-ticket-btn btn btn-outline-blue text-xs" data-participant-id="{{ participant.id }}">
-                                    Send Ticket
-                                </button>
+                                <button class="send-ticket-btn btn btn-outline-blue" data-participant-id="{{ participant.id }}">Send</button>
                             {% else %}
-                                <span class="text-gray-500">No Ticket</span>
+                                <span class="text-gray-500 text-xs">No Ticket</span>
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="certificate-cell-{{ participant.id }}">
-                            <div class="flex gap-2 items-center">
-                                <!-- Download Button -->
+                            <div class="flex gap-1.5 items-center justify-center">
                                 {% if participant.certificate %}
-                                    <a href="{{ participant.certificate.url }}" target="_blank" 
-                                       class="btn  btn-outline-blue
-                                       px-2 py-1 text-xs rounded"
-                                       title="Download certificate">
-                                       {% heroicon_outline "arrow-down-tray"  %}
+                                    <a href="{{ participant.certificate.url }}" target="_blank"
+                                       class="btn btn-outline-blue" title="Download certificate">
+                                        {% heroicon_outline "arrow-down-tray" class="h-3.5 w-3.5" %}
                                     </a>
                                 {% else %}
-                                    <button class="btn btn-outline-blue px-2 py-1 text-xs rounded cursor-not-allowed opacity-50" 
-                                            disabled
-                                            title="No certificate generated yet">
-                                            {% heroicon_outline "arrow-down-tray"  %}
+                                    <button class="btn btn-outline-blue cursor-not-allowed opacity-50" disabled title="No certificate generated yet">
+                                        {% heroicon_outline "arrow-down-tray" class="h-3.5 w-3.5" %}
                                     </button>
                                 {% endif %}
-                                
-                                <!-- Generate/Regenerate Button -->
                                 {% if event.certificate %}
                                     {% if participant.certificate %}
-                                        <button onclick="generateCertificateWithInfo({{ event.id }}, {{ participant.id }}, 'regenerate')" 
-                                           class="btn btn-outline-blue text-xs rounded"
-                                           title="Regenerate certificate">
+                                        <button onclick="generateCertificateWithInfo({{ event.id }}, {{ participant.id }}, 'regenerate')"
+                                                class="btn btn-outline-blue" title="Regenerate certificate">
                                             Regenerate
                                         </button>
                                     {% else %}
-                                        <button onclick="generateCertificateWithInfo({{ event.id }}, {{ participant.id }}, 'generate')" 
-                                           class="btn btn-outline-blue text-xs rounded"
-                                           title="Generate certificate">
-                                             Generate
+                                        <button onclick="generateCertificateWithInfo({{ event.id }}, {{ participant.id }}, 'generate')"
+                                                class="btn btn-outline-blue" title="Generate certificate">
+                                            Generate
                                         </button>
                                     {% endif %}
                                 {% else %}
-                                    <button class="btn btn-outline-blue px-2 py-1 text-xs rounded cursor-not-allowed opacity-50" 
-                                            disabled
-                                            title="No certificate template uploaded">
-                                         Generate
+                                    <button class="btn btn-outline-blue cursor-not-allowed opacity-50" disabled title="No certificate template uploaded">
+                                        Generate
                                     </button>
                                 {% endif %}
                             </div>
@@ -617,66 +595,56 @@
                         <td class="border border-gray-300 px-4 py-2" id="actions-cell-{{ participant.id }}">
                             <div class="flex gap-1 justify-center">
                                 {% if participant.has_rsvp_response %}
-                                    <span class="btn btn-outline-blue px-2 py-1 text-xscursor-not-allowed"
-                                          title="Already responded to RSVP">
-                                        {% heroicon_outline "envelope"  %}
+                                    <span class="btn btn-outline-blue cursor-not-allowed" title="Already responded to RSVP">
+                                        {% heroicon_outline "envelope" class="h-3.5 w-3.5" %}
                                     </span>
                                 {% else %}
-                                    <button onclick="sendRSVPEmailWithInfo({{ event.id }}, {{ participant.id }})" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Send RSVP Email">
-                                         {% heroicon_outline "envelope"  %}
+                                    <button onclick="sendRSVPEmailWithInfo({{ event.id }}, {{ participant.id }})"
+                                            class="btn btn-outline-blue" title="Send RSVP Email">
+                                        {% heroicon_outline "envelope" class="h-3.5 w-3.5" %}
                                     </button>
                                 {% endif %}
                                 {% if participant.approval_status == 'pending' %}
                                     <a href="{% url 'approve_participant' event.id participant.id %}"
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Approve participant">
-                                        {% heroicon_outline "check"  %}
+                                       class="btn btn-outline-blue" title="Approve participant">
+                                        {% heroicon_outline "check" class="h-3.5 w-3.5" %}
                                     </a>
                                     <a href="{% url 'reject_participant' event.id participant.id %}"
-                                       class="btn btn-outline-pink px-2 py-1 text-xs rounded"
-                                       title="Reject participant">
-                                        {% heroicon_outline "x-mark"  %}
+                                       class="btn btn-outline-pink" title="Reject participant">
+                                        {% heroicon_outline "x-mark" class="h-3.5 w-3.5" %}
                                     </a>
                                 {% elif participant.approval_status == 'approved' %}
                                     <a href="{% url 'reject_participant' event.id participant.id %}"
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Reject participant">
-                                        {% heroicon_outline "x-mark"  %}
+                                       class="btn btn-outline-blue" title="Reject participant">
+                                        {% heroicon_outline "x-mark" class="h-3.5 w-3.5" %}
                                     </a>
                                     <a href="{% url 'set_participant_pending' event.id participant.id %}"
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Set to pending">
-                                       {% heroicon_outline "clock"  %}
+                                       class="btn btn-outline-blue" title="Set to pending">
+                                        {% heroicon_outline "clock" class="h-3.5 w-3.5" %}
                                     </a>
                                 {% elif participant.approval_status == 'rejected' %}
                                     <a href="{% url 'approve_participant' event.id participant.id %}"
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Approve participant">
-                                        {% heroicon_outline "check"  %}
+                                       class="btn btn-outline-blue" title="Approve participant">
+                                        {% heroicon_outline "check" class="h-3.5 w-3.5" %}
                                     </a>
                                     <a href="{% url 'set_participant_pending' event.id participant.id %}"
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
-                                       title="Set to pending">
-                                        {% heroicon_outline "clock"  %}
+                                       class="btn btn-outline-blue" title="Set to pending">
+                                        {% heroicon_outline "clock" class="h-3.5 w-3.5" %}
                                     </a>
                                 {% endif %}
-                                <!-- Add edit button -->
-                                <a href="{% url 'edit_participant' event.id participant.id %}" 
-                                   class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
-                                   title="Edit participant">
-                                    {% heroicon_outline "pencil-square"  %}
+                                <a href="{% url 'edit_participant' event.id participant.id %}"
+                                   class="btn btn-outline-blue" title="Edit participant">
+                                    {% heroicon_outline "pencil-square" class="h-3.5 w-3.5" %}
                                 </a>
                             </div>
                         </td>
                         <td class="border border-gray-300 px-4 py-2">
-                             {% if participant.attendance and participant.attendance.signature_file %}
+                            {% if participant.attendance and participant.attendance.signature_file %}
                                 <a href="{{ participant.attendance.signature_file.url }}" target="_blank">
                                     <img src="{{ participant.attendance.signature_file.url }}" alt="Signature" class="h-10 w-auto border rounded mx-auto">
                                 </a>
                             {% else %}
-                               <span class="text-red-600 font-semibold"> Not Signed</span>
+                                <span class="text-red-600 font-semibold text-xs">Not Signed</span>
                             {% endif %}
                         </td>
                     </tr>
@@ -718,16 +686,30 @@
             <form id="csv-import-form" method="post" enctype="multipart/form-data" action="{% url 'import_participants_csv' event.id %}">
                 {% csrf_token %}
                 <div class="mb-4">
-                    <label for="csv_file" class="block text-sm font-medium text-gray-700 mb-2">
-                        Select CSV File *
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Select CSV File <span class="text-red-500">*</span>
                     </label>
-                    <input type="file" 
-                           id="csv_file" 
-                           name="csv_file" 
-                           accept=".csv" 
+                    <input type="file"
+                           id="csv_file"
+                           name="csv_file"
+                           accept=".csv"
                            required
-                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-1 text-sm text-gray-500">Only CSV files are accepted</p>
+                           class="hidden">
+                    <label for="csv_file"
+                           id="csv-drop-zone"
+                           class="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-blue-400 hover:bg-blue-50/20 transition-colors group">
+                        <svg class="h-7 w-7 text-gray-300 group-hover:text-blue-400 mb-1.5 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+                        </svg>
+                        <p class="text-sm text-gray-400 group-hover:text-blue-500"><span class="font-medium">Click to upload</span> or drag & drop</p>
+                        <p class="text-xs text-gray-300 mt-0.5">CSV files only</p>
+                    </label>
+                    <div id="csv-selected" class="hidden mt-2 flex items-center justify-between bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
+                        <span class="text-xs text-blue-700 font-medium truncate" id="csv-filename"></span>
+                        <button type="button" id="csv-clear" class="ml-2 text-blue-400 hover:text-red-500 transition-colors shrink-0" title="Remove">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
                 </div>
                 
                 <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -755,6 +737,54 @@
         </div>
     </div>
 </div>
+
+<!-- CSV file picker -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input    = document.getElementById('csv_file');
+    const zone     = document.getElementById('csv-drop-zone');
+    const selected = document.getElementById('csv-selected');
+    const filename = document.getElementById('csv-filename');
+    const clearBtn = document.getElementById('csv-clear');
+
+    if (!input) return;
+
+    function showFile(file) {
+        if (!file) return;
+        filename.textContent = file.name;
+        selected.classList.remove('hidden');
+        zone.classList.add('border-blue-400', 'bg-blue-50/20');
+        zone.classList.remove('border-gray-200');
+    }
+
+    function clearFile() {
+        input.value = '';
+        filename.textContent = '';
+        selected.classList.add('hidden');
+        zone.classList.remove('border-blue-400', 'bg-blue-50/20');
+        zone.classList.add('border-gray-200');
+    }
+
+    input.addEventListener('change', () => showFile(input.files[0]));
+    clearBtn.addEventListener('click', clearFile);
+
+    zone.addEventListener('dragover', e => {
+        e.preventDefault();
+        zone.classList.add('border-blue-500');
+    });
+    zone.addEventListener('dragleave', () => zone.classList.remove('border-blue-500'));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('border-blue-500');
+        if (e.dataTransfer.files.length) {
+            const dt = new DataTransfer();
+            dt.items.add(e.dataTransfer.files[0]);
+            input.files = dt.files;
+            showFile(e.dataTransfer.files[0]);
+        }
+    });
+});
+</script>
 
 <!-- Scripts -->
 <script src="{% static 'js/show_hide_add_participant.js' %}"></script>
