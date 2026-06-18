@@ -68,6 +68,7 @@
 
 
 <div class="space-y-6 m-10">
+    {% include "include/_messages.html" %}
 
     <!-- Header: Event Details + Edit Button -->
     <div class="flex justify-between items-center">
@@ -204,22 +205,26 @@
 
     <!-- Stats & Actions Card -->
     <div class="bg-white p-8 rounded-lg shadow-md space-y-5">
-        <div class="public-link-card p-4 rounded-lg shadow-md">
-            <!-- Public Registration Link Card -->
-            <h3 class="font-semibold text-gray-800 mb-1">Public Registration Link:</h3>
-            <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}" target="_blank" class="text-brand-blue underline break-all">
-                {{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}
-            </a>
-            
-            {% if event.paid_tickets %}
-            <div class="mt-4 pt-4 border-t border-gray-200">
-                <h3 class="font-semibold text-gray-800 mb-1">Public Ticket Purchase:</h3>
-                <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}" target="_blank" class="text-brand-blue underline break-all">
-                    {{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}
-                </a>
+        {% if event.public_registration_enabled or event.paid_tickets %}
+            <div class="public-link-card p-4 rounded-lg shadow-md">
+                {% if event.public_registration_enabled %}
+                    <!-- Public Registration Link Card -->
+                    <h3 class="font-semibold text-gray-800 mb-1">Public Registration Link:</h3>
+                    <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}" target="_blank" class="text-brand-blue underline break-all">
+                        {{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}
+                    </a>
+                {% endif %}
+                
+                {% if event.paid_tickets %}
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                        <h3 class="font-semibold text-gray-800 mb-1">Public Ticket Purchase:</h3>
+                        <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}" target="_blank" class="text-brand-blue underline break-all">
+                            {{ request.scheme }}://{{ request.get_host }}{% url 'event_tickets' event.id %}
+                        </a>
+                    </div>
+                {% endif %}
             </div>
-            {% endif %}
-        </div>
+        {% endif %}
 
         <div class="flex flex-wrap items-center gap-x-6 gap-y-2">
 
@@ -520,9 +525,9 @@
                                 {% endif %}
                             {% endif %}
                         </td>
-                        <td class="border border-gray-300 px-4 py-2">
+                        <td class="border border-gray-300 px-4 py-2" data-rsvp="{{ participant.rsvp_response|default:'no_response' }}">
                             {% if participant.has_rsvp_response %}
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                     {% if participant.rsvp_response == 'attend' %}bg-green-100 text-green-800
                                     {% elif participant.rsvp_response == 'cant_make_it' %}bg-red-100 text-red-800
                                     {% elif participant.rsvp_response == 'maybe' %}bg-yellow-100 text-yellow-800

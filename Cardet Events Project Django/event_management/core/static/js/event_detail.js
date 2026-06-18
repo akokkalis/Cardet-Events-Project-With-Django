@@ -21,10 +21,10 @@ $(document).ready(function () {
                     <label for="rsvpFilter" class="mr-2 font-medium text-gray-700">RSVP:</label>
                     <select id="rsvpFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
                         <option value="">All</option>
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                        <option value="Maybe">Maybe</option>
-                        <option value="Not Responded">Not Responded</option>
+                        <option value="attend">Will Attend</option>
+                        <option value="cant_make_it">Can't Make It</option>
+                        <option value="maybe">Maybe</option>
+                        <option value="no_response">No Response</option>
                     </select>
                 </div>
             </div>
@@ -54,8 +54,9 @@ $(document).ready(function () {
                 const rsvpFilter = $('#rsvpFilter').val();
                 
                 // Get values from the row
-                const status = $(table.row(dataIndex).node()).find('td:eq(5)').text().toLowerCase().trim();
-                const rsvp = $(table.row(dataIndex).node()).find('td:eq(6)').text().trim();
+                const row = $(table.row(dataIndex).node());
+                const status = row.find('td:eq(5)').text().toLowerCase().trim();
+                const rsvp = row.find('td:eq(6)').data('rsvp') || 'no_response';
 
                 // Check if row matches both filters
                 const statusMatch = !statusFilter || status.includes(statusFilter.toLowerCase());
