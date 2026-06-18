@@ -75,9 +75,6 @@
         
         
         <div class="flex items-center gap-3">
-            <button id="sidebarToggle" class="md:hidden text-gray-700 p-1">
-                {% heroicon_outline "arrow-left" size=30 class="mr-4" %}
-            </button>
             <a href="{% if from_dashboard %}{% url 'dashboard' %}{% else %}{% url 'event_list' %}{% endif %}" class="btn btn-outline-blue transition-colors p-2 rounded-lg ">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -174,7 +171,7 @@
                     </p>
                     <p class="flex items-center gap-3 text-gray-700">
                         {% heroicon_outline "building-office" class="mr-2h-5 w-5 text-brand-blue " %}
-                        <strong>Company:</strong> {{ event.company.name }}
+                        <strong>Company:</strong> <span class="break-all">{{ event.company.name }}</span>
                     </p>
 
                    
@@ -205,6 +202,7 @@
 
     <!-- Stats & Actions Card -->
     <div class="bg-white p-8 rounded-lg shadow-md space-y-5">
+
         {% if event.public_registration_enabled or event.paid_tickets %}
             <div class="public-link-card p-4 rounded-lg shadow-md">
                 {% if event.public_registration_enabled %}
@@ -555,22 +553,23 @@
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="pdf-ticket-cell-{{ participant.id }}">
-                            {% if participant.pdf_ticket %}
-                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class=" btn btn-outline-blue text-xs">Download</a>
+                            {% if not event.tickets %}
+                                <span class="text-gray-400 text-xs" title="Tickets not enabled for this event">—</span>
+                            {% elif participant.pdf_ticket %}
+                                <a href="{{ participant.pdf_ticket.url }}" target="_blank" class="btn btn-outline-blue text-xs">Download</a>
                             {% else %}
                                 <span class="text-gray-500">No Ticket</span>
-                               
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="send-ticket-cell-{{ participant.id }}">
-                            {% if participant.pdf_ticket %}
+                            {% if not event.tickets %}
+                                <span class="text-gray-400 text-xs" title="Tickets not enabled for this event">—</span>
+                            {% elif participant.pdf_ticket %}
                                 <button class="send-ticket-btn btn btn-outline-blue text-xs" data-participant-id="{{ participant.id }}">
                                     Send Ticket
                                 </button>
                             {% else %}
-                                
                                 <span class="text-gray-500">No Ticket</span>
-                               
                             {% endif %}
                         </td>
                         <td class="border border-gray-300 px-4 py-2" id="certificate-cell-{{ participant.id }}">
@@ -630,37 +629,37 @@
                                     </button>
                                 {% endif %}
                                 {% if participant.approval_status == 'pending' %}
-                                    <a href="{% url 'approve_participant' event.id participant.id %}" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'approve_participant' event.id participant.id %}"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Approve participant">
                                         {% heroicon_outline "check"  %}
                                     </a>
-                                    <a href="{% url 'reject_participant' event.id participant.id %}" 
-                                       class="btn btn-outline-pink px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'reject_participant' event.id participant.id %}"
+                                       class="btn btn-outline-pink px-2 py-1 text-xs rounded"
                                        title="Reject participant">
                                         {% heroicon_outline "x-mark"  %}
                                     </a>
                                 {% elif participant.approval_status == 'approved' %}
-                                    <a href="{% url 'reject_participant' event.id participant.id %}" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'reject_participant' event.id participant.id %}"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Reject participant">
                                         {% heroicon_outline "x-mark"  %}
                                     </a>
-                                    <a href="{% url 'set_participant_pending' event.id participant.id %}" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'set_participant_pending' event.id participant.id %}"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Set to pending">
-                                       {% heroicon_outline "ellipsis-horizontal"  %}
+                                       {% heroicon_outline "clock"  %}
                                     </a>
                                 {% elif participant.approval_status == 'rejected' %}
-                                    <a href="{% url 'approve_participant' event.id participant.id %}" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'approve_participant' event.id participant.id %}"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Approve participant">
                                         {% heroicon_outline "check"  %}
                                     </a>
-                                    <a href="{% url 'set_participant_pending' event.id participant.id %}" 
-                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded" 
+                                    <a href="{% url 'set_participant_pending' event.id participant.id %}"
+                                       class="btn btn-outline-blue px-2 py-1 text-xs rounded"
                                        title="Set to pending">
-                                        {% heroicon_outline "ellipsis-horizontal"  %}
+                                        {% heroicon_outline "clock"  %}
                                     </a>
                                 {% endif %}
                                 <!-- Add edit button -->
@@ -1083,6 +1082,5 @@ function generateCertificateWithInfo(eventId, participantId, action) {
 </script>
 
 <!-- Check for missing email templates on page load -->
-
 
 {% endblock %}

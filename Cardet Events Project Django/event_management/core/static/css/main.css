@@ -212,7 +212,7 @@ input[type="text"].filter-select {
 .event-card {
     transition: all 0.3s ease-in-out;
     width: 400px;
-    height: 445px;
+    min-height: 445px;
     border-radius: 1rem;
 }
 
@@ -225,8 +225,8 @@ input[type="text"].filter-select {
 /* Event Card Image Styling */
 .event-card img,
 .event-card .img-placeholder {
-    width: 361px;
-    height: 237px;
+    /* width: 361px;
+    height: 237px; */
     object-fit: cover;
     border-radius: 12px;
 }
@@ -243,8 +243,8 @@ input[type="text"].filter-select {
 }
 
 .event-detail-image {
-    width: 361px;
-    height: 237px;
+    /* width: 361px;
+    height: 237px; */
     object-fit: cover;
     border-radius: 12px;
 }

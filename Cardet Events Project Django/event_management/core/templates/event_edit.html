@@ -41,92 +41,86 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-6">
                     <div>
-                        <label for="{{ form.company.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.company.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.company.label }}
                             {% if form.company.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.company|add_class:"form-field" }}
+                                                    {{ form.company|add_class:"form-field" }}
                         </div>
                         {% for error in form.company.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.event_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.event_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.event_name.label }}
                             {% if form.event_name.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.event_name|add_class:"form-field" }}
+                                                    {{ form.event_name|add_class:"form-field" }}
                         </div>
                         {% for error in form.event_name.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.status.label }}
                             {% if form.status.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.status|add_class:"form-field" }}
+                                                    {{ form.status|add_class:"form-field" }}
                         </div>
                         {% for error in form.status.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.event_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.event_date.label }}
                             {% if form.event_date.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.event_date|add_class:"form-field" }}
+                                                    {{ form.event_date|add_class:"form-field" }}
                         </div>
                         {% for error in form.event_date.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.start_time.label }}
                             {% if form.start_time.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.start_time|add_class:"form-field" }}
+                                                    {{ form.start_time|add_class:"form-field" }}
                         </div>
                         {% for error in form.start_time.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.end_time.label }}
                             {% if form.end_time.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.end_time|add_class:"form-field" }}
+                                                    {{ form.end_time|add_class:"form-field" }}
                         </div>
                         {% for error in form.end_time.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
@@ -153,7 +147,7 @@
                             </label>
                         </div>
                         {% for error in form.has_registration_limit.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
 
                         <div id="registration-limit-field" class="ml-8" style="display: none;">
@@ -175,11 +169,10 @@
                                     </div>
                                 </div>
                             </label>
-                            <div class="mt-1">
-                                {{ form.registration_limit|add_class:"form-field w-32" }}
+                                                            {{ form.registration_limit|add_class:"form-field w-32" }}
                             </div>
                             {% for error in form.registration_limit.errors %}
-                                <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
                         <!-- RSVP Cutoff Hours -->
@@ -201,11 +194,10 @@
                                     </div>
                                 </div>
                             </label>
-                            <div class="mt-1">
-                                {{ form.rsvp_cutoff_hours|add_class:"form-field w-32" }}
+                                                            {{ form.rsvp_cutoff_hours|add_class:"form-field w-32" }}
                             </div>
                             {% for error in form.rsvp_cutoff_hours.errors %}
-                                <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                                <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                             {% endfor %}
                         </div>
                     </div>
@@ -213,17 +205,16 @@
 
                 <div class="space-y-6">
                     <div>
-                        <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.location.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.location.label }}
                             {% if form.location.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.location|add_class:"form-field" }}
+                                                    {{ form.location|add_class:"form-field" }}
                         </div>
                         {% for error in form.location.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
@@ -249,26 +240,24 @@
                                 </div>
                             </div>
                         </label>
-                        <div class="mt-1">
-                            {{ form.map_link|add_class:"form-field" }}
+                                                    {{ form.map_link|add_class:"form-field" }}
                         </div>
                         {% for error in form.map_link.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.image.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.image.label }}
                             {% if form.image.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.image|add_class:"form-field" }}
+                                                    {{ form.image|add_class:"form-field" }}
                         </div>
                         {% for error in form.image.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
@@ -295,8 +284,7 @@
                                 </div>
                             </div>
                         </label>
-                        <div class="mt-1">
-                            {{ form.certificate|add_class:"form-field" }}
+                                                    {{ form.certificate|add_class:"form-field" }}
                         </div>
                         {% if event.certificate %}
                             <div class="mt-2 text-sm text-gray-600">
@@ -304,22 +292,21 @@
                             </div>
                         {% endif %}
                         {% for error in form.certificate.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
                     <div>
-                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.description.label }}
                             {% if form.description.field.required %}
                                 <span class="text-red-500">*</span>
                             {% endif %}
                         </label>
-                        <div class="mt-1">
-                            {{ form.description|add_class:"form-field" }}
+                                                    {{ form.description|add_class:"form-field" }}
                         </div>
                         {% for error in form.description.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
 
@@ -346,7 +333,7 @@
                             </label>
                         </div>
                         {% for error in form.tickets.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
 
                         <div class="flex items-center">
@@ -372,7 +359,7 @@
                             </label>
                         </div>
                         {% for error in form.paid_tickets.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
 
                         <div class="flex items-center">
@@ -397,7 +384,7 @@
                             </label>
                         </div>
                         {% for error in form.signatures.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
 
                         <div class="flex items-center">
@@ -421,7 +408,7 @@
                             </label>
                         </div>
                         {% for error in form.public_registration_enabled.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
 
                         <div class="flex items-center">
@@ -445,7 +432,7 @@
                             </label>
                         </div>
                         {% for error in form.auto_approval_enabled.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                            <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
                     </div>
                 </div>

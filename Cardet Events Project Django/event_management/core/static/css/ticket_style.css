@@ -6,6 +6,13 @@ body {
 	color: #000;
 }
 
+/* Global image safety net */
+img {
+	max-width: 100%;
+	height: auto;
+	display: block;
+}
+
 .container {
 	max-width: 800px;
 	margin: 0 auto;
@@ -17,6 +24,10 @@ body {
 
 .logo img {
 	height: 50px;
+	max-height: 50px;
+	max-width: 200px;
+	width: auto;
+	object-fit: contain;
 }
 
 .title {
@@ -32,15 +43,25 @@ body {
 	flex-wrap: wrap;
 }
 
-.event-image img {
+.event-image {
 	max-width: 300px;
+	width: 100%;
+	flex-shrink: 0;
+}
+
+.event-image img {
+	width: 100%;
+	max-width: 300px;
+	height: auto;
 	border-radius: 20px;
+	object-fit: cover;
 }
 
 .hero-icon {
   color: #0174b9;
   width: 25px;
   height: 25px;
+  flex-shrink: 0;
 }
 
 .image-wrapper {
@@ -48,6 +69,7 @@ body {
   overflow: hidden;
   display: inline-block;
   max-width: 300px;
+  width: 100%;
 }
 
 .image-wrapper img {

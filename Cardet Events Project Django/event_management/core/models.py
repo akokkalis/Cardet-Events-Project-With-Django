@@ -146,6 +146,10 @@ class Company(models.Model):
         upload_to=company_logo_path, blank=True, null=True
     )  # New field for logo
 
+    class Meta:
+        verbose_name = "Company"
+        verbose_name_plural = "Companies"
+
     def __str__(self):
         return self.name
 
@@ -534,7 +538,7 @@ class EventEmail(models.Model):
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     subject = models.CharField(max_length=255)
     body = RichTextField(
-        help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}, {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}. HTML formatting is supported."
+        # help_text="Use placeholders like {{ name }}, {{ event_name }}, {{ event_date }}, {{ rsvp_accept_url }}, {{ rsvp_decline_url }}, {{ rsvp_maybe_url }}. HTML formatting is supported."
     )
 
     class Meta:

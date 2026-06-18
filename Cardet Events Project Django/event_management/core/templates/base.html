@@ -13,87 +13,164 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body class="bg-gray-100">
-    <div class="flex h-screen">
-        
-        <!-- Sidebar and Overlay -->
-        {% if request.user.is_authenticated %}
-        <div id="overlay" class="fixed inset-0 bg-black opacity-50 hidden md:hidden z-40"></div>
 
-        <div id="sidebar" class="w-64 bg-gray-800 text-white p-5 fixed md:relative h-full md:flex transition-transform duration-300 ease-in-out transform -translate-x-full md:translate-x-0 z-50 shadow-lg">
-            
+{% if request.user.is_authenticated %}
 
-            <nav>
-                <h5 class="text-xl md:text-2xl lg:text-3xl font-semibold mb-6 text-center md:text-left">
-                    Staff Panel
-                </h5>
-                <ul class="space-y-3">
-                    <li>
-                        <a href="{% url 'dashboard' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "chart-bar" class="h-5 w-5" %}
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'company_list' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "building-office" class="h-5 w-5" %}
-                            <span>Company</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'event_list' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "calendar-days" class="h-5 w-5" %}
-                            <span>Events</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'reports' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "chart-bar-square" class="h-5 w-5" %}
-                            <span>Reports</span>
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{% url 'logs' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "bug-ant" class="h-5 w-5" %}
-                            <span>System Logs</span>
-                        </a>
-                    </li>
-                    
-                    <li>
-                        <a href="{% url 'help' %}" class="flex items-center space-x-2 block p-2 rounded hover:bg-gray-700">
-                            {% heroicon_outline "information-circle" class="h-5 w-5" %}
-                              
-                              
-                            <span>Help</span>
-                        </a>
-                    </li>
-                    <li>
-                        <form method="post" action="{% url 'logout' %}">
-                            {% csrf_token %}
-                            <button type="submit" class="flex items-center space-x-2 block w-full text-left p-2 rounded hover:bg-red-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m-8-6h16" />
-                                </svg>
-                                <span>Logout</span>
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            <!-- ✅ Show Logged-in User Info -->
-            <div class="p-4 text-center border-b border-gray-600">
-                <p class="text-gray-300 text-sm">Logged in as:</p>
-                <p class="text-white font-semibold text-lg">{{ request.user.get_full_name|default:request.user.username }}</p>
+    <!-- Mobile overlay -->
+    <div id="overlay" class="fixed inset-0 bg-black/60 z-40 hidden"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="fixed top-0 left-0 h-full w-64 bg-gray-900 text-white flex flex-col z-50 shadow-xl transition-transform duration-300 ease-in-out -translate-x-full md:translate-x-0">
+
+        <!-- Header -->
+        <div class="px-5 py-5 border-b border-white/10 shrink-0">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
+                    {% heroicon_outline "calendar-days" class="h-4 w-4 text-white" %}
+                </div>
+                <span class="text-base font-bold text-white tracking-wide">Staff Panel</span>
             </div>
-            </nav>
         </div>
+
+        <!-- User Info -->
+        <div class="mx-3 mt-4 px-3 py-3 rounded-lg bg-white/5 flex items-center gap-3 shrink-0">
+            <div class="w-8 h-8 rounded-full bg-indigo-600/30 flex items-center justify-center shrink-0">
+                {% heroicon_outline "user" class="h-4 w-4 text-indigo-400" %}
+            </div>
+            <div class="min-w-0">
+                <p class="text-gray-500 text-xs">Logged in as</p>
+                <p class="text-white text-sm font-semibold truncate">{{ request.user.get_full_name|default:request.user.username }}</p>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        {% with url_name=request.resolver_match.url_name %}
+        <nav class="flex-1 px-3 mt-4 space-y-0.5 overflow-y-auto">
+
+            <a href="{% url 'dashboard' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if url_name == 'dashboard' or url_name == 'dashboard_pending_participants' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "chart-bar" class="h-5 w-5 shrink-0" %}
+                <span>Dashboard</span>
+            </a>
+
+            <a href="{% url 'company_list' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if 'company' in url_name %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "building-office" class="h-5 w-5 shrink-0" %}
+                <span>Company</span>
+            </a>
+
+            <a href="{% url 'event_list' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if 'event' in url_name or 'ticket' in url_name or url_name == 'checkout' or url_name == 'payment_success' or url_name == 'payment_cancel' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "calendar-days" class="h-5 w-5 shrink-0" %}
+                <span>Events</span>
+            </a>
+
+            <a href="{% url 'reports' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if url_name == 'reports' %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "chart-bar-square" class="h-5 w-5 shrink-0" %}
+                <span>Reports</span>
+            </a>
+
+            <a href="{% url 'logs' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if 'log' in url_name %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "bug-ant" class="h-5 w-5 shrink-0" %}
+                <span>System Logs</span>
+            </a>
+
+            <a href="{% url 'help' %}"
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+               {% if 'help' in url_name %}bg-indigo-600 text-white{% else %}text-gray-400 hover:bg-white/10 hover:text-white{% endif %}">
+                {% heroicon_outline "information-circle" class="h-5 w-5 shrink-0" %}
+                <span>Help</span>
+            </a>
+
+        </nav>
+        {% endwith %}
+
+        <!-- Logout -->
+        <div class="px-3 py-4 border-t border-white/10 shrink-0">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" class="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Logout</span>
+                </button>
+            </form>
+        </div>
+
+    </aside>
+
+    <!-- Mobile hamburger — fixed top-left, visible only on small screens -->
+    <button id="sidebarToggle"
+            class="md:hidden fixed top-3 left-3 z-30 bg-gray-900 text-white p-2 rounded-lg shadow-lg"
+            aria-label="Open menu">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+    </button>
+
+{% endif %}
+
+<!-- Main content area — offset by sidebar on md+, full width when not authenticated -->
+<div class="{% if request.user.is_authenticated %}md:ml-64{% endif %} flex flex-col min-h-screen">
+
+    {% if request.user.is_authenticated %}
+    <!-- Spacer so content doesn't hide under the hamburger button on mobile -->
+    <div class="md:hidden h-14 shrink-0"></div>
+    {% endif %}
+
+    <main class="flex-1 p-5">
+
+        {% if messages %}
+        <div class="mb-4 space-y-2" id="messages-container">
+            {% for message in messages %}
+            <div class="flex items-center justify-between gap-3 px-4 py-3 rounded-lg text-sm font-medium
+                {% if message.tags == 'success' %}bg-green-50 border border-green-200 text-green-800
+                {% elif message.tags == 'error' %}bg-red-50 border border-red-200 text-red-800
+                {% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200 text-yellow-800
+                {% else %}bg-blue-50 border border-blue-200 text-blue-800{% endif %}"
+                data-autohide="{% if message.tags == 'success' %}true{% else %}false{% endif %}">
+                <div class="flex items-center gap-3">
+                    {% if message.tags == 'success' %}
+                        <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    {% elif message.tags == 'error' %}
+                        <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                    {% elif message.tags == 'warning' %}
+                        <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    {% else %}
+                        <svg class="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                </div>
+                <button type="button" class="shrink-0 opacity-60 hover:opacity-100 transition-opacity ml-4" onclick="this.closest('[data-autohide]').remove()">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+        <script>
+            document.querySelectorAll('#messages-container [data-autohide="true"]').forEach(function(el) {
+                setTimeout(function() {
+                    el.style.transition = 'opacity 0.5s ease';
+                    el.style.opacity = '0';
+                    setTimeout(function() { el.remove(); }, 500);
+                }, 4500);
+            });
+        </script>
         {% endif %}
 
-        <!-- Main Content -->
-        <div class="flex-1 p-5 overflow-y-auto">
- 
+        {% block content %}{% endblock %}
 
-            {% block content %}{% endblock %}
-        </div>
-    </div>
+    </main>
+</div>
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="{% static 'js/sidebar.js' %}"></script>
     {% block extra_js %}{% endblock %}

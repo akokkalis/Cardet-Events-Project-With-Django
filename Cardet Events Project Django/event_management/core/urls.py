@@ -32,6 +32,7 @@ from .views import (
     company_create,
     company_edit,
     company_detail,
+    company_delete,
     help_view,
     event_email_templates,
     add_email_template,
@@ -96,6 +97,7 @@ urlpatterns = [
     path("companies/create/", company_create, name="company_create"),
     path("companies/<int:company_id>/", company_detail, name="company_detail"),
     path("companies/<int:company_id>/edit/", company_edit, name="company_edit"),
+    path("companies/<int:company_id>/delete/", company_delete, name="company_delete"),
     path(
         "companies/<int:company_id>/email-settings/",
         company_email_settings,
