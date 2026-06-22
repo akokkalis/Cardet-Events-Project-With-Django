@@ -6,5 +6,8 @@ cheatsheet.txt
 docker logs.md
 cheat_Sheet_docker.txt
 
+/Cardet Events Project Django/event_management/staticfiles
+/Cardet Events Project Django/event_management/core/static/vendor
+
 /venv*
 23d23e2 (first commit)

@@ -62,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "csp.middleware.CSPMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -70,6 +71,20 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
+
+# Content-Security-Policy (OWASP ZAP remediation). All vendor JS/CSS is now
+# self-hosted (see core/static/vendor/), except Stripe.js which must be
+# loaded directly from Stripe's CDN for PCI compliance/fraud detection.
+CONTENT_SECURITY_POLICY = {
+    "DIRECTIVES": {
+        "default-src": ["'self'"],
+        "script-src": ["'self'", "'unsafe-inline'", "https://js.stripe.com"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "frame-src": ["'self'", "https://js.stripe.com", "https://hooks.stripe.com"],
+        "connect-src": ["'self'", "https://api.stripe.com"],
+        "img-src": ["'self'", "data:"],
+    }
+}
 
 # Celery Beat Scheduler
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/0")
@@ -106,7 +121,32 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
 # ✅ Determine if we're in development or production
-DEBUG = os.getenv("DJANGO_DEBUG")
+DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+
+# ✅ Only true on the real deployment, where nginx terminates TLS in front of
+# Django (see nginx/default.conf). DEBUG=False just means "use Postgres" in
+# this project's docker-compose, including local runs with no real TLS on
+# port 8000 — so SSL-redirect/HSTS must NOT be tied to DEBUG, or every local
+# request gets 301-redirected to https:// on a port that only speaks HTTP.
+BEHIND_TLS_PROXY = os.getenv("DJANGO_BEHIND_TLS_PROXY", "False") == "True"
+
+# Cookie & transport security hardening (OWASP ZAP remediation)
+SESSION_COOKIE_SECURE = BEHIND_TLS_PROXY
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = BEHIND_TLS_PROXY
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+SECURE_SSL_REDIRECT = BEHIND_TLS_PROXY
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_REFERRER_POLICY = "same-origin"
+
+if BEHIND_TLS_PROXY:
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 # ✅ Database Configuration
 # if DEBUG == "True":

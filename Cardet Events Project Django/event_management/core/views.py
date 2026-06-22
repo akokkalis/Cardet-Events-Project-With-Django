@@ -69,10 +69,17 @@ from django.db.models import Q
 from django.utils.timezone import now
 
 
+@ratelimit(key="ip", rate="5/m", method="POST", block=False)
 def login_view(request):
     """Handles staff login and ensures only staff members can access the system."""
 
     if request.method == "POST":
+        if getattr(request, "limited", False):
+            messages.error(
+                request, "Too many login attempts. Please wait a minute and try again."
+            )
+            return redirect("login")
+
         username = request.POST["username"]
         password = request.POST["password"]
         user = authenticate(request, username=username, password=password)
