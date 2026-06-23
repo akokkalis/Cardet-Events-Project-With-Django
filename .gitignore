@@ -10,4 +10,13 @@ cheat_Sheet_docker.txt
 /Cardet Events Project Django/event_management/core/static/vendor
 
 /venv*
+/Cardet Events Project Django/pycache*
+/Cardet Events Project Django/event_management/__pycache__/
 23d23e2 (first commit)
+venv/
+.venv/
+pycache/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
