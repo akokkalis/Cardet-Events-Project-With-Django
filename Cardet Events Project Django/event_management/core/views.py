@@ -309,6 +309,11 @@ def get_missing_email_templates(event):
 @login_required
 def event_detail(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+
+    if event.public_registration_enabled and not event.registration_qr_code:
+        event.generate_registration_qr_code()
+        event.save(update_fields=["registration_qr_code"])
+
     participants = Participant.objects.filter(event=event).order_by("name")
     present_participants = Attendance.objects.filter(
         event=event, present=True

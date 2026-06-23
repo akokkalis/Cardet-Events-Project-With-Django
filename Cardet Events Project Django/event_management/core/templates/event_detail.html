@@ -211,6 +211,12 @@
                     <a href="{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}" target="_blank" class="text-brand-blue underline break-all">
                         {{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}
                     </a>
+                    {% if event.registration_qr_code %}
+                        <div class="mt-3">
+                            <img src="{{ event.registration_qr_code.url }}" alt="Registration QR Code" class="w-32 h-32">
+                            <a href="{{ event.registration_qr_code.url }}" download class="block text-sm text-brand-blue underline mt-1">Download QR Code</a>
+                        </div>
+                    {% endif %}
                 {% endif %}
                 
                 {% if event.paid_tickets %}

@@ -131,6 +131,11 @@ DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 # request gets 301-redirected to https:// on a port that only speaks HTTP.
 BEHIND_TLS_PROXY = os.getenv("DJANGO_BEHIND_TLS_PROXY", "False") == "True"
 
+# The one real public domain end users hit (e.g. when scanning a QR code).
+# Must stay independent of request.get_host() since this app also answers on
+# an internal IP and localhost (see ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS above).
+SITE_BASE_URL = os.getenv("SITE_BASE_URL", "https://qrscanner.innovedu.com")
+
 # Cookie & transport security hardening (OWASP ZAP remediation)
 SESSION_COOKIE_SECURE = BEHIND_TLS_PROXY
 SESSION_COOKIE_HTTPONLY = True
@@ -194,6 +199,13 @@ DATABASES = {
         "PASSWORD": os.getenv("db_password"),
         "HOST": os.getenv("db_host"),  # should be 'db'
         "PORT": os.getenv("db_port"),  # usually 5432
+        # Reuse one persistent connection per worker instead of reconnecting
+        # (and re-resolving DNS for the DigitalOcean-managed host) on every
+        # request. CONN_HEALTH_CHECKS pings before reuse so a connection that
+        # went stale (DB restart, network drop) is transparently replaced
+        # instead of surfacing as a request error.
+        "CONN_MAX_AGE": None,
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 print("🌍 Running in PRODUCTION mode with PostgreSQL")

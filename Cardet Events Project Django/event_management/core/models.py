@@ -73,6 +73,18 @@ def event_image_path(instance, filename):
     return f"temp/{filename}"  # Temporary storage before ID is assigned
 
 
+def event_registration_qr_path(instance, filename):
+    """Returns the path to store the event's public-registration QR code."""
+
+    if instance.id:  # Ensure the instance has an ID before using it
+        return os.path.join(
+            f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
+            "qr_codes",
+            filename,
+        )
+    return f"temp/{filename}"  # Temporary storage before ID is assigned
+
+
 def event_certificate_path(instance, filename):
     """Returns the path to store event certificates inside the event folder."""
 
@@ -249,6 +261,9 @@ class Event(models.Model):
         help_text="Enable this if you want registrations to be automatically approved. If disabled, registrations will require manual approval.",
     )
     image = models.ImageField(upload_to=event_image_path, blank=True, null=True)
+    registration_qr_code = models.ImageField(
+        upload_to=event_registration_qr_path, blank=True, null=True
+    )
     certificate = models.FileField(
         upload_to=event_certificate_path,
         blank=True,
@@ -273,6 +288,21 @@ class Event(models.Model):
         """Returns the event folder path inside 'Events/'."""
         return os.path.join(
             EVENTS_MASTER_FOLDER, f"{self.id}_{self.event_name.replace(' ','_')}"
+        )
+
+    def generate_registration_qr_code(self):
+        """Generate a QR code linking to this event's public registration page."""
+        from django.urls import reverse
+
+        qr_data = f"{settings.SITE_BASE_URL}{reverse('public_register', args=[self.uuid])}"
+        qr = qrcode.make(qr_data)
+
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+
+        filename = f"event_{self.id}_registration_qr.png"
+        self.registration_qr_code.save(
+            filename, ContentFile(buffer.getvalue()), save=False
         )
 
     def __str__(self):
