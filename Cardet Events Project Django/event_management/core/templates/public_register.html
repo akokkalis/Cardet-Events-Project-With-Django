@@ -64,15 +64,24 @@
         </div>
 
         <!-- Standard Fields -->
-        <div>
-            <label for="id_name" class="block text-gray-700 font-semibold">Full Name <span class="text-red-500">*</span></label>
-            {{ form.name|add_class:"form-field" }}
-        </div>
+        {% for field in form %}
+            {% if field.name == "name" %}
+                <div>
+                    <label for="id_name" class="block text-gray-700 font-semibold">Full Name <span class="text-red-500">*</span></label>
+                    {{ field|add_class:"form-field" }}
+                </div>
 
             {% elif field.name == "email" %}
                 <div>
                     <label for="id_email" class="block text-gray-700 font-semibold">Email <span class="text-red-500">*</span></label>
                     {{ field|add_class:"form-field" }}
+                    {% if field.errors %}
+                        <div class="text-red-500 text-sm mt-1">
+                            {% for error in field.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                 </div>
 
             {% elif field.name == "phone" %}
@@ -97,6 +106,7 @@
                         <input type="text"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="form-field">
 
@@ -105,12 +115,13 @@
                                   id="custom_field_{{ cf.id }}"
                                   rows="3"
                                   {% if cf.required %}required{% endif %}
-                                  class="form-field"></textarea>
+                                  class="form-field">{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}</textarea>
 
                     {% elif cf.field_type == 'number' %}
                         <input type="number"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="form-field">
 
@@ -118,6 +129,7 @@
                         <input type="email"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="form-field">
 
@@ -128,7 +140,7 @@
                                 class="form-field">
                             <option value="">Select an option...</option>
                             {% for option in cf.options_list %}
-                                <option value="{{ option }}">{{ option }}</option>
+                                <option value="{{ option }}" {% if option == submitted_custom_values|get_item:cf.id %}selected{% endif %}>{{ option }}</option>
                             {% endfor %}
                         </select>
 
@@ -140,13 +152,13 @@
                                    name="custom_field_{{ cf.id }}"
                                    id="custom_field_{{ cf.id }}"
                                    min="{{ range_min }}" max="{{ range_max }}"
-                                   value="{% widthratio midpoint 2 1 %}"
+                                       value="{{ submitted_custom_values|get_item:cf.id|default_if_none:range_min }}"
                                    {% if cf.required %}required{% endif %}
                                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                                   oninput="document.getElementById('range_value_{{ cf.id }}').textContent = this.value">
+                                       oninput="document.getElementById('range_value_{{ cf.id }}').textContent = this.value">
                             <div class="flex justify-between items-center mt-2">
                                 <span class="text-sm text-gray-500">{{ range_min }}</span>
-                                <span class="text-sm font-medium text-gray-700">Value: <span id="range_value_{{ cf.id }}">{% widthratio midpoint 2 1 %}</span></span>
+                                    <span class="text-sm font-medium text-gray-700">Value: <span id="range_value_{{ cf.id }}">{{ submitted_custom_values|get_item:cf.id|default_if_none:range_min }}</span></span>
                                 <span class="text-sm text-gray-500">{{ range_max }}</span>
                             </div>
                             {% endwith %}
@@ -160,6 +172,7 @@
                                    id="custom_field_{{ cf.id }}"
                                    value="true"
                                    {% if cf.required %}required{% endif %}
+                                   {% if submitted_custom_values|get_item:cf.id %}checked{% endif %}
                                    class="checkbox-field h-5 w-5 rounded">
                             <label for="custom_field_{{ cf.id }}" class="ml-3 text-sm text-gray-700">
                                 Check this box
@@ -173,7 +186,7 @@
                                 {% if cf.required %}required{% endif %}
                                 class="select2-multiselect w-full">
                             {% for option in cf.options_list %}
-                                <option value="{{ option }}">{{ option }}</option>
+                                <option value="{{ option }}" {% if option in submitted_custom_values|get_item:cf.id %}selected{% endif %}>{{ option }}</option>
                             {% endfor %}
                         </select>
                         <p class="text-xs text-gray-500 mt-1">Search and select multiple options</p>
@@ -182,6 +195,7 @@
                         <input type="text"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="flatpickr-date form-field"
                                placeholder="Select date...">
@@ -190,6 +204,7 @@
                         <input type="text"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="flatpickr-time form-field"
                                placeholder="Select time...">
@@ -198,6 +213,7 @@
                         <input type="text"
                                name="custom_field_{{ cf.id }}"
                                id="custom_field_{{ cf.id }}"
+                               value="{{ submitted_custom_values|get_item:cf.id|default_if_none:'' }}"
                                {% if cf.required %}required{% endif %}
                                class="flatpickr-datetime form-field"
                                placeholder="Select date and time...">

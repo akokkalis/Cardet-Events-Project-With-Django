@@ -123,6 +123,7 @@ WSGI_APPLICATION = "event_management.wsgi.application"
 # ✅ Determine if we're in development or production
 DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
 
+
 # ✅ Only true on the real deployment, where nginx terminates TLS in front of
 # Django (see nginx/default.conf). DEBUG=False just means "use Postgres" in
 # this project's docker-compose, including local runs with no real TLS on
