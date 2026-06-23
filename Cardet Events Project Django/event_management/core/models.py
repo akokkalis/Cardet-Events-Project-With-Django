@@ -928,6 +928,31 @@ class TaskLog(models.Model):
         return f"{self.get_task_type_display()} — {self.participant_name} [{self.status}]"
 
 
+class ExportLog(models.Model):
+    """Track who exported what data for an event, and when."""
+
+    EXPORT_TYPE_CHOICES = [
+        ("zip", "ZIP (Tickets/Signatures/Files)"),
+        ("csv", "Participants CSV"),
+        ("pdf", "Participants PDF"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="export_logs"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )  # Who triggered the export; kept null if the user account is later removed
+    export_type = models.CharField(max_length=10, choices=EXPORT_TYPE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_export_type_display()} export of {self.event.event_name} by {self.user}"
+
+
 class PaidTicket(models.Model):
     order = models.ForeignKey(
         "Order", on_delete=models.CASCADE, related_name="paid_tickets"

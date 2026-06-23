@@ -583,7 +583,11 @@ def sign_signature(request, event_id, participant_id):
 @login_required
 def export_zip(request, event_id):
     """Generates a ZIP file containing all PDF tickets and signatures for an event."""
+    from .models import ExportLog
+
     event = get_object_or_404(Event, id=event_id)
+    print(f"Exporting ZIP for event: {event.event_name} (ID: {event.id})")
+    ExportLog.objects.create(event=event, user=request.user, export_type="zip")
 
     # Define the event folder path
     event_folder = os.path.join(
@@ -760,13 +764,25 @@ def send_ticket_email_view(request):
     )
 
 
+@login_required
 def export_participants_csv_view(request, event_id):
     """View to export participants as CSV."""
+    from .models import ExportLog
+
+    event = get_object_or_404(Event, id=event_id)
+    print(f"csv Exporting participants for event ID: {event_id}")
+    ExportLog.objects.create(event=event, user=request.user, export_type="csv")
     return export_participants_csv(event_id)
 
 
+@login_required
 def export_participants_pdf_view(request, event_id):
     """View to export participants as PDF."""
+    from .models import ExportLog
+
+    event = get_object_or_404(Event, id=event_id)
+    print(f"pdf Exporting participants for event ID: {event_id}")
+    ExportLog.objects.create(event=event, user=request.user, export_type="pdf")
     return export_participants_pdf(event_id)
 
 
@@ -777,6 +793,20 @@ def export_participants_pdf_view(request, event_id):
 def public_register(request, event_uuid):
     event = get_object_or_404(Event, uuid=event_uuid)
     custom_fields = EventCustomField.objects.filter(event=event).order_by("order")
+    custom_field_map = {f"custom_field_{f.id}": f for f in custom_fields}
+
+    def render_register_form():
+        return render(
+            request,
+            "public_register.html",
+            {
+                "form": form,
+                "event": event,
+                "custom_fields": custom_fields,
+                "custom_field_map": custom_field_map,
+                "submitted_custom_values": submitted_custom_values,
+            },
+        )
 
     # Options are now handled automatically by the options_list property in the model
 
@@ -807,7 +837,15 @@ def public_register(request, event_uuid):
         if request.POST.get("honeypot"):
             return redirect("public_register", event_uuid=event.uuid)
 
-        form = ParticipantForm(request.POST, request.FILES)
+        form = ParticipantForm(request.POST, request.FILES, event=event)
+        submitted_custom_values = {
+            f.id: (
+                request.POST.getlist(f"custom_field_{f.id}")
+                if f.field_type == "multiselect"
+                else request.POST.get(f"custom_field_{f.id}")
+            )
+            for f in custom_fields
+        }
 
         # Collect phone + custom field data
         custom_data = {}
@@ -820,33 +858,21 @@ def public_register(request, event_uuid):
                 field_values = request.POST.getlist(f"custom_field_{field.id}")
                 if field.required and not field_values:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
                 custom_data[field.label] = field_values
             elif field.field_type == "checkbox":
                 # Handle checkbox - value is "true" when checked, None when unchecked
                 field_value = request.POST.get(f"custom_field_{field.id}")
                 if field.required and not field_value:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
                 custom_data[field.label] = field_value == "true"
             elif field.field_type == "range":
                 # Handle range input - ensure it's a valid number
                 field_value = request.POST.get(f"custom_field_{field.id}")
                 if field.required and not field_value:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
                 try:
                     # Convert to integer and validate range
                     if field_value:
@@ -859,35 +885,19 @@ def public_register(request, event_uuid):
                                 request,
                                 f"{field.label} must be between {min_val} and {max_val}.",
                             )
-                            return render(
-                                request,
-                                "public_register.html",
-                                {
-                                    "form": form,
-                                    "event": event,
-                                    "custom_fields": custom_fields,
-                                },
-                            )
+                            return render_register_form()
                         custom_data[field.label] = range_value
                     else:
                         custom_data[field.label] = field_value
                 except ValueError:
                     messages.error(request, f"{field.label} must be a valid number.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
             elif field.field_type in ["date", "time", "datetime"]:
                 # Handle date/time field types
                 field_value = request.POST.get(f"custom_field_{field.id}")
                 if field.required and not field_value:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
 
                 # For date/time fields, we'll store the value as-is since HTML5 inputs provide ISO format
                 # The browser handles validation for invalid date/time formats
@@ -897,11 +907,7 @@ def public_register(request, event_uuid):
                 uploaded_file = request.FILES.get(f"custom_field_{field.id}")
                 if field.required and not uploaded_file:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
                 # Store the file name for now, actual file will be saved after participant is created
                 custom_data[field.label] = uploaded_file.name if uploaded_file else None
             else:
@@ -909,11 +915,7 @@ def public_register(request, event_uuid):
                 field_value = request.POST.get(f"custom_field_{field.id}")
                 if field.required and not field_value:
                     messages.error(request, f"{field.label} is required.")
-                    return render(
-                        request,
-                        "public_register.html",
-                        {"form": form, "event": event, "custom_fields": custom_fields},
-                    )
+                    return render_register_form()
                 custom_data[field.label] = field_value
 
         if form.is_valid():
@@ -921,12 +923,8 @@ def public_register(request, event_uuid):
 
             # Check standard email uniqueness
             if Participant.objects.filter(event=event, email=email).exists():
-                messages.error(request, "This email is already registered.")
-                return render(
-                    request,
-                    "public_register.html",
-                    {"form": form, "event": event, "custom_fields": custom_fields},
-                )
+                form.add_error("email", "This email is already registered.")
+                return render_register_form()
 
             # Save participant
             participant = form.save(commit=False)
@@ -951,8 +949,7 @@ def public_register(request, event_uuid):
             return redirect("public_register", event_uuid=event.uuid)
     else:
         form = ParticipantForm(event=event)
-
-    custom_field_map = {f"custom_field_{f.id}": f for f in custom_fields}
+        submitted_custom_values = {}
 
     return render(
         request,
@@ -962,6 +959,7 @@ def public_register(request, event_uuid):
             "event": event,
             "custom_fields": custom_fields,
             "custom_field_map": custom_field_map,
+            "submitted_custom_values": submitted_custom_values,
         },
     )
 
@@ -1045,10 +1043,12 @@ def register_participant_view(request, event_id):
 
 
 def event_custom_fields(request, event_id):
+    print(f"Accessing custom fields for event ID: {event_id}")
     event = get_object_or_404(Event, pk=event_id)
     fields = EventCustomField.objects.filter(event=event).order_by("order")
 
     if request.method == "POST":
+        print("Received POST data:", request.POST)
         form = EventCustomFieldForm(request.POST, event=event)
         if form.is_valid():
             custom_field = form.save(commit=False)
@@ -1057,11 +1057,12 @@ def event_custom_fields(request, event_id):
             messages.success(request, "Custom field added successfully!")
             return redirect("event_custom_fields", event_id=event.id)
     else:
+        print("GET request - displaying form")
         form = EventCustomFieldForm(event=event)
 
     # Build active + inactive field lists separately
     system_configs = EventSystemFieldConfig.objects.filter(event=event).order_by("order")
-
+    print(f"System field configs for event {event.id}:", list(system_configs.values("field_name", "active", "order")))
     active_fields = []
     inactive_fields = []
     for sc in system_configs:
@@ -3334,16 +3335,24 @@ def reports(request):
 @login_required
 def logs_view(request):
     """Display all system logs in a tabbed interface"""
-    from .models import RSVPEmailLog, CertificateGenerationLog, CSVImportLog, TaskLog
+    from .models import (
+        RSVPEmailLog,
+        CertificateGenerationLog,
+        CSVImportLog,
+        TaskLog,
+        ExportLog,
+    )
 
     rsvp_logs = RSVPEmailLog.objects.select_related("event", "user").order_by("-started_at")[:50]
     certificate_logs = CertificateGenerationLog.objects.select_related("event", "user").order_by("-started_at")[:50]
     import_logs = CSVImportLog.objects.select_related("event", "user").order_by("-started_at")[:50]
     task_logs = TaskLog.objects.select_related("event").order_by("-created_at")[:100]
+    export_logs = ExportLog.objects.select_related("event", "user").order_by("-created_at")[:50]
 
     context = {
         "rsvp_logs": rsvp_logs,
         "certificate_logs": certificate_logs,
+        "export_logs": export_logs,
         "import_logs": import_logs,
         "task_logs": task_logs,
     }
