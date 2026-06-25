@@ -31,7 +31,7 @@
 
 {% block extra_js %}
 <script src="{% static 'js/custom_fields.js' %}"></script>
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+<script src="{% static 'vendor/js/sortable.min.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const sortableContainer = document.getElementById('sortable-fields');
@@ -72,6 +72,21 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (orderSpan) orderSpan.textContent = i + 1;
                         }
                         showMessage('Field order updated successfully!', 'success');
+
+                        // Keep the registration preview in the same order
+                        const previewContainer = document.getElementById('preview-fields');
+                        if (previewContainer) {
+                            for (let i = 0; i < fieldElements.length; i++) {
+                                const el = fieldElements[i];
+                                const key = el.dataset.fieldType === 'system'
+                                    ? `system_${el.dataset.fieldName}`
+                                    : `custom_${el.dataset.fieldId}`;
+                                const previewNode = previewContainer.querySelector(`[data-preview-key="${key}"]`);
+                                if (previewNode) previewContainer.appendChild(previewNode);
+                            }
+                            const draftNode = document.getElementById('preview-draft-field');
+                            if (draftNode) previewContainer.appendChild(draftNode);
+                        }
                     } else {
                         showMessage('Error updating field order: ' + data.error, 'error');
                         location.reload();
@@ -94,6 +109,93 @@ function showMessage(message, type) {
     document.body.appendChild(messageDiv);
     setTimeout(() => { messageDiv.remove(); }, 3000);
 }
+
+// Live preview of the custom field currently being composed in the "Add Custom Field"
+// form, before it's saved — mirrors the per-type rendering used on the real public
+// registration form (see public_register.html).
+function escapePreviewHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function updateDraftFieldPreview() {
+    const draftWrapper = document.getElementById('preview-draft-field');
+    const draftContent = document.getElementById('preview-draft-content');
+    if (!draftWrapper || !draftContent) return;
+
+    const labelInput = document.getElementById('id_label');
+    const label = labelInput ? labelInput.value.trim() : '';
+    if (!label) {
+        draftWrapper.classList.add('hidden');
+        return;
+    }
+    draftWrapper.classList.remove('hidden');
+
+    const fieldType = (document.getElementById('id_field_type') || {}).value || 'text';
+    const required = (document.getElementById('id_required') || {}).checked;
+    const helpText = ((document.getElementById('id_help_text') || {}).value || '').trim();
+    const optionsList = ((document.getElementById('id_options') || {}).value || '')
+        .split(',').map(o => o.trim()).filter(o => o);
+
+    let html = `<label class="block text-sm text-gray-700 font-semibold">${escapePreviewHtml(label)} ${required ? '<span class="text-red-500">*</span>' : ''}</label>`;
+    if (helpText) {
+        html += `<p class="text-xs text-gray-500 mb-1">${escapePreviewHtml(helpText)}</p>`;
+    }
+
+    switch (fieldType) {
+        case 'textarea':
+            html += `<textarea disabled rows="2" class="form-field bg-gray-100"></textarea>`;
+            break;
+        case 'number':
+            html += `<input type="number" disabled class="form-field bg-gray-100">`;
+            break;
+        case 'email':
+            html += `<input type="email" disabled class="form-field bg-gray-100">`;
+            break;
+        case 'select':
+            html += `<select disabled class="form-field bg-gray-100"><option>Select an option...</option>${optionsList.map(o => `<option>${escapePreviewHtml(o)}</option>`).join('')}</select>`;
+            break;
+        case 'multiselect':
+            html += `<select disabled multiple class="form-field bg-gray-100">${optionsList.map(o => `<option>${escapePreviewHtml(o)}</option>`).join('')}</select>`;
+            break;
+        case 'range': {
+            const bounds = optionsList.length >= 2 ? optionsList : ['0', '100'];
+            html += `<div class="flex justify-between text-xs text-gray-500"><span>${escapePreviewHtml(bounds[0])}</span><span>${escapePreviewHtml(bounds[1])}</span></div><input type="range" disabled class="w-full">`;
+            break;
+        }
+        case 'checkbox':
+            html += `<label class="flex items-center gap-2 text-sm text-gray-600"><input type="checkbox" disabled> Check this box</label>`;
+            break;
+        case 'date':
+            html += `<input type="text" disabled placeholder="Select date..." class="form-field bg-gray-100">`;
+            break;
+        case 'time':
+            html += `<input type="text" disabled placeholder="Select time..." class="form-field bg-gray-100">`;
+            break;
+        case 'datetime':
+            html += `<input type="text" disabled placeholder="Select date and time..." class="form-field bg-gray-100">`;
+            break;
+        case 'file':
+            html += `<input type="file" disabled class="form-field bg-gray-100">`;
+            break;
+        default:
+            html += `<input type="text" disabled class="form-field bg-gray-100">`;
+    }
+
+    draftContent.innerHTML = html;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    ['id_label', 'id_field_type', 'id_required', 'id_options', 'id_help_text'].forEach(function(id) {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', updateDraftFieldPreview);
+            el.addEventListener('change', updateDraftFieldPreview);
+        }
+    });
+    updateDraftFieldPreview();
+});
 </script>
 {% endblock %}
 
@@ -173,7 +275,55 @@ function showMessage(message, type) {
             </svg>
             All Fields
         </h2>
-       </div>
+
+        <div class="max-h-[600px] overflow-y-auto pr-2">
+
+            <!-- Active fields (sortable) -->
+            {% if active_fields %}
+                <div id="sortable-fields">
+                    {% for item in active_fields %}
+                        {% if item.type == "system" %}
+                            <!-- System field (active) -->
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200 mb-2 transition-all duration-200 hover:shadow-md cursor-move"
+                                 data-field-type="system"
+                                 data-field-name="{{ item.field_name }}">
+                                <div class="flex items-start gap-2">
+                                    <div class="drag-handle flex-shrink-0 p-1 text-blue-400 hover:text-blue-600 cursor-grab active:cursor-grabbing">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-sm text-blue-800">{{ item.label }}</div>
+                                        <div class="text-xs text-blue-600 mt-1">
+                                            {% if item.field_name == "name" %}Text <span class="text-red-500">• Required</span>{% endif %}
+                                            {% if item.field_name == "email" %}Email <span class="text-red-500">• Required</span>{% endif %}
+                                            {% if item.field_name == "phone" %}Text <span class="text-gray-500">• Optional</span>{% endif %}
+                                            <span class="text-gray-500">• System</span>
+                                            <span class="text-blue-600">• Order: <span class="order-number">{{ item.order }}</span></span>
+                                        </div>
+                                    </div>
+                                    <div class="flex-shrink-0">
+                                        {% if item.field_name == "phone" %}
+                                            <!-- ON icon: green power button — click to disable -->
+                                            <form method="POST" action="{% url 'toggle_system_field' event.id item.field_name %}" class="inline">
+                                                {% csrf_token %}
+                                                <button type="submit" title="Disable phone field" class="p-1 rounded text-green-500 hover:text-green-700">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5.636 5.636a9 9 0 1012.728 0M12 3v9" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <div class="text-blue-400 p-1">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                </svg>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         {% else %}
                             <!-- Custom field -->
                             <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 mb-2 transition-all duration-200 hover:shadow-md cursor-move"
@@ -256,6 +406,105 @@ function showMessage(message, type) {
                 </div>
             {% endif %}
 
+        </div>
+    </div>
+
+    <!-- Registration Preview -->
+    <div class="w-96 bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Registration Preview
+        </h2>
+        <div class="border border-gray-200 rounded-lg p-4 bg-gray-50 max-h-[600px] overflow-y-auto">
+            {% if event.image %}
+                <div class="flex justify-center mb-3">
+                    <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="h-24 object-cover rounded shadow">
+                </div>
+            {% endif %}
+            <h3 class="text-base font-bold mb-4 text-center">Register for {{ event.event_name }}</h3>
+
+            <div id="preview-fields" class="space-y-4">
+                {% for item in active_fields %}
+                    {% if item.type == "system" %}
+                        {% if item.field_name == "name" %}
+                            <div data-preview-key="system_name">
+                                <label class="block text-sm text-gray-700 font-semibold">Full Name <span class="text-red-500">*</span></label>
+                                <input type="text" disabled class="form-field bg-gray-100">
+                            </div>
+                        {% elif item.field_name == "email" %}
+                            <div data-preview-key="system_email">
+                                <label class="block text-sm text-gray-700 font-semibold">Email <span class="text-red-500">*</span></label>
+                                <input type="email" disabled class="form-field bg-gray-100">
+                            </div>
+                        {% elif item.field_name == "phone" %}
+                            <div data-preview-key="system_phone">
+                                <label class="block text-sm text-gray-700 font-semibold">Phone</label>
+                                <input type="text" disabled class="form-field bg-gray-100">
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div data-preview-key="custom_{{ item.field.id }}">
+                            <label class="block text-sm text-gray-700 font-semibold">
+                                {{ item.field.label }}
+                                {% if item.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            {% if item.field.help_text %}
+                                <p class="text-xs text-gray-500 mb-1">{{ item.field.help_text }}</p>
+                            {% endif %}
+
+                            {% if item.field.field_type == 'text' %}
+                                <input type="text" disabled class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'textarea' %}
+                                <textarea disabled rows="2" class="form-field bg-gray-100"></textarea>
+                            {% elif item.field.field_type == 'number' %}
+                                <input type="number" disabled class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'email' %}
+                                <input type="email" disabled class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'select' %}
+                                <select disabled class="form-field bg-gray-100">
+                                    <option>Select an option...</option>
+                                    {% for option in item.field.options_list %}<option>{{ option }}</option>{% endfor %}
+                                </select>
+                            {% elif item.field.field_type == 'range' %}
+                                <div class="flex justify-between text-xs text-gray-500">
+                                    <span>{{ item.field.range_values.0 }}</span>
+                                    <span>{{ item.field.range_values.1 }}</span>
+                                </div>
+                                <input type="range" disabled class="w-full">
+                            {% elif item.field.field_type == 'checkbox' %}
+                                <label class="flex items-center gap-2 text-sm text-gray-600">
+                                    <input type="checkbox" disabled> Check this box
+                                </label>
+                            {% elif item.field.field_type == 'multiselect' %}
+                                <select disabled multiple class="form-field bg-gray-100">
+                                    {% for option in item.field.options_list %}<option>{{ option }}</option>{% endfor %}
+                                </select>
+                            {% elif item.field.field_type == 'date' %}
+                                <input type="text" disabled placeholder="Select date..." class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'time' %}
+                                <input type="text" disabled placeholder="Select time..." class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'datetime' %}
+                                <input type="text" disabled placeholder="Select date and time..." class="form-field bg-gray-100">
+                            {% elif item.field.field_type == 'file' %}
+                                <input type="file" disabled class="form-field bg-gray-100">
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <!-- Live preview of the field currently being composed below, before it's saved -->
+                <div id="preview-draft-field" class="hidden border-2 border-dashed border-blue-300 rounded-lg p-3 bg-blue-50">
+                    <span class="text-xs font-medium text-blue-600 uppercase">Preview — not saved yet</span>
+                    <div id="preview-draft-content" class="mt-2"></div>
+                </div>
+            </div>
+
+            {% if not active_fields %}
+                <p class="text-sm text-gray-400 text-center">No fields yet — add one to see the preview.</p>
+            {% endif %}
         </div>
     </div>
 </div>

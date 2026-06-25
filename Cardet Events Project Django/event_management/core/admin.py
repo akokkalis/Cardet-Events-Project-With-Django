@@ -23,6 +23,7 @@ from .models import (
     RSVPEmailLog,
     CertificateGenerationLog,
     CSVImportLog,
+    ExportLog,
     TicketType,
     Order,
     OrderItem,
@@ -605,6 +606,17 @@ class CSVImportLogAdmin(admin.ModelAdmin):
 
 
 admin.site.register(CSVImportLog, CSVImportLogAdmin)
+
+
+class ExportLogAdmin(admin.ModelAdmin):
+    list_display = ("event", "user", "export_type", "created_at")
+    list_filter = ("export_type", "event", "created_at")
+    search_fields = ("event__event_name", "user__username")
+    readonly_fields = ("created_at",)
+    ordering = ("-created_at",)
+
+
+admin.site.register(ExportLog, ExportLogAdmin)
 
 
 @admin.register(Status)

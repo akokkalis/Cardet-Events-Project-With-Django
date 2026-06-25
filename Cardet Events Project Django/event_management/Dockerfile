@@ -34,6 +34,9 @@ COPY . .
 
 COPY core/static/fonts/DejaVuSans.ttf /app/core/static/fonts/DejaVuSans.ttf
 
+RUN chmod +x /app/docker-entrypoint.sh /app/scripts/fetch_vendor_assets.sh
+
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Default run command (can be overridden in docker-compose)
 CMD ["gunicorn", "event_management.wsgi:application", "--bind", "0.0.0.0:8000"]

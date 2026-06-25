@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
 {{ form.media }}
 <!-- SweetAlert2 CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="{% static 'vendor/css/sweetalert2.min.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -251,7 +251,7 @@ Best regards,
 </div>
 
 <!-- SweetAlert2 JavaScript -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'vendor/js/sweetalert2.min.js' %}"></script>
 
 <!-- Email Template Form JavaScript -->
 <script src="{% static 'js/email_template_form.js' %}"></script>

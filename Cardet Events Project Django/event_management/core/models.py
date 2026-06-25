@@ -73,6 +73,18 @@ def event_image_path(instance, filename):
     return f"temp/{filename}"  # Temporary storage before ID is assigned
 
 
+def event_registration_qr_path(instance, filename):
+    """Returns the path to store the event's public-registration QR code."""
+
+    if instance.id:  # Ensure the instance has an ID before using it
+        return os.path.join(
+            f"Events/{instance.id}_{instance.event_name.replace(' ', '_')}",
+            "qr_codes",
+            filename,
+        )
+    return f"temp/{filename}"  # Temporary storage before ID is assigned
+
+
 def event_certificate_path(instance, filename):
     """Returns the path to store event certificates inside the event folder."""
 
@@ -249,6 +261,9 @@ class Event(models.Model):
         help_text="Enable this if you want registrations to be automatically approved. If disabled, registrations will require manual approval.",
     )
     image = models.ImageField(upload_to=event_image_path, blank=True, null=True)
+    registration_qr_code = models.ImageField(
+        upload_to=event_registration_qr_path, blank=True, null=True
+    )
     certificate = models.FileField(
         upload_to=event_certificate_path,
         blank=True,
@@ -273,6 +288,21 @@ class Event(models.Model):
         """Returns the event folder path inside 'Events/'."""
         return os.path.join(
             EVENTS_MASTER_FOLDER, f"{self.id}_{self.event_name.replace(' ','_')}"
+        )
+
+    def generate_registration_qr_code(self):
+        """Generate a QR code linking to this event's public registration page."""
+        from django.urls import reverse
+
+        qr_data = f"{settings.SITE_BASE_URL}{reverse('public_register', args=[self.uuid])}"
+        qr = qrcode.make(qr_data)
+
+        buffer = BytesIO()
+        qr.save(buffer, format="PNG")
+
+        filename = f"event_{self.id}_registration_qr.png"
+        self.registration_qr_code.save(
+            filename, ContentFile(buffer.getvalue()), save=False
         )
 
     def __str__(self):
@@ -926,6 +956,31 @@ class TaskLog(models.Model):
 
     def __str__(self):
         return f"{self.get_task_type_display()} — {self.participant_name} [{self.status}]"
+
+
+class ExportLog(models.Model):
+    """Track who exported what data for an event, and when."""
+
+    EXPORT_TYPE_CHOICES = [
+        ("zip", "ZIP (Tickets/Signatures/Files)"),
+        ("csv", "Participants CSV"),
+        ("pdf", "Participants PDF"),
+    ]
+
+    event = models.ForeignKey(
+        Event, on_delete=models.CASCADE, related_name="export_logs"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True
+    )  # Who triggered the export; kept null if the user account is later removed
+    export_type = models.CharField(max_length=10, choices=EXPORT_TYPE_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_export_type_display()} export of {self.event.event_name} by {self.user}"
 
 
 class PaidTicket(models.Model):
