@@ -79,20 +79,34 @@
 
                     <!-- Logo -->
                     <div>
-                        <label for="{{ form.logo.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
                             {{ form.logo.label }}{% if form.logo.field.required %} <span class="text-red-500">*</span>{% endif %}
                         </label>
-                        {% if company and company.logo %}
-                            <div class="mb-2">
-                                <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="h-20 w-20 object-contain border border-gray-200 rounded">
-                                <p class="text-xs text-gray-500 mt-1">Current logo</p>
-                            </div>
-                        {% endif %}
-                        {{ form.logo|add_class:"form-field" }}
+                        {{ form.logo|add_class:"hidden" }}
+                        <label for="{{ form.logo.id_for_label }}"
+                               id="logo-drop-zone"
+                               class="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-200 rounded-lg cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-colors group">
+                            {% if company and company.logo %}
+                                <img id="logo-preview-img" class="max-h-24 max-w-full rounded object-contain mb-1" src="{{ company.logo.url }}" alt="Current logo">
+                                <svg id="logo-upload-icon" class="hidden h-8 w-8 text-gray-300 group-hover:text-indigo-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M3.75 3h16.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75-.75H3.75a.75.75 0 01-.75-.75V3.75A.75.75 0 013.75 3z"/></svg>
+                            {% else %}
+                                <svg id="logo-upload-icon" class="h-8 w-8 text-gray-300 group-hover:text-indigo-400 mb-2 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 20.25h18M3.75 3h16.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75-.75H3.75a.75.75 0 01-.75-.75V3.75A.75.75 0 013.75 3z"/></svg>
+                                <img id="logo-preview-img" class="hidden max-h-24 max-w-full rounded object-contain mb-1" src="" alt="Preview">
+                            {% endif %}
+                            <p class="text-sm text-gray-400 group-hover:text-indigo-500">
+                                <span class="font-medium">{% if company and company.logo %}Replace logo{% else %}Click to upload{% endif %}</span>{% if not company or not company.logo %} or drag & drop{% endif %}
+                            </p>
+                            <p class="text-xs text-gray-300 mt-0.5">PNG, JPG, GIF</p>
+                        </label>
+                        <div id="logo-selected" class="hidden mt-2 flex items-center justify-between bg-indigo-50 border border-indigo-100 rounded-md px-3 py-2">
+                            <span class="text-xs text-indigo-700 font-medium truncate" id="logo-filename"></span>
+                            <button type="button" id="logo-clear" class="ml-2 text-indigo-400 hover:text-red-500 transition-colors shrink-0" title="Remove">
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
                         {% for error in form.logo.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ error }}</p>
                         {% endfor %}
-                        <p class="mt-1 text-xs text-gray-500">Upload a logo for your company (optional). Supported formats: JPG, PNG, GIF</p>
                     </div>
 
                 </div>
@@ -118,4 +132,65 @@
         </form>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input      = document.getElementById('{{ form.logo.id_for_label }}');
+    const dropZone   = document.getElementById('logo-drop-zone');
+    const selected   = document.getElementById('logo-selected');
+    const filename   = document.getElementById('logo-filename');
+    const clearBtn   = document.getElementById('logo-clear');
+    const previewImg = document.getElementById('logo-preview-img');
+    const uploadIcon = document.getElementById('logo-upload-icon');
+
+    function showFile(file) {
+        if (!file) return;
+        filename.textContent = file.name;
+        selected.classList.remove('hidden');
+        dropZone.classList.add('border-indigo-400', 'bg-indigo-50/20');
+        dropZone.classList.remove('border-gray-200');
+
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                previewImg.src = e.target.result;
+                previewImg.classList.remove('hidden');
+                if (uploadIcon) uploadIcon.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function clearFile() {
+        input.value = '';
+        filename.textContent = '';
+        selected.classList.add('hidden');
+        dropZone.classList.remove('border-indigo-400', 'bg-indigo-50/20');
+        dropZone.classList.add('border-gray-200');
+    }
+
+    input.addEventListener('change', () => showFile(input.files[0]));
+    clearBtn.addEventListener('click', clearFile);
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('border-indigo-500', 'bg-indigo-50/30');
+    });
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/30');
+    });
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('border-indigo-500', 'bg-indigo-50/30');
+        if (e.dataTransfer.files.length) {
+            const dt = new DataTransfer();
+            dt.items.add(e.dataTransfer.files[0]);
+            input.files = dt.files;
+            showFile(e.dataTransfer.files[0]);
+        }
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}
