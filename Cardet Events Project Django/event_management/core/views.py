@@ -1669,6 +1669,7 @@ def company_email_settings(request, company_id):
 # RSVP Views
 def rsvp_response(request, event_uuid, participant_id, response):
     """Handle RSVP responses from email links"""
+    print(response)
     try:
         event = get_object_or_404(Event, uuid=event_uuid)
         participant = get_object_or_404(Participant, id=participant_id, event=event)
@@ -1709,6 +1710,7 @@ def rsvp_response(request, event_uuid, participant_id, response):
         context = {
             "event": event,
             "participant": participant,
+            "response": response,
             "rsvp": rsvp,
             "response_display": response_display,
             "created": created,
