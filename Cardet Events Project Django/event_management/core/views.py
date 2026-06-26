@@ -794,9 +794,9 @@ def export_participants_pdf_view(request, event_id):
 # 💥 Allow 5 POSTs per minute per IP
 
 
-@ratelimit(key="ip")  # 5 requests per minute
+@ratelimit(key="ip", rate="10/m", method="POST", block=False)
 def public_register(request, event_uuid):
-    event = get_object_or_404(Event, uuid=event_uuid)
+    event = get_object_or_404(Event.objects.select_related("status"), uuid=event_uuid)
     custom_fields = EventCustomField.objects.filter(event=event).order_by("order")
     custom_field_map = {f"custom_field_{f.id}": f for f in custom_fields}
 
@@ -924,12 +924,8 @@ def public_register(request, event_uuid):
                 custom_data[field.label] = field_value
 
         if form.is_valid():
-            email = form.cleaned_data["email"]
-
-            # Check standard email uniqueness
-            if Participant.objects.filter(event=event, email=email).exists():
-                form.add_error("email", "This email is already registered.")
-                return render_register_form()
+            # Email uniqueness for this event is already enforced by
+            # ParticipantForm.clean_email() during form.is_valid() above.
 
             # Save participant
             participant = form.save(commit=False)
