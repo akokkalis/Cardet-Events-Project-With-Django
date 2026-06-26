@@ -26,20 +26,20 @@ if os.path.exists(dotenv_path):
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-wqk6_y73o3ut26x+l7el&qiyihfi@@duw3*n*3w=89xf58#ii7"
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # DEBUG = True
 
-ALLOWED_HOSTS = ["*",]
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 CSRF_TRUSTED_ORIGINS = [
-    "http://198.199.79.173:8000",
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-
-    "https://qrscanner.innovedu.com/",
-
-    "https://qrscanner.innovedu.com",
+    origin.strip()
+    for origin in os.getenv(
+        "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1,http://localhost"
+    ).split(",")
+    if origin.strip()
 ]
 
 # Application definition
