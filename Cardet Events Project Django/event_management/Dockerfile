@@ -39,4 +39,4 @@ RUN chmod +x /app/docker-entrypoint.sh /app/scripts/fetch_vendor_assets.sh
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Default run command (overridden in docker-compose, kept here as a safe fallback)
-CMD ["gunicorn", "event_management.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60", "--max-requests", "1000", "--max-requests-jitter", "100"]
+CMD ["gunicorn", "event_management.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--timeout", "60", "--max-requests", "1000", "--max-requests-jitter", "100", "--access-logfile", "-"]
