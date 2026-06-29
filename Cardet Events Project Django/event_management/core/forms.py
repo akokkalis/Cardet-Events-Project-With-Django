@@ -262,6 +262,9 @@ class EventForm(forms.ModelForm):
 class ParticipantForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.event = kwargs.pop("event", None)
+        # Staff-facing forms (add/edit participant) always show every system
+        # field; only the public registration form honors the active toggle.
+        self.staff_mode = kwargs.pop("staff_mode", False)
         super().__init__(*args, **kwargs)
 
         if not self.event:
@@ -270,13 +273,17 @@ class ParticipantForm(forms.ModelForm):
         from collections import OrderedDict
 
         # Determine ordering for system fields
-        system_configs = EventSystemFieldConfig.objects.filter(
-            event=self.event, active=True
-        ).order_by("order")
+        system_configs_qs = EventSystemFieldConfig.objects.filter(event=self.event)
+        if not self.staff_mode:
+            system_configs_qs = system_configs_qs.filter(active=True)
+        system_configs = system_configs_qs.order_by("order")
         system_order = {cfg.field_name: cfg.order for cfg in system_configs}
         system_order.setdefault("name", 1)
         system_order.setdefault("email", 2)
-        # phone is only included if its config exists and is active
+        if self.staff_mode:
+            system_order.setdefault("phone", 3)
+        # phone is only included if its config exists and is active,
+        # unless staff_mode forces it to always be present
 
         custom_fields_qs = EventCustomField.objects.filter(
             event=self.event
@@ -384,6 +391,19 @@ class ParticipantForm(forms.ModelForm):
     class Meta:
         model = Participant
         fields = ["name", "email"]
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and self.event:
+            existing_participant = Participant.objects.filter(
+                event=self.event, email__iexact=email
+            ).exclude(pk=self.instance.pk if self.instance else None)
+
+            if existing_participant.exists():
+                raise forms.ValidationError(
+                    "A participant with this email is already registered for this event."
+                )
+        return email
 
 
 class EventCustomFieldForm(forms.ModelForm):
