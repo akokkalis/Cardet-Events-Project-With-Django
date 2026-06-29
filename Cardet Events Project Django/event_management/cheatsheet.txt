@@ -37,3 +37,12 @@ admin
 
 user1
 password98765
+
+
+ssh deploy@164.92.189.245
+cd /opt/cardet-events
+docker compose logs -f django
+
+docker compose logs -f django nginx
+
+docker compose logs -f

@@ -924,9 +924,6 @@ def public_register(request, event_uuid):
                 custom_data[field.label] = field_value
 
         if form.is_valid():
-            # Email uniqueness for this event is already enforced by
-            # ParticipantForm.clean_email() during form.is_valid() above.
-
             # Save participant
             participant = form.save(commit=False)
             participant.event = event
@@ -982,7 +979,9 @@ def download_ics_file(request, event_uuid):
 def register_participant_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
     if request.method == "POST":
-        form = ParticipantForm(request.POST, request.FILES, event=event)
+        form = ParticipantForm(
+            request.POST, request.FILES, event=event, staff_mode=True
+        )
         if form.is_valid():
             try:
                 participant = form.save(commit=False)
@@ -1038,7 +1037,7 @@ def register_participant_view(request, event_id):
                 )
                 # The form will be re-displayed with the error message
     else:
-        form = ParticipantForm(event=event)
+        form = ParticipantForm(event=event, staff_mode=True)
 
     return render(request, "register_participant.html", {"form": form, "event": event})
 
@@ -2820,7 +2819,11 @@ def edit_participant_view(request, event_id, participant_id):
 
     if request.method == "POST":
         form = ParticipantForm(
-            request.POST, request.FILES, event=event, instance=participant
+            request.POST,
+            request.FILES,
+            event=event,
+            instance=participant,
+            staff_mode=True,
         )
         if form.is_valid():
             try:
@@ -2894,7 +2897,12 @@ def edit_participant_view(request, event_id, participant_id):
                 if field.label in participant.submitted_data:
                     initial_data[field_name] = participant.submitted_data[field.label]
 
-        form = ParticipantForm(instance=participant, event=event, initial=initial_data)
+        form = ParticipantForm(
+            instance=participant,
+            event=event,
+            initial=initial_data,
+            staff_mode=True,
+        )
 
     return render(
         request,
@@ -3742,11 +3750,6 @@ def export_attendance_csv(request, event_id):
         )
 
     return response
-
-
-def scan_qr(request, event_id, participant_id):
-    participant = get_object_or_404(Participant, id=participant_id, event_id=event_id)
-
 
 
 @login_required

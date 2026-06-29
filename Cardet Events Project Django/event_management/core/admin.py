@@ -241,7 +241,7 @@ class ParticipantAdmin(admin.ModelAdmin):
     )
     list_filter = ("approval_status", "event", "registered_at")
     search_fields = ("name", "email", "event__event_name")
-    readonly_fields = ("registered_at", "pdf_ticket_link", "qr_code_display")
+    readonly_fields = ("registered_at", "phone", "pdf_ticket_link", "qr_code_display")
 
     def approval_status_display(self, obj):
         """Display approval status with color coding"""
