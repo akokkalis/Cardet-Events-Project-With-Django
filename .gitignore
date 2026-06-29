@@ -20,3 +20,8 @@ pycache/
 *$py.class
 .pytest_cache/
 .mypy_cache/
+
+/Cardet Events Project Django/event_management/Dockerfile
+/Cardet Events Project Django/event_management/docker-compose.yml
+/Cardet Events Project Django/event_management/docker-compose.prod.yml
+/Cardet Events Project Django/event_management/docker-entrypoint.sh
