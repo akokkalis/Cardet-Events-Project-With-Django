@@ -155,60 +155,46 @@ if BEHIND_TLS_PROXY:
     SECURE_HSTS_PRELOAD = True
 
 # ✅ Database Configuration
-# if DEBUG == "True":
-# 💻 DEVELOPMENT: Use SQLite
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-# print("🚀 Running in DEVELOPMENT mode with SQLite")
-# else:
-# # 🌍 PRODUCTION: Use MySQL
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": os.getenv("MYSQL_DATABASE"),
-#         "USER": os.getenv("MYSQL_USER"),
-#         "PASSWORD": os.getenv("MYSQL_PASSWORD"),
-#         "HOST": f"{os.getenv('MYSQL_HOST')}",
-#         "PORT": os.getenv("MYSQL_PORT"),
-#         "OPTIONS": {
-#             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-#         },
-#     }
-# }
-# print("🌍 Running in PRODUCTION mode with MySQL")
-# 🌍 PRODUCTION: Use PostgreSQL (Docker)
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.postgresql",
-#         "NAME": os.getenv("POSTGRES_DB"),
-#         "USER": os.getenv("POSTGRES_USER"),
-#         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
-#         "HOST": os.getenv("POSTGRES_HOST"),  # should be 'db'
-#         "PORT": os.getenv("POSTGRES_PORT"),  # usually 5432
-#     }
-# }
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("db_name"),
-        "USER": os.getenv("db_username"),
-        "PASSWORD": os.getenv("db_password"),
-        "HOST": os.getenv("db_host"),  # should be 'db'
-        "PORT": os.getenv("db_port"),  # usually 5432
-        # Reuse one persistent connection per worker instead of reconnecting
-        # (and re-resolving DNS for the DigitalOcean-managed host) on every
-        # request. CONN_HEALTH_CHECKS pings before reuse so a connection that
-        # went stale (DB restart, network drop) is transparently replaced
-        # instead of surfacing as a request error.
-        "CONN_MAX_AGE": None,
-        "CONN_HEALTH_CHECKS": True,
+# Switches on POSTGRES_HOST rather than DEBUG: DEBUG already has one unrelated job in this
+# project (see the BEHIND_TLS_PROXY comment above for why overloading it caused redirect-loop
+# bugs before), and tying DB selection to it too means setting DJANGO_DEBUG=False locally for
+# any reason would silently start writing to the live production database. POSTGRES_HOST is
+# only ever set in local dev's .env (pointing at the docker-compose "db" container); the
+# production .env on the server never defines it, so this always resolves correctly per
+# environment with no manual switching.
+if os.getenv("POSTGRES_HOST"):
+    # 💻 LOCAL DEVELOPMENT: docker-compose's local Postgres container
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("POSTGRES_DB"),
+            "USER": os.getenv("POSTGRES_USER"),
+            "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+            "HOST": os.getenv("POSTGRES_HOST"),
+            "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        }
     }
-}
-print("🌍 Running in PRODUCTION mode with PostgreSQL")
+    print("💻 Running in LOCAL mode with Docker PostgreSQL")
+else:
+    # 🌍 PRODUCTION: DigitalOcean-managed PostgreSQL
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": os.getenv("db_name"),
+            "USER": os.getenv("db_username"),
+            "PASSWORD": os.getenv("db_password"),
+            "HOST": os.getenv("db_host"),
+            "PORT": os.getenv("db_port"),
+            # Reuse one persistent connection per worker instead of reconnecting
+            # (and re-resolving DNS for the DigitalOcean-managed host) on every
+            # request. CONN_HEALTH_CHECKS pings before reuse so a connection that
+            # went stale (DB restart, network drop) is transparently replaced
+            # instead of surfacing as a request error.
+            "CONN_MAX_AGE": None,
+            "CONN_HEALTH_CHECKS": True,
+        }
+    }
+    print("🌍 Running in PRODUCTION mode with managed PostgreSQL")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
