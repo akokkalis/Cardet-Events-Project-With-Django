@@ -25,3 +25,4 @@ pycache/
 /Cardet Events Project Django/event_management/docker-compose.yml
 /Cardet Events Project Django/event_management/docker-compose.prod.yml
 /Cardet Events Project Django/event_management/docker-entrypoint.sh
+/Cardet Events Project Django/event_management/scripts/fetch_vendor_assets.sh
