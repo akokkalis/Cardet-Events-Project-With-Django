@@ -981,6 +981,7 @@ def download_ics_file(request, event_uuid):
 @login_required
 def register_participant_view(request, event_id):
     event = get_object_or_404(Event, id=event_id)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     if request.method == "POST":
         form = ParticipantForm(request.POST, request.FILES, event=event)
         if form.is_valid():
@@ -1027,20 +1028,72 @@ def register_participant_view(request, event_id):
                 messages.success(
                     request, f"Participant {participant.name} added successfully."
                 )
+                if is_ajax:
+                    return JsonResponse(
+                        {"status": "success", "message": f"{participant.name} added successfully."}
+                    )
                 return redirect("event_detail", event_id=event.id)
 
             except IntegrityError:
-                # Handle duplicate email error
                 email = form.cleaned_data.get("email", "")
-                messages.error(
-                    request,
-                    f"❌ This email address ({email}) is already registered for this event. Please use a different email address.",
-                )
-                # The form will be re-displayed with the error message
+                error_msg = f"This email address ({email}) is already registered for this event."
+                if is_ajax:
+                    return JsonResponse(
+                        {"status": "error", "message": error_msg}, status=400
+                    )
+                messages.error(request, f"❌ {error_msg} Please use a different email address.")
+        else:
+            if is_ajax:
+                errors = {field: [str(e) for e in errs] for field, errs in form.errors.items()}
+                return JsonResponse({"status": "error", "errors": errors}, status=400)
     else:
         form = ParticipantForm(event=event)
 
     return render(request, "register_participant.html", {"form": form, "event": event})
+
+
+@login_required
+def add_participant_form_html(request, event_id):
+    """Returns the Add Participant form fields as an HTML fragment (for the modal)."""
+    from django.template.loader import render_to_string
+
+    event = get_object_or_404(Event, id=event_id)
+    form = ParticipantForm(event=event)
+    html = render_to_string(
+        "partials/add_participant_form.html",
+        {"form": form, "event": event},
+        request=request,
+    )
+    return JsonResponse({"html": html})
+
+
+@login_required
+def edit_participant_form_html(request, event_id, participant_id):
+    """Returns the Edit Participant form fields pre-filled as an HTML fragment (for the modal)."""
+    from django.template.loader import render_to_string
+
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+
+    initial_data = {}
+    if participant.submitted_data:
+        custom_fields = EventCustomField.objects.filter(event=event)
+        for field in custom_fields:
+            field_name = f"custom_field_{field.id}"
+            if field.label in participant.submitted_data:
+                initial_data[field_name] = participant.submitted_data[field.label]
+
+        phone = participant.submitted_data.get("Phone") or participant.submitted_data.get("phone")
+        if phone:
+            initial_data["phone"] = phone
+
+    form = ParticipantForm(instance=participant, event=event, initial=initial_data)
+    html = render_to_string(
+        "partials/add_participant_form.html",
+        {"form": form, "event": event},
+        request=request,
+    )
+    return JsonResponse({"html": html})
 
 
 def event_custom_fields(request, event_id):
@@ -1498,6 +1551,23 @@ def reject_participant(request, event_id, participant_id):
         messages.info(request, f"{participant.name} is already rejected.")
 
     return redirect("event_detail", event_id=event.id)
+
+
+@login_required
+def delete_participant(request, event_id, participant_id):
+    """Delete a participant from the event."""
+    from django.http import JsonResponse
+
+    if request.method != "POST":
+        return JsonResponse({"status": "error", "message": "Method not allowed."}, status=405)
+
+    event = get_object_or_404(Event, id=event_id)
+    participant = get_object_or_404(Participant, id=participant_id, event=event)
+    name = participant.name
+    participant.delete()
+
+    messages.success(request, f"🗑️ {name} has been removed from the event.")
+    return JsonResponse({"status": "success", "message": f"{name} has been deleted."})
 
 
 @login_required
@@ -2817,6 +2887,7 @@ def bulk_send_certificates(request, event_id):
 def edit_participant_view(request, event_id, participant_id):
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     if request.method == "POST":
         form = ParticipantForm(
@@ -2873,15 +2944,25 @@ def edit_participant_view(request, event_id, participant_id):
                 messages.success(
                     request, f"✅ Participant {participant.name} updated successfully."
                 )
+                if is_ajax:
+                    return JsonResponse(
+                        {"status": "success", "message": f"{participant.name} updated successfully."}
+                    )
                 return redirect("event_detail", event_id=event.id)
 
             except IntegrityError:
-                # Handle duplicate email error
                 email = form.cleaned_data.get("email", "")
+                error_msg = f"This email address ({email}) is already registered for this event."
+                if is_ajax:
+                    return JsonResponse({"status": "error", "message": error_msg}, status=400)
                 messages.error(
                     request,
-                    f"❌ This email address ({email}) is already registered for this event. Please use a different email address.",
+                    f"❌ {error_msg} Please use a different email address.",
                 )
+        else:
+            if is_ajax:
+                errors = {field: [str(e) for e in errs] for field, errs in form.errors.items()}
+                return JsonResponse({"status": "error", "errors": errors}, status=400)
     else:
         # Initialize form with participant's data
         initial_data = {}

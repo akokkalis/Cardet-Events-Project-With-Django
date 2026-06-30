@@ -26,6 +26,8 @@ from .views import (
     toggle_system_field,
     update_field_order,
     register_participant_view,
+    add_participant_form_html,
+    edit_participant_form_html,
     edit_participant_view,
     download_custom_field_file,
     company_list,
@@ -40,6 +42,7 @@ from .views import (
     delete_email_template,
     approve_participant,
     reject_participant,
+    delete_participant,
     set_participant_pending,
     check_participant_status,
     rsvp_response,
@@ -215,9 +218,19 @@ urlpatterns = [
         name="register_participant",
     ),
     path(
+        "events/<int:event_id>/add-participant-form/",
+        add_participant_form_html,
+        name="add_participant_form_html",
+    ),
+    path(
         "events/<int:event_id>/participants/<int:participant_id>/edit/",
         edit_participant_view,
         name="edit_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/edit-form/",
+        edit_participant_form_html,
+        name="edit_participant_form_html",
     ),
     path(
         "download-custom-file/<int:file_id>/",
@@ -235,6 +248,11 @@ urlpatterns = [
         "events/<int:event_id>/participants/<int:participant_id>/reject/",
         reject_participant,
         name="reject_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/delete/",
+        delete_participant,
+        name="delete_participant",
     ),
     path(
         "events/<int:event_id>/participants/<int:participant_id>/pending/",

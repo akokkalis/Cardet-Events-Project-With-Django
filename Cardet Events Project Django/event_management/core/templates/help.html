@@ -278,6 +278,126 @@
         </div>
     </div>
     
+    <!-- Exporting Event Data Section -->
+    <div class="bg-white rounded-lg shadow-md mb-8">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('exporting-data')">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-gray-700">Exporting Event Data</h2>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+            <p class="text-gray-600 mt-2">Download participants, attendance records, RSVP data, tickets, and more</p>
+        </div>
+
+        <div id="exporting-data" class="toggle-content hidden">
+            <div class="p-6">
+                <div class="space-y-6">
+
+                    <!-- Participants CSV -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="text-xl font-medium text-green-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"></span>
+                            Participants — CSV Export
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Download a full list of all registered participants for an event, including their name, email, approval status, and any custom field responses.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>Actions</em> card → <strong>Export Participants CSV</strong>
+                        </div>
+                    </div>
+
+                    <!-- Participants PDF -->
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="text-xl font-medium text-blue-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
+                            Participants — PDF Export
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Generate a print-ready PDF document listing all participants. Useful for sign-in sheets or physical records at the event venue.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>Actions</em> card → <strong>Export Participants PDF</strong>
+                        </div>
+                    </div>
+
+                    <!-- RSVP CSV -->
+                    <div class="border-l-4 border-purple-500 pl-4">
+                        <h3 class="text-xl font-medium text-purple-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-purple-500 rounded-full mr-2"></span>
+                            RSVP Responses — CSV Export
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Export all participants with their RSVP status (<em>Will Attend</em>, <em>Can't Make It</em>, <em>Maybe</em>, or <em>No Response</em>). Helpful for planning catering, seating, or logistics ahead of the event.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>RSVP Summary</em> button in the header → <strong>Export CSV</strong>
+                        </div>
+                    </div>
+
+                    <!-- Attendance CSV -->
+                    <div class="border-l-4 border-orange-500 pl-4">
+                        <h3 class="text-xl font-medium text-orange-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
+                            Attendance — CSV Export
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Download a CSV with the attendance record for every participant, including the exact check-in timestamp for those who attended. Ideal for post-event reporting.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>Actions</em> card → <strong>Attendance Dashboard</strong> → <strong>Export Attendance CSV</strong>
+                        </div>
+                    </div>
+
+                    <!-- Tickets & Signatures ZIP -->
+                    <div class="border-l-4 border-teal-500 pl-4">
+                        <h3 class="text-xl font-medium text-teal-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-teal-500 rounded-full mr-2"></span>
+                            Tickets &amp; Signatures — ZIP Export
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            Download a single ZIP archive containing all generated PDF tickets and digital signatures for every participant in the event. Useful for offline distribution or archiving.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>Actions</em> card → <strong>Export ZIP</strong>
+                        </div>
+                        <div class="mt-2 bg-yellow-50 border border-yellow-200 p-3 rounded-lg text-sm text-yellow-800">
+                            <strong>⚠️ Note:</strong> The ZIP will only include participants who have had their PDF tickets generated. Make sure to generate tickets before exporting.
+                        </div>
+                    </div>
+
+                    <!-- CSV Import Template -->
+                    <div class="border-l-4 border-indigo-500 pl-4">
+                        <h3 class="text-xl font-medium text-indigo-700 mb-2">
+                            <span class="inline-block w-3 h-3 bg-indigo-500 rounded-full mr-2"></span>
+                            CSV Import Template
+                        </h3>
+                        <p class="text-gray-600 mb-3">
+                            While not strictly an export, the CSV template download gives you a pre-formatted spreadsheet that matches this event's fields — including all custom fields — ready to fill in and re-import.
+                        </p>
+                        <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
+                            <strong>Where to find it:</strong> Event Detail page → <em>Actions</em> card → <strong>Download CSV Template</strong>
+                        </div>
+                        <ul class="mt-3 list-disc list-inside text-gray-600 space-y-1 ml-2 text-sm">
+                            <li>Fields marked <strong>*REQUIRED*</strong> must be filled in for every row.</li>
+                            <li>Delete the instruction rows before importing.</li>
+                            <li>Duplicate emails are skipped automatically on import.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h4 class="font-medium text-blue-800 mb-2">💡 Pro Tip:</h4>
+                    <p class="text-blue-700 text-sm">
+                        The CSV exports open directly in spreadsheet applications like Excel or Google Sheets. For RSVP and attendance reports, export after the event has ended to get a complete and accurate picture of who attended.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Additional Help Section -->
     <div class="bg-white rounded-lg shadow-md">
         <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('additional-help')">

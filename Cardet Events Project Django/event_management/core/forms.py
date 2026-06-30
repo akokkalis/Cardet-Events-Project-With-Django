@@ -147,9 +147,7 @@ class EventForm(forms.ModelForm):
                 }
             ),
             "description": CKEditorWidget(
-                attrs={
-                    "class": "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500",
-                }
+                attrs={"class": "django-ckeditor-widget"}
             ),
             "tickets": forms.CheckboxInput(
                 attrs={
@@ -224,9 +222,8 @@ class EventForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["company"].queryset = Company.objects.all()
-        self.fields["status"].queryset = (
-            Status.objects.all()
-        )  # Allow selection from all companies
+        self.fields["status"].queryset = Status.objects.all()
+        self.fields["description"].required = False
 
     def clean(self):
         from datetime import timedelta

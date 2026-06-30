@@ -5,28 +5,27 @@ $(document).ready(function () {
     const csrfToken = participantsTable.data('csrf-token');
 
     if (participantCount > 0 && !$.fn.DataTable.isDataTable('#participantsTable')) {
-        // Add filter dropdowns before the table
+        // Add filter toolbar before the table (matches events page design)
+        const selectCls = 'py-2 px-3 text-sm border border-gray-200 rounded-lg bg-white';
         $('#participantsTable').before(`
-            <div class="flex gap-4 mb-4">
-                <div class="filter-group">
-                    <label for="statusFilter" class="mr-2 font-medium text-gray-700">Status:</label>
-                    <select id="statusFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                        <option value="">All</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="rsvpFilter" class="mr-2 font-medium text-gray-700">RSVP:</label>
-                    <select id="rsvpFilter" class="rounded-lg border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
-                        <option value="">All</option>
-                        <option value="attend">Will Attend</option>
-                        <option value="cant_make_it">Can't Make It</option>
-                        <option value="maybe">Maybe</option>
-                        <option value="no_response">No Response</option>
-                    </select>
-                </div>
+            <div class="flex flex-wrap items-center gap-2 mb-4" id="participantFilterBar">
+                <select id="statusFilter" class="${selectCls}">
+                    <option value="">All Statuses</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+                <select id="rsvpFilter" class="${selectCls}">
+                    <option value="">All RSVPs</option>
+                    <option value="attend">Will Attend</option>
+                    <option value="cant_make_it">Can't Make It</option>
+                    <option value="maybe">Maybe</option>
+                    <option value="no_response">No Response</option>
+                </select>
+                <button id="clearParticipantFilters" type="button"
+                        class="hidden py-2 px-3 text-sm text-red-500 hover:text-red-700 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                    Clear all
+                </button>
             </div>
         `);
 
@@ -42,8 +41,21 @@ $(document).ready(function () {
             "dom": '<"flex justify-between items-center mb-4"<"flex items-center"l>f>t<"mt-4"ip>'
         });
 
-        // Add custom filtering functionality
+        // Show/hide Clear button and re-draw on filter change
+        function updateClearBtn() {
+            const active = $('#statusFilter').val() || $('#rsvpFilter').val();
+            $('#clearParticipantFilters').toggleClass('hidden', !active);
+        }
+
         $('#statusFilter, #rsvpFilter').on('change', function() {
+            updateClearBtn();
+            table.draw();
+        });
+
+        $('#clearParticipantFilters').on('click', function() {
+            $('#statusFilter').val('');
+            $('#rsvpFilter').val('');
+            updateClearBtn();
             table.draw();
         });
 

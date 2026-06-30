@@ -230,7 +230,7 @@ class Event(models.Model):
         null=True,
         help_text="Google Maps link for the event location. Copy and paste the Google Maps URL here.",
     )
-    description = RichTextField()
+    description = RichTextField(blank=True)
     tickets = models.BooleanField(
         default=False,
         help_text="Enable this if you want to have ticketing system for the event.",
