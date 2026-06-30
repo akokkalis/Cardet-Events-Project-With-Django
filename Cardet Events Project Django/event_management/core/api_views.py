@@ -1,5 +1,4 @@
 from django.contrib.auth import authenticate
-from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -122,10 +121,9 @@ class StaffEventListView(APIView):
     permission_classes = [IsStaffMember]
 
     def get(self, request):
-        today = timezone.now().date()
-        qs = Event.objects.filter(event_date__gte=today).select_related(
-            "status", "company"
-        ).order_by("event_date", "start_time")
+        qs = Event.objects.filter(
+            status__name__iexact="ongoing"
+        ).select_related("status", "company").order_by("event_date", "start_time")
 
         staff = Staff.objects.filter(user=request.user).select_related("company").first()
         if staff:
