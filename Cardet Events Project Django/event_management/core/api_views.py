@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from django.db.models import Count, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -126,6 +127,17 @@ class StaffEventListView(APIView):
         qs = Event.objects.filter(
             status__name__iexact="ongoing",
             event_date=today,
+        ).annotate(
+            approved_count=Count(
+                "participant",
+                filter=Q(participant__approval_status="approved"),
+                distinct=True,
+            ),
+            attended_count=Count(
+                "attendance",
+                filter=Q(attendance__present=True, attendance__participant__approval_status="approved"),
+                distinct=True,
+            ),
         ).select_related("status", "company").order_by("start_time")
 
         staff = Staff.objects.filter(user=request.user).select_related("company").first()
@@ -147,6 +159,8 @@ class StaffEventListView(APIView):
                     "name": e.status.name if e.status else None,
                     "color": e.status.color if e.status else None,
                 },
+                "approved_participants": e.approved_count,
+                "attended_participants": e.attended_count,
             }
             for e in qs
         ]
