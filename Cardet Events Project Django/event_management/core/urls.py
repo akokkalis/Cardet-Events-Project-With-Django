@@ -26,6 +26,8 @@ from .views import (
     toggle_system_field,
     update_field_order,
     register_participant_view,
+    add_participant_form_html,
+    edit_participant_form_html,
     edit_participant_view,
     download_custom_field_file,
     company_list,
@@ -40,6 +42,7 @@ from .views import (
     delete_email_template,
     approve_participant,
     reject_participant,
+    delete_participant,
     set_participant_pending,
     check_participant_status,
     rsvp_response,
@@ -68,7 +71,11 @@ from .views import (
     event_attendance_dashboard,
     export_attendance_csv,
 
-
+    add_staff_view,
+    add_staff_form_html,
+    edit_staff_view,
+    edit_staff_form_html,
+    delete_staff_view,
 )
 
 from .api_views import ApiLoginView, ApiLogoutView, MarkAttendanceAPIView, StaffEventListView
@@ -104,6 +111,31 @@ urlpatterns = [
         "companies/<int:company_id>/email-settings/",
         company_email_settings,
         name="company_email_settings",
+    ),
+    path(
+        "companies/<int:company_id>/add-staff/",
+        add_staff_view,
+        name="add_staff",
+    ),
+    path(
+        "companies/<int:company_id>/add-staff-form/",
+        add_staff_form_html,
+        name="add_staff_form_html",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/edit/",
+        edit_staff_view,
+        name="edit_staff",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/edit-form/",
+        edit_staff_form_html,
+        name="edit_staff_form_html",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/delete/",
+        delete_staff_view,
+        name="delete_staff",
     ),
     path("events/create/", event_create, name="event_create"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),
@@ -222,9 +254,19 @@ urlpatterns = [
         name="register_participant",
     ),
     path(
+        "events/<int:event_id>/add-participant-form/",
+        add_participant_form_html,
+        name="add_participant_form_html",
+    ),
+    path(
         "events/<int:event_id>/participants/<int:participant_id>/edit/",
         edit_participant_view,
         name="edit_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/edit-form/",
+        edit_participant_form_html,
+        name="edit_participant_form_html",
     ),
     path(
         "download-custom-file/<int:file_id>/",
@@ -242,6 +284,11 @@ urlpatterns = [
         "events/<int:event_id>/participants/<int:participant_id>/reject/",
         reject_participant,
         name="reject_participant",
+    ),
+    path(
+        "events/<int:event_id>/participants/<int:participant_id>/delete/",
+        delete_participant,
+        name="delete_participant",
     ),
     path(
         "events/<int:event_id>/participants/<int:participant_id>/pending/",

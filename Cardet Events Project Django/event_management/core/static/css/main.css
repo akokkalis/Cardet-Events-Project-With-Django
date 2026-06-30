@@ -252,23 +252,23 @@ input[type="text"].filter-select {
 /* Custom Field Styling - Outlined with Blue Hover */
 .form-field {
     background-color: transparent;
-    border: 2px solid #0174b9;
+    border: 1px solid #0174b9;
     border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.5rem;
     width: 100%;
     transition: all 0.3s ease;
     outline: none;
 }
 
-.form-field:hover {
+/* .form-field:hover {
     border-color: #e6f0f6;
     box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.1);
-}
+} */
 
-.form-field:focus {
+/* .form-field:focus {
     border-color: #0174b9;
     box-shadow: 0 0 0 3px rgba(1, 116, 185, 0.2);
-}
+} */
 
 /* Select2 Tailwind Integration */
 .select2-container {

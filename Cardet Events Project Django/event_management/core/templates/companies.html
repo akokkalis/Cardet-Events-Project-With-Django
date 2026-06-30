@@ -58,13 +58,14 @@
                     <td class="px-4 py-3">
                         <div class="flex flex-col items-center gap-1.5 w-20">
                             {% if company.logo %}
-                                <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="h-14 w-14 rounded-full object-contain border border-gray-100">
+                                <img src="{{ company.logo.url }}" alt="{{ company.name }}" class="h-14 w-14 rounded-full object-cover border border-gray-100">
                             {% else %}
                                 <div class="h-14 w-14 rounded-full bg-indigo-50 flex items-center justify-center border border-gray-100">
                                     <span class="text-indigo-400 text-sm font-semibold">{{ company.name|slice:":1"|upper }}</span>
                                 </div>
                             {% endif %}
-                            <span class="font-medium text-gray-900 text-sm text-center leading-tight">{{ company.name }}</span>
+                            <a href="{% url 'company_detail' company.id %}"
+                               class="font-medium text-gray-900 text-sm text-center leading-tight hover:text-indigo-600 hover:underline transition-colors">{{ company.name }}</a>
                         </div>
                     </td>
 

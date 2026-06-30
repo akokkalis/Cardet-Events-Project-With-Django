@@ -4,265 +4,790 @@
 {% block title %}{{ company.name }}{% endblock %}
 
 {% block content %}
-<div class="flex justify-between items-center mb-6">
-    <h1 class="text-3xl font-semibold flex items-center space-x-2">
-        <span class="hidden md:inline">{{ company.name }}</span>
-    </h1>
+<div class="space-y-5 mx-8 my-6">
 
-    <!-- Action Buttons -->
-    <div class="flex space-x-3">
-        <a href="{% url 'company_list' %}" class="btn btn-outline-gray">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+    <!-- Row 1: Back link -->
+    <div>
+        <a href="{% url 'company_list' %}"
+           class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-brand-blue transition-colors w-fit">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
-            <span>Back to Companies</span>
-        </a>
-        <a href="{% url 'company_edit' company.id %}" class="btn btn-outline-blue">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            <span>Edit Company</span>
-        </a>
-        <a href="{% url 'company_email_settings' company.id %}" class="btn btn-outline-blue">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.807-.108 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span>
-                {% if has_email_config %}
-                    Edit Email Settings
-                {% else %}
-                    Add Email Settings
-                {% endif %}
-            </span>
+            Back to Companies
         </a>
     </div>
-</div>
 
-<!-- Company Information Card -->
-<div class="bg-white p-6 rounded-lg shadow-md mb-6">
-    <div class="flex items-start space-x-6">
-        <!-- Company Logo -->
-        <div class="flex-shrink-0">
-            {% if company.logo %}
-                <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="h-24 w-24 object-contain border border-gray-200 rounded">
-            {% else %}
-                <div class="h-24 w-24 bg-gray-200 rounded flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6" />
-                    </svg>
-                </div>
-            {% endif %}
+    <!-- Row 2: Title + action buttons -->
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ company.name }}</h1>
+            <p class="text-sm text-gray-500 mt-0.5">Company Details &amp; Events</p>
         </div>
+        <div class="flex items-center gap-2 flex-wrap justify-end shrink-0">
+            <a href="{% url 'company_email_settings' company.id %}" class="btn btn-outline-blue flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.807-.108 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527c-.447.32-1.06.269-1.45-.12l-.773-.774a1.125 1.125 0 01-.12-1.45l.527-.737c.25-.35.273-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.107-1.204l-.527-.738a1.125 1.125 0 01.12-1.45l.773-.773a1.125 1.125 0 011.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Email Settings
+            </a>
+            <a href="{% url 'company_edit' company.id %}" class="btn btn-outline-blue flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Company
+            </a>
+        </div>
+    </div>
 
-        <!-- Company Details -->
-        <div class="flex-1">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4"><span class="break-all">{{ company.name }}</span></h2>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Company Information Card -->
+    <div class="bg-white rounded-lg shadow-sm p-6">
+        <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Company Information</p>
+        <div class="flex items-start gap-6 flex-wrap">
+            <!-- Logo -->
+            <div class="shrink-0">
+                {% if company.logo %}
+                    <img src="{{ company.logo.url }}" alt="{{ company.name }} Logo" class="h-20 w-20 object-contain rounded-lg border border-gray-100">
+                {% else %}
+                    <div class="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h6m-6 4h6m-6 4h6" />
+                        </svg>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- Details grid -->
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
                 <div>
-                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Email</h3>
-                    <p class="mt-1 text-sm text-gray-900">
-                        <a href="mailto:{{ company.email }}" class="text-brand-blue hover:text-blue-800">
-                            <span class="break-all">{{ company.email }}</span>
-                        </a>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Email</p>
+                    <p class="text-sm">
+                        <a href="mailto:{{ company.email }}" class="text-brand-blue hover:underline break-all">{{ company.email }}</a>
                     </p>
                 </div>
-
                 {% if company.phone %}
                 <div>
-                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Phone</h3>
-                    <p class="mt-1 text-sm text-gray-900">
-                        <a href="tel:{{ company.phone }}" class="text-brand-blue hover:text-blue-800">
-                            <span class="break-all">{{ company.phone }}</span>
-                        </a>
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Phone</p>
+                    <p class="text-sm">
+                        <a href="tel:{{ company.phone }}" class="text-brand-blue hover:underline">{{ company.phone }}</a>
                     </p>
                 </div>
                 {% endif %}
-
                 {% if company.address %}
-                <div class="md:col-span-2">
-                    <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide">Address</h3>
-                    <p class="mt-1 text-sm text-gray-900">{{ company.address }}</p>
+                <div class="sm:col-span-2">
+                    <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">Address</p>
+                    <p class="text-sm text-gray-700">{{ company.address }}</p>
                 </div>
                 {% endif %}
             </div>
         </div>
     </div>
-</div>
 
-<!-- Company Statistics -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                </div>
+    <!-- Stats row -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="bg-white rounded-lg shadow-sm p-5 flex items-center gap-4">
+            <div class="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
             </div>
-            <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Total Events</p>
-                <p class="text-2xl font-semibold text-gray-900">{{ events.count }}</p>
+            <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Total Events</p>
+                <p class="text-2xl font-bold text-gray-900">{{ events|length }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-5 flex items-center gap-4">
+            <div class="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Total Participants</p>
+                <p class="text-2xl font-bold text-gray-900">{{ total_participants }}</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-sm p-5 flex items-center gap-4">
+            <div class="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+            </div>
+            <div>
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-widest">Upcoming Events</p>
+                <p class="text-2xl font-bold text-gray-900">{{ events|length }}</p>
             </div>
         </div>
     </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                    </svg>
-                </div>
-            </div>
-            <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Total Participants</p>
-                <p class="text-2xl font-semibold text-gray-900">
-                    {% with total_participants=0 %}
-                        {% for event in events %}
-                            {% with total_participants=total_participants|add:event.participant_set.count %}
-                            {% endwith %}
-                        {% endfor %}
-                        {{ total_participants }}
-                    {% endwith %}
-                </p>
-            </div>
+    <!-- Tabbed card: Events | Staff -->
+    <div class="bg-white rounded-lg shadow-sm">
+
+        <!-- Tab bar -->
+        <div class="flex border-b border-gray-100 px-2 pt-2 gap-1">
+            <button id="tab-btn-events" onclick="switchTab('events')"
+                    class="px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 border-indigo-500 text-indigo-600 transition-colors">
+                Events
+            </button>
+            <button id="tab-btn-staff" onclick="switchTab('staff')"
+                    class="px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors">
+                Staff
+            </button>
         </div>
-    </div>
 
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex items-center">
-            <div class="flex-shrink-0">
-                <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                </div>
+        <!-- ── EVENTS PANEL ── -->
+        <div id="panel-events">
+        <!-- Panel header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Events</h2>
             </div>
-            <div class="ml-4">
-                <p class="text-sm font-medium text-gray-500">Upcoming Events</p>
-                <p class="text-2xl font-semibold text-gray-900">
-                    {% now "Y-m-d" as today %}
-                    {{ events|length }}
-                </p>
-            </div>
+            <a href="{% url 'event_create' %}" class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Event
+            </a>
         </div>
-    </div>
-</div>
 
-<!-- Company Events -->
-<div class="bg-white p-6 rounded-lg shadow-md">
-    <div class="flex justify-between items-center mb-6">
-        <h3 class="text-lg font-medium text-gray-900">Company Events</h3>
-        <a href="{% url 'event_create' %}" class="btn btn-outline-blue">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-            <span>Add Event</span>
-        </a>
-    </div>
-
-    {% if events %}
+        {% if events %}
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100 bg-gray-50/60">
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">#</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Event</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Date &amp; Time</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Status</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Participants</th>
+                        <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
+                <tbody class="divide-y divide-gray-100">
                     {% for event in events %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    {% if event.image %}
-                                        <img src="{{ event.image.url }}" alt="{{ event.event_name }}" class="h-10 w-10 object-cover rounded">
-                                    {% else %}
-                                        <div class="h-10 w-10 bg-gray-200 rounded flex items-center justify-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                            </svg>
-                                        </div>
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-4 py-3 text-gray-400 text-xs">{{ forloop.counter }}</td>
+
+                        <!-- Event name + optional location -->
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-3">
+                                {% if event.image %}
+                                    <img src="{{ event.image.url }}" alt="{{ event.event_name }}"
+                                         class="h-8 w-8 object-cover rounded shrink-0">
+                                {% endif %}
+                                <div>
+                                    <a href="{% url 'event_detail' event.id %}"
+                                       class="font-medium text-gray-900 hover:text-indigo-600 hover:underline transition-colors">
+                                        {{ event.event_name }}
+                                    </a>
+                                    {% if event.location %}
+                                    <p class="text-xs text-gray-400 mt-0.5">{{ event.location }}</p>
                                     {% endif %}
-                                    <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">{{ event.event_name }}</div>
-                                        {% if event.location %}
-                                            <div class="text-sm text-gray-500">{{ event.location }}</div>
-                                        {% endif %}
-                                    </div>
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ event.event_date|date:"M d, Y" }}</div>
-                                {% if event.start_time and event.end_time %}
-                                    <div class="text-sm text-gray-500">{{ event.start_time|time:"g:i A" }} - {{ event.end_time|time:"g:i A" }}</div>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% if event.status %}
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" 
-                                          style="background-color: {{ event.status.color }}20; color: {{ event.status.color }};">
-                                        {{ event.status.name }}
-                                    </span>
-                                {% else %}
-                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                                        No Status
-                                    </span>
-                                {% endif %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <div class="flex flex-col">
-                                    <span class="font-medium">{{ event.participant_set.count }} participants</span>
-                                    {% if event.has_rsvp_template %}
-                                        {% if event.rsvp_responses_count > 0 %}
-                                            <span class="text-xs text-gray-500">
-                                                📩 {{ event.rsvp_responses_count }}/{{ event.total_participants_count }} RSVP responses
-                                            </span>
-                                        {% else %}
-                                            <span class="text-xs text-gray-400">
-                                                📩 No RSVP responses yet
-                                            </span>
-                                        {% endif %}
-                                    {% else %}
-                                        <span class="text-xs text-gray-300">
-                                            📩 No RSVP template
+                            </div>
+                        </td>
+
+                        <!-- Date & Time -->
+                        <td class="px-4 py-3 text-gray-600">
+                            <div>{{ event.event_date|date:"M j, Y" }}</div>
+                            {% if event.start_time and event.end_time %}
+                            <div class="text-xs text-gray-400 mt-0.5 whitespace-nowrap">
+                                {{ event.start_time|time:"g:i a" }} – {{ event.end_time|time:"g:i a" }}
+                            </div>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status badge -->
+                        <td class="px-4 py-3">
+                            {% if event.status %}
+                            {% with s=event.status.name|lower %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium
+                                {% if 'complet' in s %}bg-green-100 text-green-700
+                                {% elif 'pending' in s %}bg-orange-100 text-orange-700
+                                {% elif 'on-going' in s or 'ongoing' in s or 'active' in s or 'on going' in s %}bg-blue-100 text-blue-700
+                                {% elif 'cancel' in s %}bg-red-100 text-red-700
+                                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                                {% if 'complet' in s %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                                {% elif 'cancel' in s %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                                {% else %}<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>{% endif %}
+                                {{ event.status.name }}
+                            </span>
+                            {% endwith %}
+                            {% else %}
+                            <span class="text-gray-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Participants -->
+                        <td class="px-4 py-3">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium text-gray-900">{{ event.total_participants_count }} participants</span>
+                                {% if event.has_rsvp_template %}
+                                    {% if event.rsvp_responses_count > 0 %}
+                                        <span class="text-xs text-gray-400 mt-0.5">
+                                            📩 {{ event.rsvp_responses_count }}/{{ event.total_participants_count }} RSVP responses
                                         </span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400 mt-0.5">📩 No RSVP responses yet</span>
                                     {% endif %}
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex space-x-2">
-                                    <a href="{% url 'event_detail' event.id %}" class="text-brand-blue hover:text-blue-800">View</a>
-                                    <a href="{% url 'event_edit' event.id %}" class="text-gray-600 hover:text-gray-800">Edit</a>
-                                </div>
-                            </td>
-                        </tr>
+                                {% else %}
+                                    <span class="text-xs text-gray-300 mt-0.5">📩 No RSVP template</span>
+                                {% endif %}
+                            </div>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end gap-2">
+                                <a href="{% url 'event_detail' event.id %}"
+                                   class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium text-xs border border-indigo-200 hover:border-indigo-400 rounded-md px-2 py-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                    View
+                                </a>
+                                <a href="{% url 'event_edit' event.id %}"
+                                   class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 font-medium text-xs border border-gray-200 hover:border-gray-400 rounded-md px-2 py-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>
+                                    Edit
+                                </a>
+                                <button type="button"
+                                        onclick="confirmDeleteEvent('{% url 'event_delete' event.id %}', '{{ event.event_name|escapejs }}')"
+                                        class="inline-flex items-center gap-1 text-red-500 hover:text-red-700 font-medium text-xs border border-red-200 hover:border-red-400 rounded-md px-2 py-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    {% else %}
-        <div class="text-center py-12">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <!-- Footer -->
+        <div class="px-4 py-3 border-t border-gray-100">
+            <p class="text-xs text-gray-400">Showing {{ events|length }} event{{ events|length|pluralize }}</p>
+        </div>
+
+        {% else %}
+        <div class="text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No events found</h3>
-            <p class="text-gray-500 mb-4">This company hasn't created any events yet.</p>
-            <a href="{% url 'event_create' %}" class="btn btn-outline-blue">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <h3 class="text-base font-medium text-gray-900 mb-1">No events yet</h3>
+            <p class="text-sm text-gray-500 mb-4">This company hasn't created any events yet.</p>
+            <a href="{% url 'event_create' %}" class="btn btn-outline-blue inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 Create First Event
             </a>
         </div>
-    {% endif %}
+        {% endif %}
+        </div><!-- /panel-events -->
+
+        <!-- ── STAFF PANEL ── -->
+        <div id="panel-staff" class="hidden">
+        <!-- Panel header -->
+        <div class="flex justify-between items-center px-6 py-4 border-b border-gray-100">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900">Staff Members</h2>
+            </div>
+            <button type="button" onclick="openAddStaffModal()"
+                    class="btn btn-outline-blue flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Staff
+            </button>
+        </div>
+
+        {% if staff_members %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-100 bg-gray-50/60">
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">#</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Name</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Username</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Email</th>
+                        <th class="text-left text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Role</th>
+                        <th class="text-right text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for member in staff_members %}
+                    <tr class="hover:bg-gray-50/50 transition-colors">
+                        <td class="px-4 py-3 text-gray-400 text-xs">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center">
+                                <div>
+                                    <p class="font-medium text-gray-900">
+                                        {{ member.user.first_name }} {{ member.user.last_name }}
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-gray-600">{{ member.user.username }}</td>
+                        <td class="px-4 py-3 text-gray-600">
+                            <a href="mailto:{{ member.user.email }}" class="hover:underline text-brand-blue">{{ member.user.email }}</a>
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if member.role == 'admin' %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                                Admin
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                Staff
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center justify-end gap-2">
+                                <button type="button"
+                                        onclick="openEditStaffModal('{% url 'edit_staff_form_html' company.id member.id %}', '{% url 'edit_staff' company.id member.id %}', '{{ member.user.first_name|escapejs }} {{ member.user.last_name|escapejs }}')"
+                                        class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 font-medium text-xs border border-gray-200 hover:border-gray-400 rounded-md px-2 py-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/>
+                                        <path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button type="button"
+                                        onclick="confirmDeleteStaff('{% url 'delete_staff' company.id member.id %}', '{{ member.user.first_name|escapejs }} {{ member.user.last_name|escapejs }}')"
+                                        class="inline-flex items-center gap-1 text-red-500 hover:text-red-700 font-medium text-xs border border-red-200 hover:border-red-400 rounded-md px-2 py-1 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="px-4 py-3 border-t border-gray-100">
+            <p class="text-xs text-gray-400">Showing {{ staff_members|length }} member{{ staff_members|length|pluralize }}</p>
+        </div>
+
+        {% else %}
+        <div class="text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-gray-200 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <h3 class="text-base font-medium text-gray-900 mb-1">No staff members yet</h3>
+            <p class="text-sm text-gray-500 mb-4">Add the first staff member for this company.</p>
+            <button type="button" onclick="openAddStaffModal()" class="btn btn-outline-blue inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                Add First Staff Member
+            </button>
+        </div>
+        {% endif %}
+        </div><!-- /panel-staff -->
+
+    </div><!-- /tabbed card -->
+
+</div><!-- /page wrapper -->
+
+<!-- Hidden form used by the delete event confirmation -->
+<form id="deleteEventForm" method="post" action="" class="hidden">
+    {% csrf_token %}
+</form>
+
+<!-- ── Add Staff Modal ── -->
+<div id="addStaffModal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+     role="dialog" aria-modal="true" aria-labelledby="addStaffModalTitle">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 id="addStaffModalTitle" class="text-lg font-semibold text-gray-900">Add Staff Member</h3>
+            <button type="button" onclick="closeAddStaffModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="overflow-y-auto px-6 py-5 flex-1">
+            <div id="addStaffFormErrors" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+            <div id="addStaffFormLoading" class="flex items-center justify-center py-8 text-gray-400">
+                <svg class="animate-spin h-6 w-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span class="text-sm">Loading form…</span>
+            </div>
+            <form id="addStaffForm"
+                  method="post"
+                  action="{% url 'add_staff' company.id %}"
+                  class="hidden"
+                  novalidate>
+                {% csrf_token %}
+                <div id="addStaffFormFields"></div>
+            </form>
+        </div>
+        <!-- Footer -->
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <button type="button" onclick="closeAddStaffModal()" class="btn btn-outline-gray">Cancel</button>
+            <button type="button" id="addStaffSubmitBtn" onclick="submitAddStaffForm()"
+                    class="btn btn-outline-blue flex items-center gap-1.5">
+                <span id="addStaffSubmitLabel">Add Staff Member</span>
+                <svg id="addStaffSpinner" class="hidden h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
 </div>
 
-{% endblock %} 
+<script>
+/* ── Tab switching ── */
+function switchTab(tab) {
+    var panels = ['events', 'staff'];
+    panels.forEach(function(t) {
+        var panel = document.getElementById('panel-' + t);
+        var btn   = document.getElementById('tab-btn-' + t);
+        if (t === tab) {
+            panel.classList.remove('hidden');
+            btn.classList.add('border-indigo-500', 'text-indigo-600');
+            btn.classList.remove('border-transparent', 'text-gray-500');
+        } else {
+            panel.classList.add('hidden');
+            btn.classList.remove('border-indigo-500', 'text-indigo-600');
+            btn.classList.add('border-transparent', 'text-gray-500');
+        }
+    });
+}
+
+/* ── Delete event confirmation ── */
+function confirmDeleteEvent(deleteUrl, eventName) {
+    Swal.fire({
+        title: 'Delete Event?',
+        html: `Are you sure you want to delete <strong>${eventName}</strong>?<br><span class="text-sm text-gray-500">This will permanently remove the event and all its participants.</span>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            var form = document.getElementById('deleteEventForm');
+            form.action = deleteUrl;
+            form.submit();
+        }
+    });
+}
+
+/* ── Add Staff Modal ── */
+var _addStaffFormUrl = "{% url 'add_staff_form_html' company.id %}";
+
+function openAddStaffModal() {
+    var modal = document.getElementById('addStaffModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+    document.getElementById('addStaffFormErrors').classList.add('hidden');
+    document.getElementById('addStaffFormErrors').textContent = '';
+    document.getElementById('addStaffFormLoading').classList.remove('hidden');
+    document.getElementById('addStaffForm').classList.add('hidden');
+    document.getElementById('addStaffFormFields').innerHTML = '';
+
+    fetch(_addStaffFormUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('addStaffFormFields').innerHTML = data.html;
+            document.getElementById('addStaffFormLoading').classList.add('hidden');
+            document.getElementById('addStaffForm').classList.remove('hidden');
+        })
+        .catch(function() {
+            document.getElementById('addStaffFormLoading').innerHTML =
+                '<span class="text-sm text-red-600">Failed to load form. Please refresh the page.</span>';
+        });
+}
+
+function closeAddStaffModal() {
+    var modal = document.getElementById('addStaffModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function clearAddStaffFieldErrors() {
+    document.querySelectorAll('#addStaffForm .field-error-msg').forEach(function(el) { el.remove(); });
+    document.querySelectorAll('#addStaffForm .form-field').forEach(function(el) { el.classList.remove('border-red-500'); });
+}
+
+function submitAddStaffForm() {
+    var form      = document.getElementById('addStaffForm');
+    var submitBtn = document.getElementById('addStaffSubmitBtn');
+    var spinner   = document.getElementById('addStaffSpinner');
+    var errorsBox = document.getElementById('addStaffFormErrors');
+
+    clearAddStaffFieldErrors();
+    errorsBox.classList.add('hidden');
+    errorsBox.textContent = '';
+    submitBtn.disabled = true;
+    spinner.classList.remove('hidden');
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new FormData(form),
+    })
+    .then(function(response) {
+        return response.json().then(function(data) { return { ok: response.ok, data: data }; });
+    })
+    .then(function(result) {
+        submitBtn.disabled = false;
+        spinner.classList.add('hidden');
+
+        if (result.ok && result.data.status === 'success') {
+            closeAddStaffModal();
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: result.data.message,
+                showConfirmButton: false, timer: 3000, timerProgressBar: true,
+            });
+            setTimeout(function() { window.location.reload(); }, 1500);
+        } else {
+            var data = result.data;
+            if (data.errors) {
+                var generalErrors = [];
+                Object.keys(data.errors).forEach(function(fieldName) {
+                    var fieldErrors = data.errors[fieldName];
+                    var inputEl = form.querySelector('[name="' + fieldName + '"]');
+                    if (inputEl) {
+                        inputEl.classList.add('border-red-500');
+                        fieldErrors.forEach(function(msg) {
+                            var p = document.createElement('p');
+                            p.className = 'mt-1 text-xs text-red-600 field-error-msg';
+                            p.textContent = msg;
+                            inputEl.parentNode.appendChild(p);
+                        });
+                    } else {
+                        generalErrors = generalErrors.concat(fieldErrors);
+                    }
+                });
+                if (generalErrors.length) {
+                    errorsBox.textContent = generalErrors.join(' ');
+                    errorsBox.classList.remove('hidden');
+                }
+            } else if (data.message) {
+                errorsBox.textContent = data.message;
+                errorsBox.classList.remove('hidden');
+            }
+        }
+    })
+    .catch(function() {
+        submitBtn.disabled = false;
+        spinner.classList.add('hidden');
+        errorsBox.textContent = 'An unexpected error occurred. Please try again.';
+        errorsBox.classList.remove('hidden');
+    });
+}
+
+/* Close modal on backdrop click */
+document.getElementById('addStaffModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAddStaffModal();
+});
+
+/* ── Edit Staff Modal ── */
+function openEditStaffModal(formUrl, submitUrl, staffName) {
+    var modal = document.getElementById('editStaffModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.classList.add('overflow-hidden');
+
+    document.getElementById('editStaffModalTitle').textContent = 'Edit ' + staffName;
+    document.getElementById('editStaffFormErrors').classList.add('hidden');
+    document.getElementById('editStaffFormErrors').textContent = '';
+    document.getElementById('editStaffFormLoading').classList.remove('hidden');
+    document.getElementById('editStaffForm').classList.add('hidden');
+    document.getElementById('editStaffFormFields').innerHTML = '';
+    document.getElementById('editStaffForm').action = submitUrl;
+
+    fetch(formUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            document.getElementById('editStaffFormFields').innerHTML = data.html;
+            document.getElementById('editStaffFormLoading').classList.add('hidden');
+            document.getElementById('editStaffForm').classList.remove('hidden');
+        })
+        .catch(function() {
+            document.getElementById('editStaffFormLoading').innerHTML =
+                '<span class="text-sm text-red-600">Failed to load form. Please refresh the page.</span>';
+        });
+}
+
+function closeEditStaffModal() {
+    var modal = document.getElementById('editStaffModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.body.classList.remove('overflow-hidden');
+}
+
+function clearEditStaffFieldErrors() {
+    document.querySelectorAll('#editStaffForm .field-error-msg').forEach(function(el) { el.remove(); });
+    document.querySelectorAll('#editStaffForm .form-field').forEach(function(el) { el.classList.remove('border-red-500'); });
+}
+
+function submitEditStaffForm() {
+    var form      = document.getElementById('editStaffForm');
+    var submitBtn = document.getElementById('editStaffSubmitBtn');
+    var spinner   = document.getElementById('editStaffSpinner');
+    var errorsBox = document.getElementById('editStaffFormErrors');
+
+    clearEditStaffFieldErrors();
+    errorsBox.classList.add('hidden');
+    errorsBox.textContent = '';
+    submitBtn.disabled = true;
+    spinner.classList.remove('hidden');
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: new FormData(form),
+    })
+    .then(function(response) {
+        return response.json().then(function(data) { return { ok: response.ok, data: data }; });
+    })
+    .then(function(result) {
+        submitBtn.disabled = false;
+        spinner.classList.add('hidden');
+
+        if (result.ok && result.data.status === 'success') {
+            closeEditStaffModal();
+            Swal.fire({
+                toast: true, position: 'top-end', icon: 'success',
+                title: result.data.message,
+                showConfirmButton: false, timer: 3000, timerProgressBar: true,
+            });
+            setTimeout(function() { window.location.reload(); }, 1500);
+        } else {
+            var data = result.data;
+            if (data.errors) {
+                var generalErrors = [];
+                Object.keys(data.errors).forEach(function(fieldName) {
+                    var fieldErrors = data.errors[fieldName];
+                    var inputEl = form.querySelector('[name="' + fieldName + '"]');
+                    if (inputEl) {
+                        inputEl.classList.add('border-red-500');
+                        fieldErrors.forEach(function(msg) {
+                            var p = document.createElement('p');
+                            p.className = 'mt-1 text-xs text-red-600 field-error-msg';
+                            p.textContent = msg;
+                            inputEl.parentNode.appendChild(p);
+                        });
+                    } else {
+                        generalErrors = generalErrors.concat(fieldErrors);
+                    }
+                });
+                if (generalErrors.length) {
+                    errorsBox.textContent = generalErrors.join(' ');
+                    errorsBox.classList.remove('hidden');
+                }
+            } else if (data.message) {
+                errorsBox.textContent = data.message;
+                errorsBox.classList.remove('hidden');
+            }
+        }
+    })
+    .catch(function() {
+        submitBtn.disabled = false;
+        spinner.classList.add('hidden');
+        errorsBox.textContent = 'An unexpected error occurred. Please try again.';
+        errorsBox.classList.remove('hidden');
+    });
+}
+
+document.getElementById('editStaffModal').addEventListener('click', function(e) {
+    if (e.target === this) closeEditStaffModal();
+});
+
+/* Close both modals on Escape */
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeAddStaffModal();
+        closeEditStaffModal();
+    }
+});
+
+/* ── Delete staff confirmation ── */
+function confirmDeleteStaff(deleteUrl, staffName) {
+    Swal.fire({
+        title: 'Remove Staff Member?',
+        html: `Are you sure you want to remove <strong>${staffName}</strong>?<br><span class="text-sm text-gray-500">This will permanently delete their account and access.</span>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, remove',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true,
+    }).then(function(result) {
+        if (result.isConfirmed) {
+            var form = document.getElementById('deleteStaffForm');
+            form.action = deleteUrl;
+            form.submit();
+        }
+    });
+}
+</script>
+
+<!-- Edit Staff Modal -->
+<div id="editStaffModal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4"
+     role="dialog" aria-modal="true" aria-labelledby="editStaffModalTitle">
+    <div class="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 id="editStaffModalTitle" class="text-lg font-semibold text-gray-900">Edit Staff Member</h3>
+            <button type="button" onclick="closeEditStaffModal()"
+                    class="text-gray-400 hover:text-gray-600 transition-colors rounded-lg p-1 hover:bg-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="overflow-y-auto px-6 py-5 flex-1">
+            <div id="editStaffFormErrors" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"></div>
+            <div id="editStaffFormLoading" class="flex items-center justify-center py-8 text-gray-400">
+                <svg class="animate-spin h-6 w-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <span class="text-sm">Loading form…</span>
+            </div>
+            <form id="editStaffForm" method="post" action="" class="hidden" novalidate>
+                {% csrf_token %}
+                <div id="editStaffFormFields"></div>
+            </form>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200">
+            <button type="button" onclick="closeEditStaffModal()" class="btn btn-outline-gray">Cancel</button>
+            <button type="button" id="editStaffSubmitBtn" onclick="submitEditStaffForm()"
+                    class="btn btn-outline-blue flex items-center gap-1.5">
+                <span>Save Changes</span>
+                <svg id="editStaffSpinner" class="hidden h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden form for delete staff confirmation -->
+<form id="deleteStaffForm" method="post" action="" class="hidden">
+    {% csrf_token %}
+</form>
+
+{% endblock %}
