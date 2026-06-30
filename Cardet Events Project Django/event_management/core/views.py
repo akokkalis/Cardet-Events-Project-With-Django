@@ -1494,7 +1494,8 @@ def delete_staff_view(request, company_id, staff_id):
 
 @login_required
 def help_view(request):
-    return render(request, "help.html")
+    site_url = request.build_absolute_uri("/").rstrip("/")
+    return render(request, "help.html", {"site_url": site_url})
 
 
 @login_required

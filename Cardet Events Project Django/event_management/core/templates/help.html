@@ -10,6 +10,81 @@
 <div class="container mx-auto px-4 py-8">
     <h1 class="text-3xl font-bold mb-6 text-gray-800">Help & Documentation</h1>
     
+    <!-- Mobile App Configuration Section (expanded by default) -->
+    <div class="bg-white rounded-lg shadow-md mb-8 border-l-4 border-indigo-500">
+        <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('mobile-app')">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div>
+                        <h2 class="text-2xl font-semibold text-gray-700">Mobile App Configuration</h2>
+                        <p class="text-gray-500 mt-0.5 text-sm">Connect the mobile app to your account</p>
+                    </div>
+                </div>
+                <svg class="toggle-icon w-6 h-6 text-gray-500 transform transition-transform duration-200 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            </div>
+        </div>
+
+        <div id="mobile-app" class="toggle-content">
+            <div class="p-6 space-y-6">
+
+                <!-- What is this -->
+                <p class="text-gray-600">
+                    To use the mobile app (for scanning tickets, collecting signatures, and managing attendance on-site),
+                    you need to configure it with your platform's address. Copy the link below and paste it into the
+                    mobile app when prompted for the <strong>Server URL</strong>.
+                </p>
+
+                <!-- URL field with copy button -->
+                <div>
+                    <label class="block text-sm font-semibold text-gray-500 uppercase tracking-widest mb-2">Your App Link</label>
+                    <div class="flex items-center gap-2">
+                        <div class="flex-1 flex items-center bg-gray-50 border border-gray-200 rounded-lg px-4 py-2.5 gap-2 min-w-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                            <span id="siteUrlDisplay" class="text-sm text-gray-800 font-mono truncate select-all">{{ site_url }}</span>
+                        </div>
+                        <button type="button" onclick="copySiteUrl()"
+                                class="shrink-0 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors">
+                            <svg id="copyIcon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            <svg id="checkIcon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span id="copyBtnLabel">Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Steps -->
+                <div class="border-l-4 border-indigo-400 pl-4">
+                    <h3 class="text-base font-semibold text-gray-700 mb-2">How to configure the mobile app</h3>
+                    <ol class="list-decimal list-inside text-gray-600 space-y-1.5 ml-2 text-sm">
+                        <li>Open the mobile app on your device.</li>
+                        <li>Paste the link </li>
+                        <li>Log in with your staff credentials.</li>
+                        <li>Select the event you want from the list.</li>
+                    </ol>
+                </div>
+
+                <!-- Info box -->
+                <div class="flex items-start gap-3 p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="text-sm text-indigo-700">
+                        <strong>Your login credentials for the mobile app are the same as the ones you use to log in here.</strong>
+                        Make sure the device running the mobile app has access to the internet.
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <!-- Event Status Section -->
     <div class="bg-white rounded-lg shadow-md mb-8">
         <div class="toggle-header cursor-pointer p-6 border-b border-gray-200 hover:bg-gray-50 transition-colors" onclick="toggleSection('event-status')">
@@ -431,4 +506,28 @@
 
 {% block extra_js %}
 <script src="{% static 'js/help_toggles.js' %}"></script>
+<script>
+function copySiteUrl() {
+    var url = document.getElementById('siteUrlDisplay').textContent.trim();
+    navigator.clipboard.writeText(url).then(function() {
+        var copyIcon  = document.getElementById('copyIcon');
+        var checkIcon = document.getElementById('checkIcon');
+        var label     = document.getElementById('copyBtnLabel');
+        copyIcon.classList.add('hidden');
+        checkIcon.classList.remove('hidden');
+        label.textContent = 'Copied!';
+        setTimeout(function() {
+            copyIcon.classList.remove('hidden');
+            checkIcon.classList.add('hidden');
+            label.textContent = 'Copy';
+        }, 2000);
+    });
+}
+
+/* Open the mobile-app section by default */
+document.addEventListener('DOMContentLoaded', function() {
+    var panel = document.getElementById('mobile-app');
+    if (panel) panel.classList.remove('hidden');
+});
+</script>
 {% endblock %}

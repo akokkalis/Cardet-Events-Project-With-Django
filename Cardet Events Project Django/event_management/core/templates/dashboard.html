@@ -91,13 +91,13 @@
                 {% for event in events %}
                 <li class="py-3 flex items-center justify-between">
                     <div>
-                        <div class="font-semibold">{{ event.event_name }}</div>
+                        <div class="font-semibold"><a href="{% url 'event_detail' event.id %}" class="hover:text-indigo-600 hover:underline">{{ event.event_name }}</a></div>
                         <div class="text-gray-500 text-sm">{{ event.event_date }}{% if event.start_time %} {{ event.start_time|time:"H:i" }}{% endif %}</div>
                         <div class="text-xs" style="color: {{ event.status.color }};">
                             {{ event.status.name }}
                         </div>
                     </div>
-                    <a href="{% url 'event_detail' event.id %}?from_dashboard=1" class="bg-gray-100 rounded px-3 py-1 text-sm font-semibold hover:bg-blue-100 transition">{{ event.participant_count }} participants</a>
+                    <p class="bg-gray-100 rounded px-3 py-1 text-sm font-semibold">{{ event.participant_count }} participants</p>
                 </li>
                 {% empty %}
                 <li class="py-2 text-gray-500">No events found.</li>
