@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.authtoken.models import Token
 
-from .models import Event, Participant, Staff
+from .models import Attendance, Event, Participant, Staff
 from .attendance import mark_attendance_for_participant
 
 
@@ -107,6 +107,16 @@ class MarkAttendanceAPIView(APIView):
             )
 
         body, status_code = mark_attendance_for_participant(event, participant)
+
+        # Always inject live stats so the scanner shows real-time progress
+        # on every scan outcome, not just on a fresh successful check-in.
+        body["attended_participants"] = Attendance.objects.filter(
+            event=event, present=True, participant__approval_status="approved"
+        ).count()
+        body["approved_participants"] = Participant.objects.filter(
+            event=event, approval_status="approved"
+        ).count()
+
         return Response(body, status=status_code)
 
 
