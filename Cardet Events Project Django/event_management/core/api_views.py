@@ -123,7 +123,7 @@ class StaffEventListView(APIView):
 
     def get(self, request):
         today = timezone.now().date()
-        qs = Event.objects.filter(event_date__gte=today).select_related(
+        qs = Event.objects.filter(event_date__gte=today, status__in=["ongoing"]).select_related(
             "status", "company"
         ).order_by("event_date", "start_time")
 
