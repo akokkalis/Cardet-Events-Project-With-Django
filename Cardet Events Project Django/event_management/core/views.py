@@ -44,6 +44,7 @@ from .utils import (
     generate_ics_file,
 )
 from .signals import send_rsvp_email
+from .attendance import mark_attendance_for_participant
 from django_ratelimit.decorators import ratelimit
 
 from django.utils.decorators import method_decorator
@@ -441,7 +442,7 @@ def scan_qr(request, event_id):
 
 @login_required
 def mark_attendance(request):
-    """Handles QR code scan and marks attendance."""
+    """Handles QR code scan and marks attendance (browser/session flow)."""
 
     if request.method == "POST":
         event_id = request.POST.get("event_id")
@@ -455,64 +456,8 @@ def mark_attendance(request):
                 {"status": "error", "message": "Invalid QR code."}, status=400
             )
 
-        # Check if participant is approved
-        if participant.approval_status != "approved":
-            return JsonResponse(
-                {
-                    "status": "error",
-                    "message": "Invalid ticket. Participant is not approved for this event.",
-                    "participant_name": participant.name,
-                    "participant_approval_status": participant.approval_status,
-                },
-                status=400,
-            )
-
-        # Check if attendance already exists
-        attendance, created = Attendance.objects.get_or_create(
-            participant=participant, event=event
-        )
-        if attendance.present:
-            return JsonResponse(
-                {
-                    "status": "warning",
-                    "message": f"{participant.name} is already checked in!",
-                    "participant_name": participant.name,
-                    "participant_approval_status": participant.approval_status,
-                }
-            )
-
-        attendance.present = True
-        attendance.timestamp = now()
-        attendance.save()
-
-        # ✅ If the event requires a signature, redirect to the signature page
-        if event.signatures:
-            return JsonResponse(
-                {
-                    "status": "signature_required",
-                    "redirect_url": f"/sign_signature/{event.id}/{participant.id}/",
-                }
-            )
-
-        # Get counts for approved participants only
-        total_present = Attendance.objects.filter(
-            event=event, present=True, participant__approval_status="approved"
-        ).count()
-        total_registered = Participant.objects.filter(
-            event=event, approval_status="approved"
-        ).count()
-        not_present = total_registered - total_present
-
-        return JsonResponse(
-            {
-                "status": "success",
-                "message": f"{participant.name} checked in successfully.",
-                "participant_name": participant.name,
-                "participant_approval_status": participant.approval_status,
-                "present_count": total_present,
-                "not_present_count": not_present,
-            }
-        )
+        body, status_code = mark_attendance_for_participant(event, participant)
+        return JsonResponse(body, status=status_code)
 
     return JsonResponse({"status": "error", "message": "Invalid request."}, status=400)
 

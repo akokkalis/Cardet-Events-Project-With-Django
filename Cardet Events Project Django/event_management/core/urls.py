@@ -71,6 +71,8 @@ from .views import (
 
 )
 
+from .api_views import ApiLoginView, ApiLogoutView, MarkAttendanceAPIView
+
 # Import ticket views
 from .ticket_views import (
     event_tickets,
@@ -196,6 +198,10 @@ urlpatterns = [
     path("filter_events/", filter_events, name="filter_events"),
     path("events/<int:event_id>/delete/", event_delete, name="event_delete"),
     path("mark_attendance/", mark_attendance, name="mark_attendance"),
+    # Mobile scanner API — token-based auth (Authorization: Token <key>)
+    path("api/login/", ApiLoginView.as_view(), name="api_login"),
+    path("api/logout/", ApiLogoutView.as_view(), name="api_logout"),
+    path("api/mark-attendance/", MarkAttendanceAPIView.as_view(), name="api_mark_attendance"),
     path(
         "api/register_participant/",
         register_participant_api,
