@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -106,3 +107,47 @@ class MarkAttendanceAPIView(APIView):
 
         body, status_code = mark_attendance_for_participant(event, participant)
         return Response(body, status=status_code)
+
+
+class StaffEventListView(APIView):
+    """
+    Returns ongoing events (today and future) scoped to the logged-in staff
+    member's company. Superusers without a Staff profile see all events.
+
+    GET /api/events/
+    Auth: Authorization: Token <key>
+    """
+
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsStaffMember]
+
+    def get(self, request):
+        today = timezone.now().date()
+        qs = Event.objects.filter(event_date__gte=today).select_related(
+            "status", "company"
+        ).order_by("event_date", "start_time")
+
+        staff = Staff.objects.filter(user=request.user).select_related("company").first()
+        if staff:
+            qs = qs.filter(company=staff.company)
+        # superuser without a Staff row sees all companies' events (no filter applied)
+
+        events = [
+            {
+                "id": e.id,
+                "uuid": str(e.uuid),
+                "event_name": e.event_name,
+                "event_date": str(e.event_date),
+                "start_time": str(e.start_time) if e.start_time else None,
+                "end_time": str(e.end_time) if e.end_time else None,
+                "location": e.location,
+                "signatures": e.signatures,
+                "status": {
+                    "name": e.status.name if e.status else None,
+                    "color": e.status.color if e.status else None,
+                },
+            }
+            for e in qs
+        ]
+
+        return Response({"status": "success", "events": events})
