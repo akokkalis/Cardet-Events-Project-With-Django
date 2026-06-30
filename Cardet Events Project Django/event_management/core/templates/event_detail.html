@@ -265,14 +265,18 @@
                 </div>
 
                 <div class="flex flex-col items-center gap-3">
-                    <div id="reg-qr-code" class="p-2 bg-white border border-gray-200 rounded-lg shadow-sm inline-block"></div>
-                    <button type="button" id="download-reg-qr"
-                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors shadow-sm">
+                    {% if event.registration_qr_code %}
+                    <div class="p-2 bg-white border border-gray-200 rounded-lg shadow-sm inline-block">
+                        <img src="{{ event.registration_qr_code.url }}" alt="Registration QR Code" width="124" height="124">
+                    </div>
+                    <a href="{{ event.registration_qr_code.url }}" download="registration-qr-{{ event.uuid }}.png"
+                       class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:text-indigo-600 hover:border-indigo-300 transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
                         Download QR
-                    </button>
+                    </a>
+                    {% endif %}
                 </div>
                 {% if event.paid_tickets %}
                 <div class="border-t border-gray-100 mt-5 pt-4">
@@ -1431,45 +1435,6 @@ function confirmDeleteParticipant(eventId, participantId, participantName) {
 
 <!-- Check for missing email templates on page load -->
 
-<!-- QR Code for public registration link -->
-{% if event.public_registration_enabled %}
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script>
-(function () {
-    var regUrl = "{{ request.scheme }}://{{ request.get_host }}{% url 'public_register' event.uuid %}";
-    var container = document.getElementById('reg-qr-code');
-    if (!container) return;
-
-    var qr = new QRCode(container, {
-        text: regUrl,
-        width: 124,
-        height: 124,
-        colorDark: '#1e3a5f',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-    });
-
-    var dlBtn = document.getElementById('download-reg-qr');
-    if (dlBtn) {
-        dlBtn.addEventListener('click', function () {
-            var canvas = container.querySelector('canvas');
-            var img = container.querySelector('img');
-            if (canvas) {
-                var link = document.createElement('a');
-                link.download = 'registration-qr-{{ event.uuid }}.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            } else if (img) {
-                var link = document.createElement('a');
-                link.download = 'registration-qr-{{ event.uuid }}.png';
-                link.href = img.src;
-                link.click();
-            }
-        });
-    }
-}());
-</script>
-{% endif %}
 
 <!-- Add Participant Modal -->
 <div id="addParticipantModal"
