@@ -121,9 +121,16 @@
                 <tr class="hover:bg-gray-50/50 transition-colors" data-event-name="{{ event.event_name }}">
                     <td class="px-4 py-3 text-gray-400 text-xs">{{ forloop.counter }}</td>
                     <td class="px-4 py-3">
-                        <a href="{% url 'event_detail' event.id %}" class="font-medium text-gray-900 hover:text-indigo-600 hover:underline transition-colors">{{ event.event_name }}</a>
-                        {% if event.has_registration_limit and event.registration_limit and event.valid_participant_count >= event.registration_limit %}
-                            <span class="ml-2 bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Full</span>
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <a href="{% url 'event_detail' event.id %}" class="font-medium text-gray-900 hover:text-indigo-600 hover:underline transition-colors">{{ event.event_name }}</a>
+                            {% if event.has_registration_limit and event.registration_limit and event.valid_participant_count >= event.registration_limit %}
+                                <span class="bg-red-100 text-red-600 text-xs font-semibold px-2 py-0.5 rounded-full">Full</span>
+                            {% endif %}
+                        </div>
+                        {% if event.company %}
+                        <p class="text-xs text-gray-400 mt-0.5">
+                            <a href="{% url 'company_detail' event.company.id %}" class="hover:text-indigo-500 hover:underline transition-colors">{{ event.company.name }}</a>
+                        </p>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3 text-gray-600">{{ event.event_date|date:"M j, Y" }}</td>

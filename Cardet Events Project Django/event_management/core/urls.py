@@ -71,7 +71,11 @@ from .views import (
     event_attendance_dashboard,
     export_attendance_csv,
 
-
+    add_staff_view,
+    add_staff_form_html,
+    edit_staff_view,
+    edit_staff_form_html,
+    delete_staff_view,
 )
 
 # Import ticket views
@@ -105,6 +109,31 @@ urlpatterns = [
         "companies/<int:company_id>/email-settings/",
         company_email_settings,
         name="company_email_settings",
+    ),
+    path(
+        "companies/<int:company_id>/add-staff/",
+        add_staff_view,
+        name="add_staff",
+    ),
+    path(
+        "companies/<int:company_id>/add-staff-form/",
+        add_staff_form_html,
+        name="add_staff_form_html",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/edit/",
+        edit_staff_view,
+        name="edit_staff",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/edit-form/",
+        edit_staff_form_html,
+        name="edit_staff_form_html",
+    ),
+    path(
+        "companies/<int:company_id>/staff/<int:staff_id>/delete/",
+        delete_staff_view,
+        name="delete_staff",
     ),
     path("events/create/", event_create, name="event_create"),
     path("events/<int:event_id>/", event_detail, name="event_detail"),

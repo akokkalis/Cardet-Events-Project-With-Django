@@ -1,5 +1,6 @@
 from django import forms
 from django.db import models
+from django.contrib.auth.models import User
 from .models import (
     Event,
     Company,
@@ -819,3 +820,137 @@ class ParticipantOrderForm(forms.Form):
                     "A participant with this email already exists for this event."
                 )
         return email
+
+
+class StaffEditForm(forms.Form):
+    """Edit an existing Staff member. Password fields are optional — leave blank to keep the current password."""
+
+    first_name = forms.CharField(
+        max_length=150,
+        label="First Name",
+        widget=forms.TextInput(attrs={"placeholder": "First name"}),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        label="Last Name",
+        widget=forms.TextInput(attrs={"placeholder": "Last name"}),
+    )
+    username = forms.CharField(
+        max_length=150,
+        label="Username",
+        help_text="Letters, digits and @/./+/-/_ only.",
+        widget=forms.TextInput(attrs={"placeholder": "Username"}),
+    )
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(attrs={"placeholder": "Email address"}),
+    )
+    role = forms.ChoiceField(
+        label="Role",
+        choices=[("staff", "Staff"), ("admin", "Admin")],
+        widget=forms.Select(),
+    )
+    password = forms.CharField(
+        label="New Password",
+        required=False,
+        help_text="Leave blank to keep the current password. Minimum 8 characters if changing.",
+        widget=forms.PasswordInput(attrs={"placeholder": "New password (optional)"}),
+    )
+    password_confirm = forms.CharField(
+        label="Confirm New Password",
+        required=False,
+        widget=forms.PasswordInput(attrs={"placeholder": "Confirm new password"}),
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user_id = kwargs.pop("user_id", None)
+        super().__init__(*args, **kwargs)
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if username:
+            qs = User.objects.filter(username=username)
+            if self.user_id:
+                qs = qs.exclude(pk=self.user_id)
+            if qs.exists():
+                raise forms.ValidationError("A user with this username already exists.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email:
+            qs = User.objects.filter(email=email)
+            if self.user_id:
+                qs = qs.exclude(pk=self.user_id)
+            if qs.exists():
+                raise forms.ValidationError("A user with this email address already exists.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+        if password or password_confirm:
+            if password and len(password) < 8:
+                self.add_error("password", "Password must be at least 8 characters.")
+            if password != password_confirm:
+                self.add_error("password_confirm", "Passwords do not match.")
+        return cleaned_data
+
+
+class StaffForm(forms.Form):
+    first_name = forms.CharField(
+        max_length=150,
+        label="First Name",
+        widget=forms.TextInput(attrs={"placeholder": "First name"}),
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        label="Last Name",
+        widget=forms.TextInput(attrs={"placeholder": "Last name"}),
+    )
+    username = forms.CharField(
+        max_length=150,
+        label="Username",
+        help_text="Used to log in. Letters, digits and @/./+/-/_ only.",
+        widget=forms.TextInput(attrs={"placeholder": "Username"}),
+    )
+    email = forms.EmailField(
+        label="Email",
+        widget=forms.EmailInput(attrs={"placeholder": "Email address"}),
+    )
+    role = forms.ChoiceField(
+        label="Role",
+        choices=[("staff", "Staff"), ("admin", "Admin")],
+        widget=forms.Select(),
+    )
+    password = forms.CharField(
+        label="Password",
+        min_length=8,
+        help_text="Minimum 8 characters.",
+        widget=forms.PasswordInput(attrs={"placeholder": "Password"}),
+    )
+    password_confirm = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={"placeholder": "Confirm password"}),
+    )
+
+    def clean_username(self):
+        username = self.cleaned_data.get("username")
+        if username and User.objects.filter(username=username).exists():
+            raise forms.ValidationError("A user with this username already exists.")
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get("email")
+        if email and User.objects.filter(email=email).exists():
+            raise forms.ValidationError("A user with this email address already exists.")
+        return email
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        password_confirm = cleaned_data.get("password_confirm")
+        if password and password_confirm and password != password_confirm:
+            self.add_error("password_confirm", "Passwords do not match.")
+        return cleaned_data
