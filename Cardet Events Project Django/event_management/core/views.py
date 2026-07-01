@@ -1582,8 +1582,12 @@ def delete_email_template(request, event_id, template_id):
 @login_required
 def approve_participant(request, event_id, participant_id):
     """Approve a participant and send approval and ticket emails if applicable."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     # Import here to avoid circular imports
     from .signals import handle_participant_approval
@@ -1591,32 +1595,35 @@ def approve_participant(request, event_id, participant_id):
     if participant.approval_status != "approved":
         participant.approval_status = "approved"
         participant.save(update_fields=["approval_status"])
-
-        # Handle approval emails and ticket sending
         handle_participant_approval(participant)
-
-        if event.tickets:
-            messages.success(
-                request,
-                f"✅ {participant.name} has been approved and notified via email. "
-                f"Ticket generation is in progress and will be sent automatically.",
-            )
-        else:
-            messages.success(
-                request,
-                f"✅ {participant.name} has been approved and notified via email.",
-            )
+        msg = f"✅ {participant.name} approved."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already approved.")
+        msg = f"{participant.name} is already approved."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
 @login_required
 def reject_participant(request, event_id, participant_id):
     """Reject a participant and send rejection email."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     # Import here to avoid circular imports
     from .signals import handle_participant_rejection
@@ -1624,16 +1631,23 @@ def reject_participant(request, event_id, participant_id):
     if participant.approval_status != "rejected":
         participant.approval_status = "rejected"
         participant.save(update_fields=["approval_status"])
-
-        # Handle rejection email
         handle_participant_rejection(participant)
-
-        messages.success(
-            request, f"❌ {participant.name} has been rejected and notified via email."
-        )
+        msg = f"❌ {participant.name} rejected."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already rejected.")
+        msg = f"{participant.name} is already rejected."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
@@ -1657,19 +1671,32 @@ def delete_participant(request, event_id, participant_id):
 @login_required
 def set_participant_pending(request, event_id, participant_id):
     """Set a participant back to pending status."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     if participant.approval_status != "pending":
         participant.approval_status = "pending"
         participant.save(update_fields=["approval_status"])
-
-        messages.success(
-            request, f"🔄 {participant.name} has been set to pending status."
-        )
+        msg = f"🔄 {participant.name} set to pending."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already pending.")
+        msg = f"{participant.name} is already pending."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
