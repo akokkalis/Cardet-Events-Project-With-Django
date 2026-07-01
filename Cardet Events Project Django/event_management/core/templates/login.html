@@ -1,26 +1,120 @@
 {% extends 'base.html' %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login — popin QR{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Responsive two-column login layout
+       Using a plain <style> block because the vendor Tailwind bundle is pre-compiled
+       and may not include new md: responsive utilities added after compilation. */
+    #login-brand {
+        display: none;
+        width: 50%;
+        flex-shrink: 0;
+    }
+    @media (min-width: 768px) {
+        #login-brand { display: flex; }
+        #login-mobile-logo { display: none; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="flex justify-center items-center h-full">
-    <div class="bg-white p-6 rounded-lg shadow-md w-96">
-        <h2 class="text-2xl font-semibold text-center mb-4">Staff Login</h2>
-        
-        <form method="post">
-            {% csrf_token %}
-            <div class="mb-4">
-                <label class="block text-gray-700 mb-1">Username</label>
-                <input type="text" name="username" class="w-full p-2 border border-gray-300 rounded" required>
+<!-- -m-5 cancels the p-5 from base.html's <main>, allowing min-h-screen to fill the full viewport -->
+<div class="-m-5 flex items-center justify-center min-h-screen bg-gray-100 px-4 py-8">
+    <div class="w-full max-w-3xl flex rounded-2xl shadow-2xl overflow-hidden">
+
+        <!-- ── Left: Brand panel ─────────────────────────────────── -->
+        <div id="login-brand" class="flex-col items-center justify-center p-12 text-white relative overflow-hidden"
+             style="background-color:#4338ca;">
+
+            <!-- decorative background circles -->
+            <div class="absolute rounded-full"
+                 style="top:-4rem;left:-4rem;width:16rem;height:16rem;background:rgba(255,255,255,0.05);"></div>
+            <div class="absolute rounded-full"
+                 style="bottom:-5rem;right:-5rem;width:20rem;height:20rem;background:rgba(255,255,255,0.05);"></div>
+
+            <!-- QR icon -->
+            <div class="relative flex items-center justify-center rounded-2xl shadow-lg mb-8"
+                 style="z-index:1;width:5rem;height:5rem;background:rgba(255,255,255,0.15);">
+                <svg xmlns="http://www.w3.org/2000/svg" class="text-white" width="40" height="40" fill="none"
+                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5Z
+                             M3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5Z
+                             M13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z
+                             M13.5 14.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125v-2.25Z
+                             M18.375 13.5h.375a1.125 1.125 0 0 1 1.125 1.125v.375
+                             M13.5 18.375v.375c0 .621.504 1.125 1.125 1.125h.375
+                             M18.75 18.75h.375a1.125 1.125 0 0 0 1.125-1.125v-.375"/>
+                </svg>
             </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 mb-1">Password</label>
-                <input type="password" name="password" class="w-full p-2 border border-gray-300 rounded" required>
+
+            <div class="relative text-center" style="z-index:1;">
+                <h1 class="text-3xl font-extrabold tracking-tight leading-snug mb-1">popin QR</h1>
+                <p class="text-lg font-medium" style="color:#c7d2fe;">Event Management System</p>
+                <p class="text-sm mt-5 leading-relaxed" style="color:#a5b4fc;max-width:18rem;">
+                    Manage events, participants, registrations, and certificates — all from one place.
+                </p>
             </div>
-            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">
-                Login
-            </button>
-        </form>
+        </div>
+
+        <!-- ── Right: Login form ─────────────────────────────────── -->
+        <div class="flex-1 bg-white flex flex-col items-center justify-center px-10 py-12">
+
+            <div class="w-full" style="max-width:22rem;">
+
+            <!-- Mobile logo (hidden on md+ via the <style> block above) -->
+            <div id="login-mobile-logo" class="flex items-center gap-2 mb-8">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center"
+                     style="background-color:#4f46e5;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none"
+                         viewBox="0 0 24 24" stroke="white" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5Z"/>
+                    </svg>
+                </div>
+                <span class="text-base font-bold text-gray-900">popin QR</span>
+            </div>
+
+            <h2 class="text-2xl font-bold text-gray-900 mb-1">Staff Login</h2>
+            <p class="text-sm text-gray-500 mb-8">Sign in to access the staff panel.</p>
+
+            <form method="post" class="space-y-5">
+                {% csrf_token %}
+
+                <div>
+                    <label for="id_username" class="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                    <input type="text" id="id_username" name="username"
+                           class="w-full border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                           style="padding:0.625rem 0.875rem;"
+                           placeholder="Enter your username"
+                           required autofocus>
+                </div>
+
+                <div>
+                    <label for="id_password" class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                    <input type="password" id="id_password" name="password"
+                           class="w-full border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400
+                                  focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+                           style="padding:0.625rem 0.875rem;"
+                           placeholder="Enter your password"
+                           required>
+                </div>
+
+                <button type="submit"
+                        class="w-full text-white font-semibold rounded-lg text-sm shadow-sm transition-colors"
+                        style="padding:0.625rem 1rem;background-color:#4f46e5;"
+                        onmouseover="this.style.backgroundColor='#4338ca'"
+                        onmouseout="this.style.backgroundColor='#4f46e5'">
+                    Sign in
+                </button>
+            </form>
+
+            </div><!-- /max-width wrapper -->
+        </div>
+
     </div>
 </div>
 {% endblock %}
