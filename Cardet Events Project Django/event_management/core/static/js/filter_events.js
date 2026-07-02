@@ -158,9 +158,29 @@ document.addEventListener("DOMContentLoaded", function () {
             const tr = document.createElement("tr");
             tr.className = "hover:bg-gray-50/50 transition-colors";
             tr.setAttribute("data-event-name", event.event_name);
+            const bellHtml = event.pending_count > 0
+                ? `<div class="relative inline-flex shrink-0">
+                       <button type="button"
+                               onclick="openPendingModal('${escHtml(event.event_name)}', ${event.pending_count}, '${escHtml(event.event_name)}')"
+                               class="text-amber-500 hover:text-amber-600 transition-colors"
+                               title="${event.pending_count} pending participant${event.pending_count !== 1 ? 's' : ''}">
+                           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+                               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0M3.124 7.5A8.969 8.969 0 0 1 5.292 3m13.416 0a8.969 8.969 0 0 1 2.168 4.5"/>
+                           </svg>
+                       </button>
+                       <span class="absolute -top-1.5 -right-1.5 bg-amber-500 text-white rounded-full h-3.5 w-3.5 flex items-center justify-center font-bold pointer-events-none" style="font-size:9px;">${event.pending_count}</span>
+                   </div>`
+                : '';
+
             tr.innerHTML = `
                 <td class="px-4 py-3 text-gray-400 text-xs">${idx + 1}</td>
-                <td class="px-4 py-3 font-medium text-gray-900">${escHtml(event.event_name)}</td>
+                <td class="px-4 py-3">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <a href="${detail}" class="font-medium text-gray-900 hover:text-indigo-600 hover:underline transition-colors">${escHtml(event.event_name)}</a>
+                        ${bellHtml}
+                    </div>
+                    ${event.company ? `<p class="text-xs text-gray-400 mt-0.5">${escHtml(event.company)}</p>` : ''}
+                </td>
                 <td class="px-4 py-3 text-gray-600">${fmtDate}</td>
                 <td class="px-4 py-3 text-gray-600 whitespace-nowrap">${event.start_time} – ${event.end_time}</td>
                 <td class="px-4 py-3">

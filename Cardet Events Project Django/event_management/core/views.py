@@ -136,6 +136,9 @@ def event_list(request):
             valid_participant_count=Count(
                 "participant", filter=~Q(participant__approval_status="rejected")
             ),
+            pending_participant_count=Count(
+                "participant", filter=Q(participant__approval_status="pending")
+            ),
         )
         .order_by("priority", "event_date")
     )
@@ -201,7 +204,10 @@ def filter_events(request):
             ],
             default=Value(99),
             output_field=IntegerField(),
-        )
+        ),
+        pending_participant_count=Count(
+            "participant", filter=Q(participant__approval_status="pending")
+        ),
     ).order_by("priority", "event_date")
 
     event_list = [
@@ -213,11 +219,12 @@ def filter_events(request):
                 event.start_time.strftime("%H:%M") if event.start_time else "N/A"
             ),
             "end_time": event.end_time.strftime("%H:%M") if event.end_time else "N/A",
-            "company": event.company.name,
+            "company": event.company.name if event.company else "",
             "status": event.status.name if event.status else "No Status",
             "status_color": event.status.color if event.status else "#cccccc",
             "image_url": event.image.url if event.image else None,
             "participant_count": event.participant_set.count(),
+            "pending_count": event.pending_participant_count,
         }
         for event in events
     ]
@@ -1575,8 +1582,12 @@ def delete_email_template(request, event_id, template_id):
 @login_required
 def approve_participant(request, event_id, participant_id):
     """Approve a participant and send approval and ticket emails if applicable."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     # Import here to avoid circular imports
     from .signals import handle_participant_approval
@@ -1584,32 +1595,35 @@ def approve_participant(request, event_id, participant_id):
     if participant.approval_status != "approved":
         participant.approval_status = "approved"
         participant.save(update_fields=["approval_status"])
-
-        # Handle approval emails and ticket sending
         handle_participant_approval(participant)
-
-        if event.tickets:
-            messages.success(
-                request,
-                f"✅ {participant.name} has been approved and notified via email. "
-                f"Ticket generation is in progress and will be sent automatically.",
-            )
-        else:
-            messages.success(
-                request,
-                f"✅ {participant.name} has been approved and notified via email.",
-            )
+        msg = f"✅ {participant.name} approved."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already approved.")
+        msg = f"{participant.name} is already approved."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
 @login_required
 def reject_participant(request, event_id, participant_id):
     """Reject a participant and send rejection email."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     # Import here to avoid circular imports
     from .signals import handle_participant_rejection
@@ -1617,16 +1631,23 @@ def reject_participant(request, event_id, participant_id):
     if participant.approval_status != "rejected":
         participant.approval_status = "rejected"
         participant.save(update_fields=["approval_status"])
-
-        # Handle rejection email
         handle_participant_rejection(participant)
-
-        messages.success(
-            request, f"❌ {participant.name} has been rejected and notified via email."
-        )
+        msg = f"❌ {participant.name} rejected."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already rejected.")
+        msg = f"{participant.name} is already rejected."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
@@ -1650,19 +1671,32 @@ def delete_participant(request, event_id, participant_id):
 @login_required
 def set_participant_pending(request, event_id, participant_id):
     """Set a participant back to pending status."""
+    from django.http import JsonResponse
+    from django.urls import reverse
+
     event = get_object_or_404(Event, id=event_id)
     participant = get_object_or_404(Participant, id=participant_id, event=event)
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
 
     if participant.approval_status != "pending":
         participant.approval_status = "pending"
         participant.save(update_fields=["approval_status"])
-
-        messages.success(
-            request, f"🔄 {participant.name} has been set to pending status."
-        )
+        msg = f"🔄 {participant.name} set to pending."
+        messages.success(request, msg)
     else:
-        messages.info(request, f"{participant.name} is already pending.")
+        msg = f"{participant.name} is already pending."
+        messages.info(request, msg)
 
+    if is_ajax:
+        return JsonResponse({
+            "status": "success",
+            "message": msg,
+            "urls": {
+                "approve": reverse("approve_participant", args=[event_id, participant_id]),
+                "reject":  reverse("reject_participant",  args=[event_id, participant_id]),
+                "pending": reverse("set_participant_pending", args=[event_id, participant_id]),
+            },
+        })
     return redirect("event_detail", event_id=event.id)
 
 
@@ -3075,30 +3109,13 @@ def dashboard(request):
     """Dashboard view: Event timeline/calendar and participant insights."""
     from .models import Event, Participant, Status
 
-    # Get all statuses for filter UI
-    all_statuses = list(Status.objects.all())
-    filter_status = request.GET.get("timeline_status", "active")  # 'active' or 'all'
-    filter_year = request.GET.get("year", "")  # Year filter
-
-    # Base queryset
-    base_events = Event.objects.select_related("status").annotate(
-        participant_count=Count("participant")
+    # Always show planned & ongoing events, sorted by date ascending (next upcoming first)
+    events = (
+        Event.objects.select_related("status")
+        .filter(status__name__in=["Planned", "Ongoing"])
+        .annotate(participant_count=Count("participant"))
+        .order_by("event_date", "start_time")
     )
-
-    # Apply status filter
-    if filter_status == "active":
-        filtered_statuses = ["Planned", "Ongoing"]
-        base_events = base_events.filter(status__name__in=filtered_statuses)
-
-    # Apply year filter
-    if filter_year:
-        base_events = base_events.filter(event_date__year=filter_year)
-
-    # Get filtered events
-    events = base_events.order_by("event_date", "start_time")
-
-    # Get available years for filter dropdown
-    available_years = Event.objects.dates("event_date", "year", order="DESC")
 
     # Filter participants for insights based on filtered events
     filtered_event_ids = list(events.values_list("id", flat=True))
@@ -3164,10 +3181,6 @@ def dashboard(request):
         "pending_participants": pending_participants,
         "rejected_participants": rejected_participants,
         "participants_per_event": participants_per_event,
-        "all_statuses": all_statuses,
-        "timeline_status": filter_status,
-        "available_years": available_years,
-        "selected_year": filter_year,
     }
     return render(request, "dashboard.html", context)
 

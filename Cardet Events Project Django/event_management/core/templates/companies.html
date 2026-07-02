@@ -92,32 +92,43 @@
                     </td>
 
                     <!-- Actions -->
-                    <td class="px-4 py-3">
-                        <div class="flex items-center justify-end gap-2">
+                    <td class="px-4 py-3 text-right">
+                        <!-- Three-dot trigger -->
+                        <button type="button"
+                                class="action-menu-btn p-1.5 rounded-lg bg-gray-100 rotate-90 text-gray-400 hover:text-gray-600 transition-colors"
+                                data-row-id="{{ company.id }}"
+                                aria-label="Actions">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 pointer-events-none" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                            </svg>
+                        </button>
+                        <!-- Dropdown menu -->
+                        <div id="action-dropdown-{{ company.id }}"
+                             class="action-dropdown hidden fixed w-44 bg-white rounded-xl shadow-lg border border-gray-100 z-[9999] py-1 text-sm">
                             <a href="{% url 'company_detail' company.id %}"
-                               class="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 font-medium text-xs border border-indigo-200 hover:border-indigo-400 rounded-md px-2 py-1 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                               class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
                                 View
                             </a>
                             <a href="{% url 'company_edit' company.id %}"
-                               class="inline-flex items-center gap-1 text-gray-500 hover:text-gray-700 font-medium text-xs border border-gray-200 hover:border-gray-400 rounded-md px-2 py-1 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>
+                               class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z"/><path fill-rule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clip-rule="evenodd"/></svg>
                                 Edit
                             </a>
+                            <div class="border-t border-gray-100 my-1"></div>
                             {% if is_admin %}
                                 <button data-company-id="{{ company.id }}"
                                         data-upcoming-count="{{ company.upcoming_event_count }}"
                                         data-delete-url="{% url 'company_delete' company.id %}"
-                                        class="delete-company-btn inline-flex items-center gap-1 text-red-500 hover:text-red-700 font-medium text-xs border border-red-200 hover:border-red-400 rounded-md px-2 py-1 transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        class="delete-company-btn w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                     Delete
                                 </button>
                             {% else %}
-                                <button disabled title="Only admins can delete companies"
-                                        class="inline-flex items-center gap-1 text-red-300 font-medium text-xs border border-red-100 rounded-md px-2 py-1 cursor-not-allowed opacity-50">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                <span class="w-full text-left px-4 py-2 text-gray-300 flex items-center gap-2.5 cursor-not-allowed" title="Only admins can delete companies">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                                     Delete
-                                </button>
+                                </span>
                             {% endif %}
                         </div>
                     </td>
@@ -194,6 +205,88 @@
             });
         });
     });
+</script>
+
+<!-- Action dropdown logic -->
+<script>
+(function () {
+    function closeAll() {
+        document.querySelectorAll('.action-dropdown').forEach(function (d) {
+            d.classList.add('hidden');
+            d.style.maxHeight = '';
+            d.style.overflowY = '';
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.action-menu-btn');
+
+        if (btn) {
+            e.stopPropagation();
+            const id       = btn.getAttribute('data-row-id');
+            const dropdown = document.getElementById('action-dropdown-' + id);
+            const isOpen   = !dropdown.classList.contains('hidden');
+
+            closeAll();
+
+            if (!isOpen) {
+                const rect       = btn.getBoundingClientRect();
+                const gap        = 6;
+                const spaceBelow = window.innerHeight - rect.bottom - gap;
+                const spaceAbove = rect.top - gap;
+
+                dropdown.style.visibility = 'hidden';
+                dropdown.style.top  = '-9999px';
+                dropdown.style.left = '-9999px';
+                dropdown.classList.remove('hidden');
+                const naturalH = dropdown.offsetHeight;
+                dropdown.classList.add('hidden');
+                dropdown.style.visibility = '';
+                dropdown.style.top  = '';
+                dropdown.style.left = '';
+
+                dropdown.style.right = (window.innerWidth - rect.right) + 'px';
+                dropdown.style.left  = 'auto';
+
+                if (spaceBelow >= naturalH) {
+                    dropdown.style.top    = (rect.bottom + gap) + 'px';
+                    dropdown.style.bottom = 'auto';
+                    dropdown.style.maxHeight = '';
+                    dropdown.style.overflowY = '';
+                } else if (spaceAbove >= naturalH) {
+                    dropdown.style.bottom = (window.innerHeight - rect.top + gap) + 'px';
+                    dropdown.style.top    = 'auto';
+                    dropdown.style.maxHeight = '';
+                    dropdown.style.overflowY = '';
+                } else if (spaceBelow >= spaceAbove) {
+                    dropdown.style.top       = (rect.bottom + gap) + 'px';
+                    dropdown.style.bottom    = 'auto';
+                    dropdown.style.maxHeight = spaceBelow + 'px';
+                    dropdown.style.overflowY = 'auto';
+                } else {
+                    dropdown.style.bottom    = (window.innerHeight - rect.top + gap) + 'px';
+                    dropdown.style.top       = 'auto';
+                    dropdown.style.maxHeight = spaceAbove + 'px';
+                    dropdown.style.overflowY = 'auto';
+                }
+
+                dropdown.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (!e.target.closest('.action-dropdown')) {
+            closeAll();
+        }
+    });
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeAll();
+    });
+
+    window.addEventListener('scroll', closeAll, true);
+    window.addEventListener('resize',  closeAll);
+}());
 </script>
 
 {% endblock %}
